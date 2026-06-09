@@ -1,0 +1,59 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+        <!-- 로고 -->
+        <?php if (!empty($settings['site_logo'])): ?>
+            <a class="navbar-brand" href="/"><img src="/<?= esc($settings['site_logo']) ?>" alt="<?= esc($settings['site_name']) ?>" style="height:40px"></a>
+        <?php else: ?>
+            <a class="navbar-brand fw-bold" href="/"><?= esc($settings['site_name'] ?? '') ?></a>
+        <?php endif; ?>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <?php foreach ($menus as $menu): ?>
+                <li class="nav-item <?= !empty($menu['children']) ? 'dropdown' : '' ?>">
+                    <?php if (!empty($menu['children'])): ?>
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <?= esc($menu['title']) ?>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <?php foreach ($menu['children'] as $child): ?>
+                            <li>
+                                <a class="dropdown-item" href="<?= esc($child['url']) ?>" target="<?= esc($child['target']) ?>">
+                                    <?= esc($child['title']) ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <a class="nav-link" href="<?= esc($menu['url']) ?>" target="<?= esc($menu['target']) ?>">
+                            <?= esc($menu['title']) ?>
+                        </a>
+                    <?php endif; ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <!-- 우측 -->
+            <div class="d-flex align-items-center gap-2">
+                <?php if (!empty($settings['phone'])): ?>
+                    <a href="tel:<?= esc($settings['phone']) ?>" class="btn btn-outline-primary btn-sm d-none d-lg-inline-flex">
+                        <i class="bi bi-telephone me-1"></i><?= esc($settings['phone']) ?>
+                    </a>
+                <?php endif; ?>
+                <?php if ($authUser['loggedIn']): ?>
+                    <span class="text-muted small d-none d-lg-inline"><?= esc($authUser['nickname']) ?></span>
+                    <?php if ($authUser['role'] === 'admin'): ?>
+                        <a href="/admin" class="btn btn-sm btn-outline-warning">관리자</a>
+                    <?php endif; ?>
+                    <a href="/auth/logout" class="btn btn-sm btn-outline-secondary">로그아웃</a>
+                <?php else: ?>
+                    <a href="/auth/login" class="btn btn-sm btn-outline-secondary">로그인</a>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</nav>

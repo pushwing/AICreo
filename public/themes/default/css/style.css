@@ -1,0 +1,70 @@
+/* ─── 기본 리셋 ────────────────────────────────── */
+:root {
+    --primary: #0d6efd;
+    --dark:    #1e2a38;
+}
+
+body {
+    font-family: 'Noto Sans KR', -apple-system, sans-serif;
+    color: #333;
+}
+
+/* ─── 네비게이션 ────────────────────────────────── */
+.navbar {
+    border-bottom: 1px solid #f0f0f0;
+}
+.navbar-brand {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+.nav-link {
+    font-weight: 500;
+    font-size: .9rem;
+}
+
+/* ─── 히어로 ─────────────────────────────────────── */
+.hero-section {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+}
+
+/* ─── 페이지 콘텐츠 ──────────────────────────────── */
+.page-content img {
+    max-width: 100%;
+    height: auto;
+}
+.page-content h2, .page-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: .75rem;
+}
+
+/* ─── 게시판 ─────────────────────────────────────── */
+.board-table th {
+    background: #f8f9fa;
+    font-size: .8rem;
+    font-weight: 600;
+}
+.board-table td {
+    font-size: .875rem;
+    vertical-align: middle;
+}
+
+/* ─── 카드 공통 ──────────────────────────────────── */
+.card {
+    border-radius: .75rem;
+}
+
+/* ─── 푸터 ───────────────────────────────────────── */
+footer a {
+    color: #adb5bd;
+    text-decoration: none;
+}
+footer a:hover {
+    color: #fff;
+}
+
+/* ─── 유틸 ───────────────────────────────────────── */
+.object-fit-cover {
+    object-fit: cover;
+}

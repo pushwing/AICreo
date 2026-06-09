@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Controllers;
+
+use App\Models\InquiryModel;
+use App\Models\MenuModel;
+use App\Models\SettingModel;
+use CodeIgniter\Controller;
+
+class BaseController extends Controller
+{
+    protected array $viewData = [];
+
+    public function initController(
+        \CodeIgniter\HTTP\RequestInterface $request,
+        \CodeIgniter\HTTP\ResponseInterface $response,
+        \Psr\Log\LoggerInterface $logger
+    ) {
+        parent::initController($request, $response, $logger);
+
+        // 전역 사이트 설정 (캐시됨)
+        $settings = (new SettingModel())->getAllAsMap();
+
+        // 전역 네비게이션 메뉴 (캐시됨)
+        $menus = (new MenuModel())->getTree();
+
+        // 로그인 정보
+        $authUser = [
+            'id'       => session()->get('user_id'),
+            'nickname' => session()->get('user_nickname'),
+            'role'     => session()->get('user_role') ?? 'guest',
+            'loggedIn' => (bool) session()->get('user_id'),
+        ];
+
+        // 관리자용: 미읽음 문의 수
+        $unreadInquiries = 0;
+        if ($authUser['role'] === 'admin') {
+            $unreadInquiries = (new InquiryModel())->getUnreadCount();
+        }
+
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries');
+    }
+
+    protected function getUserRole(): string
+    {
+        return session()->get('user_role') ?? 'guest';
+    }
+
+    /**
+     * guest | member | admin 권한 체크
+     */
+    protected function checkPermission(string $required): bool
+    {
+        $role = $this->getUserRole();
+        return match ($required) {
+            'guest'  => true,
+            'member' => in_array($role, ['member', 'admin']),
+            'admin'  => $role === 'admin',
+            default  => false,
+        };
+    }
+
+    protected function render(string $view, array $data = []): string
+    {
+        return view($view, array_merge($this->viewData, $data));
+    }
+}

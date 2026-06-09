@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Controllers\Admin;
+
+use App\Controllers\BaseController;
+use App\Libraries\MediaUploader;
+use App\Models\MediaModel;
+
+class MediaController extends BaseController
+{
+    private MediaModel    $mediaModel;
+    private MediaUploader $uploader;
+
+    public function __construct()
+    {
+        $this->mediaModel = new MediaModel();
+        $this->uploader   = new MediaUploader();
+    }
+
+    public function index()
+    {
+        $page   = (int) ($this->request->getGet('page') ?? 1);
+        $limit  = 24;
+        $offset = ($page - 1) * $limit;
+        $total  = $this->mediaModel->countAll();
+
+        return $this->render('admin/media/index', [
+            'mediaList'  => $this->mediaModel->getList($limit, $offset),
+            'totalPages' => (int) ceil($total / $limit),
+            'currentPage'=> $page,
+        ]);
+    }
+
+    public function upload()
+    {
+        $file = $this->request->getFile('file');
+        if (! $file || ! $file->isValid()) {
+            return $this->response->setJSON(['success' => false, 'error' => '파일 없음']);
+        }
+
+        $alt    = $this->request->getPost('alt') ?? '';
+        $result = $this->uploader->upload($file, $alt);
+
+        return $this->response->setJSON($result);
+    }
+
+    public function updateAlt(int $id)
+    {
+        $this->mediaModel->update($id, ['alt' => $this->request->getPost('alt')]);
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    public function delete(int $id)
+    {
+        $this->mediaModel->deleteWithFile($id);
+        return redirect()->to('/admin/media')->with('success', '삭제되었습니다.');
+    }
+}
