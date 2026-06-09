@@ -48,6 +48,9 @@
         <a href="/admin/banners" class="nav-link <?= str_starts_with(uri_string(), 'admin/banners') ? 'active' : '' ?>">
             <i class="bi bi-image me-2"></i>배너 관리
         </a>
+        <a href="/admin/popups" class="nav-link <?= str_starts_with(uri_string(), 'admin/popups') ? 'active' : '' ?>">
+            <i class="bi bi-window me-2"></i>팝업 관리
+        </a>
 
         <div class="nav-section">운영</div>
         <a href="/admin/users" class="nav-link <?= str_starts_with(uri_string(), 'admin/users') ? 'active' : '' ?>">
@@ -94,6 +97,12 @@
         </div>
         <?php endif; ?>
     <?php endforeach; ?>
+    <?php if (session()->has('errors')): ?>
+    <div class="alert alert-danger alert-dismissible fade show">
+        <?php foreach (session('errors') as $e): ?><div><?= esc($e) ?></div><?php endforeach; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <?php endif; ?>
 
     <?= $this->renderSection('content') ?>
 </div>

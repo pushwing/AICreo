@@ -102,6 +102,14 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'banners/(:num)/edit',  'Admin\BannerController::edit/$1');
     $routes->post('banners/(:num)/edit',  'Admin\BannerController::update/$1');
     $routes->post('banners/(:num)/delete','Admin\BannerController::delete/$1');
+
+    // 팝업 관리
+    $routes->get( 'popups',              'Admin\PopupController::index');
+    $routes->get( 'popups/create',       'Admin\PopupController::create');
+    $routes->post('popups/create',       'Admin\PopupController::store');
+    $routes->get( 'popups/(:num)/edit',  'Admin\PopupController::edit/$1');
+    $routes->post('popups/(:num)/edit',  'Admin\PopupController::update/$1');
+    $routes->post('popups/(:num)/delete','Admin\PopupController::delete/$1');
 });
 
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────

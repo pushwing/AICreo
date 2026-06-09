@@ -55,5 +55,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/themes/default/js/main.js"></script>
 <?= $this->renderSection('scripts') ?>
+<?= $this->include('components/popups') ?>
+<script src="/themes/default/js/popup.js"></script>
 </body>
 </html>

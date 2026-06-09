@@ -105,3 +105,54 @@ footer a:hover {
     height: auto;
     margin-bottom: 8px;
 }
+
+/* ─── 팝업 레이어 ───────────────────────────────── */
+.site-popup {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.22);
+    max-width: 380px;
+    width: max-content;
+    max-width: min(380px, calc(100vw - 40px));
+}
+.site-popup-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #888;
+    padding: 0 4px;
+}
+.site-popup-close:hover { color: #333; }
+.site-popup-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px 8px 0 0;
+}
+.site-popup-body {
+    padding: 1rem 1rem .5rem;
+    font-size: .9rem;
+    line-height: 1.6;
+}
+.site-popup-body:first-child { padding-top: 2rem; }
+.site-popup-footer {
+    padding: .5rem 1rem .75rem;
+    border-top: 1px solid #f0f0f0;
+}
+.site-popup-today {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .8rem;
+    color: #888;
+    cursor: pointer;
+    user-select: none;
+}
