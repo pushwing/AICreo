@@ -28,11 +28,12 @@
 |------|------|
 | 다중 게시판 | 슬러그별 독립 게시판 (공지사항 · 자유 · 문의 등) |
 | 권한 관리 | 읽기·쓰기 권한을 **비회원 / 회원 / 관리자** 단위로 게시판별 설정 |
+| 위지윅 에디터 | TinyMCE 6 기반 글쓰기·수정, 이미지 붙여넣기·업로드 지원 |
 | 파일 첨부 | 이미지 + 일반 파일 복수 첨부, 확장자 화이트리스트 보안, 최대 10MB |
 | 비회원 게시 | 이름 + 비밀번호 입력으로 작성·수정·삭제 |
 | 댓글 | 회원·비회원 댓글, 소프트 삭제 |
 | 검색 | 제목 / 내용 / 제목+내용 키워드 검색 |
-| 공지글 | 관리자 전용 상단 고정 공지 |
+| 공지글 | 관리자 전용 상단 고정 공지 (최대 5개 표시) |
 | 비밀글 | 작성자·관리자만 열람 가능 |
 
 ### 관리자 패널 (`/admin`)
@@ -54,7 +55,7 @@
 |------|------|
 | 백엔드 | CodeIgniter 4 |
 | 프론트 | Bootstrap 5 · Bootstrap Icons |
-| 에디터 | TinyMCE 6 (무료 CDN) |
+| 에디터 | TinyMCE 6 (CDN · API 키 `.env` 관리) |
 | DB | MySQL / MariaDB |
 | 인증 | CI4 Session 기반 |
 | 캐시 | CI4 File Cache (설정·메뉴) |
@@ -67,7 +68,9 @@
 app/
 ├── Config/
 │   ├── Routes.php          # 전체 라우팅
-│   └── Filters.php         # auth:member / auth:admin 필터
+│   ├── Filters.php         # auth:member / auth:admin 필터
+│   ├── OAuth.php           # 소셜 로그인 설정
+│   └── Editor.php          # TinyMCE API 키 (.env 참조)
 ├── Controllers/
 │   ├── BaseController.php  # 설정·메뉴·세션 전역 주입
 │   ├── Front/
@@ -137,7 +140,7 @@ cd my-project
 ```bash
 cp env .env
 ```
-`.env` 파일에서 DB 정보 수정:
+`.env` 파일에서 DB 정보 및 기타 설정 수정:
 ```
 CI_ENVIRONMENT = development
 database.default.hostname = localhost
@@ -145,6 +148,9 @@ database.default.database = your_db_name
 database.default.username = your_db_user
 database.default.password = your_db_password
 database.default.DBDriver = MySQLi
+
+# TinyMCE API 키 (https://www.tiny.cloud 에서 발급)
+editor.tinymce_api_key = your-tinymce-api-key
 ```
 
 ### 4. 마이그레이션 실행
@@ -243,6 +249,12 @@ php spark serve
 | 비회원 수정 흐름 | `POST board/{slug}/{id}/verify` 엔드포인트 추가. 수정 폼 진입 전 비밀번호 인증 → 세션 토큰 발급 순서로 흐름 완성 |
 | 공지글 상한 | `getList()` 내 공지글 조회에 `findAll(5)` 상한 추가, 공지 다수 시 풀스캔 방지 |
 | 파일 업로드 정리 | `store()` 내 `getFiles()` + `getFileMultiple()` 중복 호출 제거, `getFileMultiple()` 단일 사용으로 통일 |
+| 로그인 후 리다이렉트 | 글쓰기 미로그인 시 `flashdata` → `setTempdata(300s)` 로 변경, 로그인 후 원래 페이지로 정상 복귀 |
+| 게시판·인증 뷰 폭 | `board/list`, `view`, `write`, `auth/login`, `register`에 Bootstrap `container` 래퍼 추가 |
+| 카드 테두리 깨짐 | `.card` CSS를 `border-radius` 직접 지정 → `--bs-card-border-radius` / `--bs-card-inner-border-radius` CSS 변수로 교체 |
+| 카드 내부 깨짐 | `.card`에 `overflow: hidden` 추가, 둥근 모서리 밖 배경 삐져나옴 방지 |
+| 게시판 위지윅 에디터 | 글쓰기·수정에 TinyMCE 6 적용, 이미지 붙여넣기·업로드용 `POST board/image-upload` 엔드포인트 추가 (로그인 필수) |
+| TinyMCE API 키 | `Config/Editor.php` 추가, `.env`의 `editor.tinymce_api_key`로 관리 |
 
 ---
 
