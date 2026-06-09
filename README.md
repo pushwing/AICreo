@@ -331,6 +331,7 @@ app/Views/themes/{테마명}/components/footer.php
 | 푸터 | 다크 | 다크 + 인디고 섹션 타이틀 |
 | SNS 아이콘 | 정적 | hover 시 인디고 변색 + 위 이동 |
 | 포함 파일 | — | layouts, components 전체 + CSS/JS |
+| 썸네일 | — | `thumbnail.png` 없음 (직접 추가 가능) |
 
 ---
 
@@ -340,6 +341,7 @@ app/Views/themes/{테마명}/components/footer.php
 
 | 항목 | 변경 내용 |
 |------|----------|
+| **테마 썸네일** | 테마 카드 미리보기 파일명을 `preview.png` → `thumbnail.png` 로 변경. ZIP의 `public/thumbnail.png` 또는 `public/themes/{테마명}/thumbnail.png` 배치 시 관리자 카드에 자동 표시 |
 | **dark 샘플 테마** | `dark.zip` 추가 — 다크 네이비 네비게이션, 인디고 포인트, 다크 푸터. `/admin/settings/theme` 업로드로 즉시 테스트 가능 |
 | **테마 ZIP 업로드** | `/admin/settings/theme` 에서 ZIP 파일 업로드 → 압축 해제 → 자동 설치. 필수 파일 체크(`views/layouts/main.php`, `public/css/style.css`), Zip-slip 방지, 확장자 화이트리스트, `default` 예약어 보호 |
 | **테마 시스템** | `ThemeView` 렌더러 도입 — `app/Views/themes/{테마명}/` 폴더 기반 레이아웃·컴포넌트 교체 지원. 해석 순서: 활성 테마 → default 테마 → 원본 경로. `Config/Services.php`로 CI4 기본 렌더러 교체 |
