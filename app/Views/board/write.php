@@ -60,7 +60,7 @@
             </div>
 
             <div class="mb-3">
-                <textarea name="content" class="form-control" rows="12" placeholder="내용 *" required><?= esc(old('content', $post['content'] ?? '')) ?></textarea>
+                <textarea name="content" id="content-editor" class="form-control" rows="12"><?= esc(old('content', $post['content'] ?? '')) ?></textarea>
             </div>
 
             <!-- 기존 파일 목록 (수정 시) -->
@@ -111,7 +111,20 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
+tinymce.init({
+    selector: '#content-editor',
+    language: 'ko_KR',
+    height: 400,
+    plugins: 'lists link table code',
+    toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright | bullist numlist | link | removeformat | code',
+    menubar: false,
+    setup(editor) {
+        editor.on('submit', () => editor.save());
+    },
+});
+
 // 선택한 파일명 표시
 document.querySelector('input[type=file]')?.addEventListener('change', function() {
     const names = Array.from(this.files).map(f => f.name).join(', ');

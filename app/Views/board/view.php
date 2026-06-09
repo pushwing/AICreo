@@ -18,8 +18,8 @@
         </div>
     </div>
     <div class="card-body">
-        <div style="min-height:200px; line-height:1.8;">
-            <?= nl2br(esc($post['content'])) ?>
+        <div class="post-content">
+            <?= $post['content'] ?>
         </div>
 
         <!-- 이미지 첨부 -->

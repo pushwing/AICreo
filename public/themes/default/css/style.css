@@ -39,6 +39,17 @@ body {
     margin-bottom: .75rem;
 }
 
+/* ─── 게시글 본문 ────────────────────────────────── */
+.post-content {
+    min-height: 200px;
+    line-height: 1.8;
+    overflow-wrap: break-word;
+}
+.post-content img {
+    max-width: 100%;
+    height: auto;
+}
+
 /* ─── 게시판 ─────────────────────────────────────── */
 .board-table th {
     background: #f8f9fa;
