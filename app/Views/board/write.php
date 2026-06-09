@@ -81,22 +81,26 @@
             <?php endif; ?>
 
             <!-- 파일 첨부 -->
-            <?php if ($board['allow_file'] || $board['allow_image']): ?>
+            <?php
+            $imageExts   = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $fileExts    = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'txt', 'hwp'];
+            $allowedExts = array_merge(
+                $board['allow_image'] ? $imageExts : [],
+                $board['allow_file']  ? $fileExts  : []
+            );
+            ?>
+            <?php if ($allowedExts): ?>
             <div class="mb-3">
-                <label class="form-label small">
-                    파일 첨부
-                    <span class="text-muted">(최대 10MB / 복수 선택 가능</span>
-                    <?php if ($board['allow_image'] && !$board['allow_file']): ?>
-                        <span class="text-muted">, 이미지만 허용)</span>
-                    <?php elseif (!$board['allow_image'] && $board['allow_file']): ?>
-                        <span class="text-muted">, 이미지 제외)</span>
-                    <?php else: ?>
-                        <span class="text-muted">)</span>
-                    <?php endif; ?>
-                </label>
-                <input type="file" name="attachments[]" class="form-control form-control-sm" multiple
-                       accept="<?= $board['allow_image'] ? 'image/*,' : '' ?>.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt,.hwp">
-                <div class="form-text text-muted" id="fileNames"></div>
+                <label class="form-label small">파일 첨부</label>
+                <input type="file" name="attachments[]" id="attachments"
+                       class="form-control form-control-sm" multiple
+                       accept="<?= implode(',', array_map(fn($e) => '.' . $e, $allowedExts)) ?>">
+                <div class="form-text text-muted">
+                    허용 형식: <span class="fw-semibold"><?= strtoupper(implode(', ', $allowedExts)) ?></span>
+                    &nbsp;·&nbsp; 최대 <span class="fw-semibold">10MB</span> / 복수 선택 가능
+                </div>
+                <div id="fileErrors" class="mt-1"></div>
+                <div id="fileNames"  class="form-text text-muted mt-1"></div>
             </div>
             <?php endif; ?>
 
@@ -136,10 +140,39 @@ tinymce.init({
     },
 });
 
-// 선택한 파일명 표시
-document.querySelector('input[type=file]')?.addEventListener('change', function() {
-    const names = Array.from(this.files).map(f => f.name).join(', ');
-    document.getElementById('fileNames').textContent = names || '';
-});
+// 파일 선택 시 클라이언트 사전 검증
+const attachInput = document.getElementById('attachments');
+if (attachInput) {
+    const ALLOWED = <?= json_encode($allowedExts) ?>;
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    attachInput.addEventListener('change', function () {
+        const errors = [];
+        const names  = [];
+
+        Array.from(this.files).forEach(file => {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (! ALLOWED.includes(ext)) {
+                errors.push(`${file.name}: 허용되지 않는 형식 (.${ext})`);
+            } else if (file.size > MAX_BYTES) {
+                errors.push(`${file.name}: 파일 크기 초과 (${(file.size/1024/1024).toFixed(1)}MB)`);
+            } else {
+                names.push(`${file.name} (${(file.size/1024).toFixed(0)}KB)`);
+            }
+        });
+
+        const errBox  = document.getElementById('fileErrors');
+        const nameBox = document.getElementById('fileNames');
+
+        errBox.innerHTML = errors.map(e =>
+            `<div class="text-danger small"><i class="bi bi-exclamation-circle"></i> ${e}</div>`
+        ).join('');
+
+        nameBox.textContent = names.length ? '선택된 파일: ' + names.join(' / ') : '';
+
+        // 오류 있으면 input 초기화
+        if (errors.length) this.value = '';
+    });
+}
 </script>
 <?= $this->endSection() ?>
