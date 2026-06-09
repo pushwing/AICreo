@@ -318,12 +318,29 @@ app/Views/themes/{테마명}/components/footer.php
 
 ---
 
+## 샘플 테마
+
+저장소에 `dark.zip` 샘플 테마가 포함되어 있습니다.  
+`/admin/settings/theme` 에서 바로 업로드해 테마 시스템을 테스트할 수 있습니다.
+
+| 항목 | default | dark |
+|------|---------|------|
+| 네비게이션 | 흰 배경 + 하단 선 | `#0f172a` 다크 네이비 |
+| 포인트 컬러 | Bootstrap 파랑 `#0d6efd` | 인디고 `#6366f1` |
+| 버튼 | 파란 계열 | 인디고 계열 |
+| 푸터 | 다크 | 다크 + 인디고 섹션 타이틀 |
+| SNS 아이콘 | 정적 | hover 시 인디고 변색 + 위 이동 |
+| 포함 파일 | — | layouts, components 전체 + CSS/JS |
+
+---
+
 ## 변경 이력
 
 ### 2026-06-09 (최근 추가)
 
 | 항목 | 변경 내용 |
 |------|----------|
+| **dark 샘플 테마** | `dark.zip` 추가 — 다크 네이비 네비게이션, 인디고 포인트, 다크 푸터. `/admin/settings/theme` 업로드로 즉시 테스트 가능 |
 | **테마 ZIP 업로드** | `/admin/settings/theme` 에서 ZIP 파일 업로드 → 압축 해제 → 자동 설치. 필수 파일 체크(`views/layouts/main.php`, `public/css/style.css`), Zip-slip 방지, 확장자 화이트리스트, `default` 예약어 보호 |
 | **테마 시스템** | `ThemeView` 렌더러 도입 — `app/Views/themes/{테마명}/` 폴더 기반 레이아웃·컴포넌트 교체 지원. 해석 순서: 활성 테마 → default 테마 → 원본 경로. `Config/Services.php`로 CI4 기본 렌더러 교체 |
 | **테마 관리 UI** | `/admin/settings/theme` 탭 추가 — 설치된 테마 카드 목록 표시, 클릭 한 번으로 전환. `preview.png` 있으면 미리보기 표시 |
