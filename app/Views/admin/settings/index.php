@@ -9,6 +9,9 @@
         <a class="nav-link <?= $group === $g ? 'active' : '' ?>" href="/admin/settings/<?= $g ?>"><?= $label ?></a>
     </li>
     <?php endforeach; ?>
+    <li class="nav-item">
+        <a class="nav-link" href="/admin/settings/oauth">소셜 로그인</a>
+    </li>
 </ul>
 
 <div class="card border-0 shadow-sm" style="max-width:600px">

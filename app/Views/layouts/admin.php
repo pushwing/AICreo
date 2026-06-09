@@ -54,8 +54,11 @@
         </a>
 
         <div class="nav-section">설정</div>
-        <a href="/admin/settings/general" class="nav-link <?= str_starts_with(uri_string(), 'admin/settings') ? 'active' : '' ?>">
+        <a href="/admin/settings/general" class="nav-link <?= uri_string() !== 'admin/settings/oauth' && str_starts_with(uri_string(), 'admin/settings') ? 'active' : '' ?>">
             <i class="bi bi-gear me-2"></i>사이트 설정
+        </a>
+        <a href="/admin/settings/oauth" class="nav-link <?= uri_string() === 'admin/settings/oauth' ? 'active' : '' ?>">
+            <i class="bi bi-people me-2"></i>소셜 로그인
         </a>
 
         <div class="nav-section mt-3">사이트</div>

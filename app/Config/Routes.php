@@ -14,6 +14,10 @@ $routes->get( 'auth/logout',   'Front\AuthController::logout');
 $routes->get( 'auth/register', 'Front\AuthController::register');
 $routes->post('auth/register', 'Front\AuthController::registerProcess');
 
+// ─── 소셜 로그인 ──────────────────────────────────────────────────────────────
+$routes->get('auth/social/(:segment)',          'Front\SocialAuthController::redirect/$1');
+$routes->get('auth/social/(:segment)/callback', 'Front\SocialAuthController::callback/$1');
+
 // ─── 게시판 ───────────────────────────────────────────────────────────────────
 $routes->get( 'board/(:segment)',                              'Front\BoardController::index/$1');
 $routes->get( 'board/(:segment)/write',                        'Front\BoardController::write/$1');

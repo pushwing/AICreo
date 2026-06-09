@@ -16,6 +16,11 @@ class SettingController extends BaseController
 
     public function index(string $group = 'general')
     {
+        // oauth 탭은 별도 뷰 (읽기 전용 가이드)
+        if ($group === 'oauth') {
+            return $this->render('admin/settings/oauth', ['group' => 'oauth']);
+        }
+
         $allowed = ['general', 'contact', 'sns', 'seo', 'footer'];
         if (! in_array($group, $allowed)) $group = 'general';
 
