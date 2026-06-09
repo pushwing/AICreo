@@ -2,17 +2,6 @@
 <?php $pageTitle = '테마 관리' ?>
 <?= $this->section('content') ?>
 
-<!-- 탭 -->
-<ul class="nav nav-tabs mb-4">
-    <?php foreach (['general' => '기본', 'contact' => '연락처', 'sns' => 'SNS', 'seo' => 'SEO', 'footer' => '푸터', 'theme' => '테마'] as $g => $label): ?>
-    <li class="nav-item">
-        <a class="nav-link <?= $group === $g ? 'active' : '' ?>" href="/admin/settings/<?= $g ?>"><?= $label ?></a>
-    </li>
-    <?php endforeach; ?>
-    <li class="nav-item">
-        <a class="nav-link" href="/admin/settings/oauth">소셜 로그인</a>
-    </li>
-</ul>
 
 <div style="max-width:720px">
 
