@@ -31,9 +31,27 @@
 | `app/Models/BannerModel.php` | 배너 모델 |
 | `app/Libraries/BannerUploader.php` | 이미지 업로드 처리 |
 | `app/Controllers/Admin/BannerController.php` | 관리자 CRUD |
+| `app/Controllers/BaseController.php` | `$subLeftBanners` 전역 주입 (admin 경로 제외) |
+| `app/Controllers/Front/HomeController.php` | `$mainTopBanners`, `$mainBotBanners` 홈 전달 |
 | `app/Views/admin/banners/list.php` | 관리자 목록 뷰 |
 | `app/Views/admin/banners/form.php` | 등록/수정 폼 |
 | `app/Views/themes/default/components/banner_slot.php` | 메인 배너 렌더링 컴포넌트 |
+| `app/Views/themes/default/layouts/main.php` | default 레이아웃 서브 좌측 배너 슬롯 |
+
+### Spring 테마 추가 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Views/themes/spring/layouts/main.php` | 홈/서브 조건 분기, 서브 좌측 배너 사이드바 |
+| `app/Views/themes/spring/pages/home.php` | 메인 상단/하단 배너 섹션 포함 홈 뷰 |
+| `public/themes/spring/css/style.css` | `.sp-main-banner-*`, `.sp-banner-img` 스타일 |
+
+### 주요 트러블슈팅
+| 항목 | 원인 | 해결 |
+|---|---|---|
+| 서브 좌측 배너 미표시 | spring 테마 layouts에 하드코딩된 플레이스홀더 | DB 데이터 기반 렌더링으로 교체 |
+| 배너 시간 조건 오작동 | PHP 서버 UTC, 사용자 입력 KST | `App.php` `appTimezone = 'Asia/Seoul'` 설정 |
+| CI4 NULL 조건 쿼리 오류 | `groupStart/orWhere` NULL 호환 이슈 | raw where 문자열로 변경 |
+| 홈 리디자인 후 서브 배너 소실 | 레이아웃 전체에서 사이드바 제거 | `uri_string()` 조건으로 홈만 제외 |
 
 ---
 
