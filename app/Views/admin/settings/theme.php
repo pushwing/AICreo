@@ -25,11 +25,11 @@
                 파일명이 테마 이름이 됩니다 (예: <code>my-theme.zip</code> → <code>my-theme</code>).
             </p>
 
-            <form method="post" action="/admin/settings/theme/upload" enctype="multipart/form-data">
+            <form id="themeUploadForm" method="post" action="/admin/settings/theme/upload" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <div class="d-flex gap-2 align-items-start">
                     <div class="flex-grow-1">
-                        <input type="file" name="theme_zip" class="form-control form-control-sm" accept=".zip" required>
+                        <input id="themeZipInput" type="file" name="theme_zip" class="form-control form-control-sm" accept=".zip" required>
                         <div class="form-text">
                             필수: <code>views/layouts/main.php</code> · <code>public/css/style.css</code>
                         </div>
@@ -129,4 +129,72 @@
     </div>
 </div>
 
+<?= $this->endSection() ?>
+
+<!-- 중복 테마 확인 모달 -->
+<div class="modal fade" id="dupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3" style="font-size:2.5rem">⚠️</div>
+                <h6 class="fw-semibold mb-2">이미 설치된 테마입니다</h6>
+                <p class="text-muted small mb-4">
+                    <code id="dupThemeName"></code> 테마가 이미 존재합니다.<br>
+                    파일을 덮어쓰고 업데이트하시겠습니까?
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-4"
+                            data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-warning btn-sm px-4"
+                            id="btnConfirmUpdate">업데이트</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?= $this->section('scripts') ?>
+<script>
+(function () {
+    // PHP에서 현재 설치된 테마 이름 목록 전달
+    const existingThemes = <?= json_encode(array_keys($availableThemes)) ?>;
+
+    // PHP의 테마명 추출 로직과 동일하게 처리
+    function toThemeName(filename) {
+        return filename
+            .replace(/\.zip$/i, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\-_]+/g, '-')
+            .replace(/^[-_]+|[-_]+$/g, '');
+    }
+
+    const form    = document.getElementById('themeUploadForm');
+    const input   = document.getElementById('themeZipInput');
+    const modal   = new bootstrap.Modal(document.getElementById('dupModal'));
+    const nameEl  = document.getElementById('dupThemeName');
+    const btnOk   = document.getElementById('btnConfirmUpdate');
+
+    form.addEventListener('submit', function (e) {
+        if (!input.files.length) return;
+
+        const themeName = toThemeName(input.files[0].name);
+
+        if (existingThemes.includes(themeName)) {
+            e.preventDefault();
+            nameEl.textContent = themeName;
+            modal.show();
+        }
+    });
+
+    // 업데이트 확인 → 모달 닫고 폼 제출
+    btnOk.addEventListener('click', function () {
+        modal.hide();
+        document.getElementById('dupModal').addEventListener(
+            'hidden.bs.modal',
+            function () { form.submit(); },
+            { once: true }
+        );
+    });
+})();
+</script>
 <?= $this->endSection() ?>
