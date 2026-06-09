@@ -38,11 +38,17 @@
         <a href="/admin/boards" class="nav-link <?= str_starts_with(uri_string(), 'admin/boards') ? 'active' : '' ?>">
             <i class="bi bi-card-list me-2"></i>게시판 관리
         </a>
+        <a href="/admin/posts" class="nav-link <?= str_starts_with(uri_string(), 'admin/posts') ? 'active' : '' ?>">
+            <i class="bi bi-file-earmark-text me-2"></i>전체 게시물
+        </a>
         <a href="/admin/media" class="nav-link <?= str_starts_with(uri_string(), 'admin/media') ? 'active' : '' ?>">
             <i class="bi bi-images me-2"></i>미디어
         </a>
 
         <div class="nav-section">운영</div>
+        <a href="/admin/users" class="nav-link <?= str_starts_with(uri_string(), 'admin/users') ? 'active' : '' ?>">
+            <i class="bi bi-person-lines-fill me-2"></i>회원 관리
+        </a>
         <a href="/admin/inquiries" class="nav-link <?= str_starts_with(uri_string(), 'admin/inquiries') ? 'active' : '' ?>">
             <i class="bi bi-envelope me-2"></i>문의 수신함
             <?php if ($unreadInquiries > 0): ?>

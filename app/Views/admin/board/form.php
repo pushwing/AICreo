@@ -1,4 +1,5 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/admin') ?>
+<?php $pageTitle = $board ? '게시판 수정' : '게시판 추가' ?>
 <?= $this->section('content') ?>
 <div class="mb-2"><a href="/admin/boards" class="text-muted small"><i class="bi bi-arrow-left"></i> 목록</a></div>
 <div class="card" style="max-width:600px">

@@ -42,6 +42,8 @@
 | 대시보드 | 게시글·회원·문의 통계, 미읽음 문의 알림 |
 | 페이지 관리 | TinyMCE 에디터 기반 페이지 CRUD, SEO 메타 설정 |
 | 게시판 관리 | 게시판 생성·수정, 권한·첨부 허용 설정 |
+| 전체 게시물 | 전체 게시판 게시물 통합 조회, 게시판 필터·키워드 검색, 강제 삭제 |
+| 회원 관리 | 회원 목록 검색·필터, 역할(관리자/일반) 변경, 활성 상태·닉네임 수정, 삭제 |
 | 메뉴 관리 | GNB 메뉴 추가·수정·삭제, 2단계 드롭다운 지원 |
 | 미디어 라이브러리 | 드래그 업로드, 이미지 경로 복사 |
 | 문의 수신함 | 문의 목록·상세 확인, 이메일로 바로 답장 |
@@ -82,6 +84,8 @@ app/
 │       ├── DashboardController.php
 │       ├── PageManagerController.php
 │       ├── BoardManagerController.php
+│       ├── PostController.php          # 전체 게시물 관리
+│       ├── UserController.php          # 회원 관리
 │       ├── MenuController.php
 │       ├── MediaController.php
 │       ├── SettingController.php
@@ -99,7 +103,7 @@ app/
     ├── pages/              # home / default / contact
     ├── board/              # list / view / write
     ├── auth/               # login / register
-    └── admin/              # 관리자 뷰 전체
+    └── admin/              # 관리자 뷰 전체 (board / posts / users / pages / …)
 public/
 └── themes/default/         # CSS / JS (클라이언트별 교체)
 ```
@@ -240,6 +244,14 @@ php spark serve
 ---
 
 ## 변경 이력
+
+### 2026-06-09 (최근 추가)
+
+| 항목 | 변경 내용 |
+|------|----------|
+| 관리자 회원 관리 | `/admin/users` 추가 — 닉네임·이메일 검색, 역할·활성 상태 필터, 역할 변경 및 비활성 처리, 삭제 (본인 계정 보호) |
+| 관리자 전체 게시물 | `/admin/posts` 추가 — 게시판 필터 + 키워드 검색, 공지·비밀 배지, 강제 삭제 (첨부파일 포함) |
+| 게시판 관리 뷰 수정 | `admin/board/list.php`, `admin/board/form.php`가 `layouts/main`을 잘못 참조해 사이드바가 사라지던 문제 수정 → `layouts/admin`으로 교체 |
 
 ### 2026-06-09
 

@@ -77,6 +77,16 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'settings/(:segment)', 'Admin\SettingController::index/$1');
     $routes->post('settings/(:segment)', 'Admin\SettingController::update/$1');
 
+    // 전체 게시물 관리
+    $routes->get( 'posts',              'Admin\PostController::index');
+    $routes->post('posts/(:num)/delete','Admin\PostController::delete/$1');
+
+    // 회원 관리
+    $routes->get( 'users',              'Admin\UserController::index');
+    $routes->get( 'users/(:num)/edit',  'Admin\UserController::edit/$1');
+    $routes->post('users/(:num)/edit',  'Admin\UserController::update/$1');
+    $routes->post('users/(:num)/delete','Admin\UserController::delete/$1');
+
     // 문의 수신함
     $routes->get( 'inquiries',              'Admin\InquiryController::index');
     $routes->get( 'inquiries/(:num)',       'Admin\InquiryController::view/$1');

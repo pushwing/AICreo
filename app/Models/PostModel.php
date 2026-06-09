@@ -54,6 +54,30 @@ class PostModel extends Model
         $this->db->query('UPDATE posts SET views = views + 1 WHERE id = ?', [$id]);
     }
 
+    public function getAdminList(int $page, int $perPage, string $keyword = '', int $boardId = 0): array
+    {
+        $builder = $this->select('posts.*, boards.name as board_name, boards.slug as board_slug, users.nickname as user_nickname')
+                        ->join('boards', 'boards.id = posts.board_id', 'left')
+                        ->join('users', 'users.id = posts.user_id', 'left');
+
+        if ($boardId > 0) {
+            $builder->where('posts.board_id', $boardId);
+        }
+        if ($keyword !== '') {
+            $builder->groupStart()
+                    ->like('posts.title', $keyword)
+                    ->orLike('posts.author_name', $keyword)
+                    ->orLike('users.nickname', $keyword)
+                    ->groupEnd();
+        }
+
+        $total = (clone $builder)->countAllResults(false);
+        $posts = $builder->orderBy('posts.id', 'DESC')
+                         ->findAll($perPage, ($page - 1) * $perPage);
+
+        return ['posts' => $posts, 'total' => $total];
+    }
+
     public function search(int $boardId, string $keyword, string $type, int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;

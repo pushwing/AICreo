@@ -1,4 +1,5 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/admin') ?>
+<?php $pageTitle = '게시판 관리' ?>
 <?= $this->section('content') ?>
 <div class="d-flex justify-content-between mb-3">
     <h5>게시판 관리</h5>
