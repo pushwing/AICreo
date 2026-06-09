@@ -54,6 +54,7 @@ body {
 .card {
     --bs-card-border-radius: .75rem;
     --bs-card-inner-border-radius: calc(.75rem - 1px);
+    overflow: hidden;
 }
 
 /* ─── 푸터 ───────────────────────────────────────── */
