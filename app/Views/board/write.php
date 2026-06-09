@@ -111,7 +111,7 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script src="https://cdn.tiny.cloud/1/38rph7nm26uml77iivj23yswvqxlgi629ep21sra3bfkw9a6/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
 tinymce.init({
     selector: '#content-editor',
