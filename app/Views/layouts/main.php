@@ -20,11 +20,11 @@
 <?= $this->include('components/navbar') ?>
 
 <main>
-    <?php foreach (['success', 'error'] as $type): ?>
-        <?php if (session()->has($type)): ?>
+    <?php foreach (['success' => 'success', 'warning' => 'warning', 'error' => 'danger'] as $key => $cls): ?>
+        <?php if (session()->has($key)): ?>
         <div class="container mt-3">
-            <div class="alert alert-<?= $type === 'success' ? 'success' : 'danger' ?> alert-dismissible fade show">
-                <?= esc(session($type)) ?>
+            <div class="alert alert-<?= $cls ?> alert-dismissible fade show">
+                <?= esc(session($key)) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         </div>

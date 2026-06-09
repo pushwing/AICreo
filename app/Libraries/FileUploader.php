@@ -34,7 +34,17 @@ class FileUploader
         $errors = [];
 
         foreach ($uploadedFiles as $file) {
-            if (! $file instanceof UploadedFile || ! $file->isValid()) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            // 파일 미선택은 건너뜀
+            if ($file->getError() === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            if (! $file->isValid()) {
+                $errors[] = $file->getName() . ': ' . $this->uploadErrorMessage($file->getError());
                 continue;
             }
 
@@ -47,6 +57,18 @@ class FileUploader
         }
 
         return ['saved' => $saved, 'errors' => $errors];
+    }
+
+    private function uploadErrorMessage(int $code): string
+    {
+        return match ($code) {
+            UPLOAD_ERR_INI_SIZE,
+            UPLOAD_ERR_FORM_SIZE  => '파일 크기가 너무 큽니다.',
+            UPLOAD_ERR_PARTIAL    => '파일이 불완전하게 업로드되었습니다.',
+            UPLOAD_ERR_NO_TMP_DIR => '임시 디렉터리가 없습니다.',
+            UPLOAD_ERR_CANT_WRITE => '파일 저장에 실패했습니다.',
+            default               => '업로드 오류가 발생했습니다.',
+        };
     }
 
     private function saveFile(int $postId, UploadedFile $file): array

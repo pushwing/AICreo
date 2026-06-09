@@ -155,7 +155,12 @@ class BoardController extends BaseController
         // 파일 업로드
         $multiFiles = $this->request->getFileMultiple('attachments');
         if ($multiFiles && ($board['allow_file'] || $board['allow_image'])) {
-            $this->uploader->savePostFiles($postId, $multiFiles);
+            $upload = $this->uploader->savePostFiles($postId, $multiFiles);
+            if (! empty($upload['errors'])) {
+                return redirect()->to("/board/{$boardSlug}/{$postId}")
+                                 ->with('success', '게시글이 등록되었습니다.')
+                                 ->with('warning', '파일 업로드 실패: ' . implode(' / ', $upload['errors']));
+            }
         }
 
         return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '게시글이 등록되었습니다.');
@@ -225,9 +230,13 @@ class BoardController extends BaseController
         ]);
 
         // 파일 추가 업로드
+        $uploadWarning = null;
         $multiFiles = $this->request->getFileMultiple('attachments');
         if ($multiFiles) {
-            $this->uploader->savePostFiles($postId, $multiFiles);
+            $upload = $this->uploader->savePostFiles($postId, $multiFiles);
+            if (! empty($upload['errors'])) {
+                $uploadWarning = '파일 업로드 실패: ' . implode(' / ', $upload['errors']);
+            }
         }
 
         // 선택 파일 삭제
@@ -240,7 +249,8 @@ class BoardController extends BaseController
         }
 
         session()->remove('edit_auth_' . $postId);
-        return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '수정되었습니다.');
+        $redirect = redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '수정되었습니다.');
+        return $uploadWarning ? $redirect->with('warning', $uploadWarning) : $redirect;
     }
 
     // ─── 삭제 ───────────────────────────────────────────────────────────────
