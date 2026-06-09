@@ -25,6 +25,39 @@ class FileUploader
     }
 
     /**
+     * 파일 유효성 사전 검증 (DB/디스크 저장 없음)
+     * @return string[] 에러 메시지 배열 (비어 있으면 통과)
+     */
+    public function validateFiles(array $uploadedFiles): array
+    {
+        $errors = [];
+
+        foreach ($uploadedFiles as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+            if ($file->getError() === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            if (! $file->isValid()) {
+                $errors[] = $file->getName() . ': ' . $this->uploadErrorMessage($file->getError());
+                continue;
+            }
+
+            $ext = strtolower($file->getClientExtension());
+            if (! in_array($ext, self::ALLOWED_EXTS)) {
+                $errors[] = $file->getName() . ': 허용되지 않는 파일 형식';
+                continue;
+            }
+            if ($file->getSize() > self::MAX_SIZE) {
+                $errors[] = $file->getName() . ': 파일 크기 초과 (최대 10MB)';
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
      * 게시글의 첨부파일 일괄 저장
      * @return array ['saved' => int, 'errors' => array]
      */
