@@ -26,14 +26,8 @@ class BannerModel extends Model
         $now = date('Y-m-d H:i:s');
         return $this->where('position', $position)
             ->where('is_active', 1)
-            ->groupStart()
-                ->where('started_at IS NULL')
-                ->orWhere('started_at <=', $now)
-            ->groupEnd()
-            ->groupStart()
-                ->where('ended_at IS NULL')
-                ->orWhere('ended_at >=', $now)
-            ->groupEnd()
+            ->where("(started_at IS NULL OR started_at <= '{$now}')")
+            ->where("(ended_at IS NULL OR ended_at >= '{$now}')")
             ->orderBy('priority', 'ASC')
             ->findAll();
     }

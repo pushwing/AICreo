@@ -21,7 +21,7 @@
 
 <div class="d-flex align-items-start">
     <?php if (!empty($subLeftBanners)): ?>
-    <aside class="sp-banner-slot d-none d-lg-block flex-shrink-0 p-2">
+    <aside class="sp-banner-slot d-none d-md-block flex-shrink-0 p-2">
         <?php foreach ($subLeftBanners as $b): ?>
         <?php if ($b['link_url']): ?>
         <a href="<?= esc($b['link_url']) ?>" target="<?= esc($b['link_target']) ?>">
