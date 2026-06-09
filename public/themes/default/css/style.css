@@ -52,7 +52,8 @@ body {
 
 /* ─── 카드 공통 ──────────────────────────────────── */
 .card {
-    border-radius: .75rem;
+    --bs-card-border-radius: .75rem;
+    --bs-card-inner-border-radius: calc(.75rem - 1px);
 }
 
 /* ─── 푸터 ───────────────────────────────────────── */
