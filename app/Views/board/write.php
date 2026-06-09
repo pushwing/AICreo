@@ -1,6 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<div class="container py-4">
 <div class="mb-2">
     <a href="/board/<?= esc($board['slug']) ?>" class="text-decoration-none text-muted small">
         <i class="bi bi-arrow-left"></i> <?= esc($board['name']) ?> 목록
@@ -105,6 +106,7 @@
             </div>
         </form>
     </div>
+</div>
 </div>
 
 <?= $this->endSection() ?>

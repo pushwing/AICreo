@@ -1,6 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<div class="row justify-content-center">
+<div class="container">
+<div class="row justify-content-center my-5">
     <div class="col-sm-5">
         <div class="card">
             <div class="card-body p-4">
@@ -31,5 +32,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 <?= $this->endSection() ?>

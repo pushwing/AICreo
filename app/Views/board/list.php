@@ -1,6 +1,7 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<div class="container py-4">
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h4 class="mb-0"><?= esc($board['name']) ?></h4>
@@ -89,5 +90,7 @@
     </ul>
 </nav>
 <?php endif; ?>
+
+</div>
 
 <?= $this->endSection() ?>
