@@ -49,6 +49,7 @@
                     <?php if ($authUser['role'] === 'admin'): ?>
                         <a href="/admin" class="btn btn-sm btn-outline-warning">관리자</a>
                     <?php endif; ?>
+                    <a href="/auth/profile" class="btn btn-sm btn-outline-secondary">내 정보</a>
                     <a href="/auth/logout" class="btn btn-sm btn-outline-secondary">로그아웃</a>
                 <?php else: ?>
                     <a href="/auth/login" class="btn btn-sm btn-outline-secondary">로그인</a>

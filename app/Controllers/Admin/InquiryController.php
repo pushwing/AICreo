@@ -16,16 +16,28 @@ class InquiryController extends BaseController
 
     public function index()
     {
-        $page       = (int) ($this->request->getGet('page') ?? 1);
-        $limit      = 20;
-        $offset     = ($page - 1) * $limit;
-        $total      = $this->model->countAll();
+        $page   = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $filter = $this->request->getGet('filter') ?? '';
+        $limit  = 20;
+
+        $builder = $this->model->builder();
+        if ($filter === 'unread') {
+            $builder->where('is_read', 0);
+        }
+
+        $total      = (clone $builder)->countAllResults(false);
+        $inquiries  = $builder->orderBy('id', 'DESC')
+                              ->limit($limit, ($page - 1) * $limit)
+                              ->get()->getResultArray();
 
         return $this->render('admin/inquiries/index', [
-            'inquiries'   => $this->model->orderBy('id', 'DESC')->findAll($limit, $offset),
+            'inquiries'   => $inquiries,
             'totalPages'  => (int) ceil($total / $limit),
             'currentPage' => $page,
             'total'       => $total,
+            'filter'      => $filter,
+            'unreadCount' => $this->model->getUnreadCount(),
+            'totalAll'    => $this->model->countAll(),
         ]);
     }
 

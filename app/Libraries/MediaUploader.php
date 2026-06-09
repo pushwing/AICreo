@@ -39,7 +39,7 @@ class MediaUploader
         $file->move($uploadPath, $storedName);
 
         $id = $this->model->insert([
-            'original_name' => $file->getClientFilename(),
+            'original_name' => $file->getName(),
             'stored_name'   => $storedName,
             'file_path'     => $relativePath,
             'file_size'     => $file->getSize(),

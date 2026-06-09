@@ -128,16 +128,16 @@ tinymce.init({
         return new Promise((resolve, reject) => {
             const fd = new FormData();
             fd.append('file', blobInfo.blob(), blobInfo.filename());
-            fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
-            fetch('/board/image-upload', { method: 'POST', body: fd })
+            fetch('/board/image-upload', { method: 'POST', body: fd, credentials: 'same-origin' })
                 .then(r => r.json())
                 .then(data => data.location ? resolve(data.location) : reject(data.error ?? '업로드 실패'))
                 .catch(() => reject('업로드 실패'));
         });
     },
-    setup(editor) {
-        editor.on('submit', () => editor.save());
-    },
+});
+
+document.querySelector('form').addEventListener('submit', function () {
+    tinymce.triggerSave();
 });
 
 // 파일 선택 시 클라이언트 사전 검증

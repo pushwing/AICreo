@@ -73,8 +73,7 @@ async function uploadFiles(files) {
     for (const file of files) {
         const fd = new FormData();
         fd.append('file', file);
-        fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
-        const res  = await fetch('/admin/media/upload', { method: 'POST', body: fd });
+        const res  = await fetch('/admin/media/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
         const data = await res.json();
         if (data.success) {
             document.getElementById('uploadProgress').innerHTML =

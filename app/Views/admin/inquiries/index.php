@@ -2,6 +2,22 @@
 <?php $pageTitle = '문의 수신함' ?>
 <?= $this->section('content') ?>
 
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link <?= $filter === '' ? 'active' : '' ?>" href="/admin/inquiries">
+            전체 <span class="badge bg-secondary ms-1"><?= number_format($totalAll) ?></span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?= $filter === 'unread' ? 'active' : '' ?>" href="/admin/inquiries?filter=unread">
+            미읽음
+            <?php if ($unreadCount > 0): ?>
+            <span class="badge bg-danger ms-1"><?= $unreadCount ?></span>
+            <?php endif; ?>
+        </a>
+    </li>
+</ul>
+
 <div class="card border-0 shadow-sm">
     <table class="table table-hover mb-0 small">
         <thead class="table-light">
@@ -37,9 +53,12 @@
 <?php if ($totalPages > 1): ?>
 <nav class="mt-3 d-flex justify-content-center">
     <ul class="pagination pagination-sm">
-        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+        <?php
+        $qs = $filter ? '&filter=' . $filter : '';
+        for ($p = 1; $p <= $totalPages; $p++):
+        ?>
         <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
-            <a class="page-link" href="?page=<?= $p ?>"><?= $p ?></a>
+            <a class="page-link" href="?page=<?= $p ?><?= $qs ?>"><?= $p ?></a>
         </li>
         <?php endfor; ?>
     </ul>

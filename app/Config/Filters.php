@@ -15,7 +15,7 @@ class Filters extends BaseConfig
 
     public array $globals = [
         'before' => [
-            'csrf' => ['except' => ['api/*']],
+            'csrf' => ['except' => ['api/*', 'board/image-upload', 'admin/media/upload']],
         ],
         'after'  => ['toolbar'],
     ];

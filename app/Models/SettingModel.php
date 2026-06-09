@@ -38,10 +38,14 @@ class SettingModel extends Model
      */
     public function saveSettings(array $data): void
     {
+        $now = date('Y-m-d H:i:s');
         foreach ($data as $key => $value) {
             $existing = $this->where('key', $key)->first();
             if ($existing) {
-                $this->update($existing['id'], ['value' => $value, 'updated_at' => date('Y-m-d H:i:s')]);
+                $this->update($existing['id'], ['value' => $value, 'updated_at' => $now]);
+            } else {
+                // 마이그레이션 없이 새 키가 들어올 경우 INSERT
+                $this->insert(['key' => $key, 'value' => $value, 'group' => 'general', 'label' => $key, 'type' => 'text', 'updated_at' => $now]);
             }
         }
         cache()->delete('site_settings');

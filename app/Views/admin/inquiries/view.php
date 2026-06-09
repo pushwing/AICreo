@@ -19,7 +19,7 @@
         </table>
         <div class="border rounded p-3 bg-light" style="white-space:pre-wrap"><?= esc($inquiry['message']) ?></div>
         <div class="mt-3 text-end">
-            <a href="mailto:<?= esc($inquiry['email']) ?>?subject=Re: <?= esc($inquiry['subject']) ?>"
+            <a href="mailto:<?= esc($inquiry['email']) ?>?subject=<?= rawurlencode('Re: ' . ($inquiry['subject'] ?: $inquiry['name'] . '님 문의 답장')) ?>"
                class="btn btn-primary btn-sm">
                 <i class="bi bi-reply me-1"></i>이메일로 답장
             </a>

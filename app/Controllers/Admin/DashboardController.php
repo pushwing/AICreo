@@ -23,7 +23,12 @@ class DashboardController extends BaseController
                 'unread_inquiries'=> $inquiryModel->getUnreadCount(),
             ],
             'recentInquiries' => $inquiryModel->orderBy('id', 'DESC')->findAll(5),
-            'recentPosts'     => $postModel->orderBy('id', 'DESC')->findAll(5),
+            'recentPosts'     => $postModel
+                ->select('posts.*, boards.slug as board_slug, boards.name as board_name, users.nickname as user_nickname')
+                ->join('boards', 'boards.id = posts.board_id', 'left')
+                ->join('users', 'users.id = posts.user_id', 'left')
+                ->orderBy('posts.id', 'DESC')
+                ->findAll(5),
         ]);
     }
 }

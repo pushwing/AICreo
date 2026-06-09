@@ -48,6 +48,7 @@
 | 미디어 라이브러리 | 드래그 업로드, 이미지 경로 복사 |
 | 문의 수신함 | 문의 목록·상세 확인, 이메일로 바로 답장 |
 | 사이트 설정 | 기본 · 연락처 · SNS · SEO · 푸터 정보 관리 |
+| 테마 관리 | 설치된 테마 목록 확인 · 클릭 한 번으로 테마 전환 |
 
 ---
 
@@ -61,6 +62,7 @@
 | DB | MySQL / MariaDB |
 | 인증 | CI4 Session 기반 |
 | 캐시 | CI4 File Cache (설정·메뉴) |
+| 테마 | 폴더 기반 멀티 테마 (레이아웃·컴포넌트·CSS/JS 분리) |
 
 ---
 
@@ -71,6 +73,7 @@ app/
 ├── Config/
 │   ├── Routes.php          # 전체 라우팅
 │   ├── Filters.php         # auth:member / auth:admin 필터
+│   ├── Services.php        # ThemeView를 기본 렌더러로 등록
 │   ├── OAuth.php           # 소셜 로그인 설정
 │   └── Editor.php          # TinyMCE API 키 (.env 참조)
 ├── Controllers/
@@ -88,24 +91,35 @@ app/
 │       ├── UserController.php          # 회원 관리
 │       ├── MenuController.php
 │       ├── MediaController.php
-│       ├── SettingController.php
+│       ├── SettingController.php       # 테마 탭 포함
 │       └── InquiryController.php
 ├── Models/                 # 11개 도메인 모델
 ├── Filters/AuthFilter.php
 ├── Libraries/
+│   ├── ThemeView.php       # 테마 경로 우선 해석 렌더러
 │   ├── FileUploader.php    # 게시판 첨부 (보안 확장자 검증)
 │   ├── MediaUploader.php   # 미디어 라이브러리 업로드
 │   └── SeoHelper.php       # OG태그 + GA 자동 생성
-├── Database/Migrations/    # 4개 (테이블 생성 + 기본 데이터)
+├── Database/Migrations/    # 6개 (테이블 생성 + 기본 데이터 + 테마 설정)
 └── Views/
-    ├── layouts/            # main.php / admin.php
-    ├── components/         # navbar / footer / contact_form
+    ├── themes/             # ★ 테마 폴더 (클라이언트별 교체)
+    │   ├── default/        # 기본 테마
+    │   │   ├── layouts/main.php
+    │   │   └── components/ # navbar / footer / contact_form
+    │   └── {테마명}/       # 새 테마: 바꾸고 싶은 파일만 추가
+    │       ├── layouts/main.php
+    │       └── components/navbar.php
+    ├── layouts/admin.php   # 관리자 레이아웃 (테마 적용 안 함)
     ├── pages/              # home / default / contact
     ├── board/              # list / view / write
-    ├── auth/               # login / register
-    └── admin/              # 관리자 뷰 전체 (board / posts / users / pages / …)
+    ├── auth/               # login / register / profile
+    └── admin/              # 관리자 뷰 전체
 public/
-└── themes/default/         # CSS / JS (클라이언트별 교체)
+└── themes/
+    ├── default/            # 기본 테마 CSS / JS
+    │   ├── css/style.css
+    │   └── js/main.js
+    └── {테마명}/           # 새 테마 CSS / JS / preview.png
 ```
 
 ---
@@ -208,12 +222,14 @@ php spark serve
 ## 납품 워크플로우
 
 ```
-1. 저장소 clone → CI4 프로젝트에 복사      (5분)
-2. .env DB 설정 + php spark migrate        (5분)
-3. /admin 로그인 → 사이트 설정 입력         (10분)
-4. 메뉴 편집 → 페이지 콘텐츠 작성           (1~2시간)
-5. themes/default/css/style.css 커스텀     (30분~)
-6. 서버 배포                               (30분~)
+1. 저장소 clone → CI4 프로젝트에 복사                    (5분)
+2. .env DB 설정 + php spark migrate                    (5분)
+3. /admin 로그인 → 사이트 설정 입력                      (10분)
+4. 메뉴 편집 → 페이지 콘텐츠 작성                         (1~2시간)
+5. public/themes/{클라이언트명}/ 추가 후 CSS/JS 커스텀    (30분~)
+   + app/Views/themes/{클라이언트명}/ 에 레이아웃 오버라이드 (필요 시)
+6. /admin/settings/theme 에서 테마 전환 (클릭 한 번)      (1분)
+7. 서버 배포                                            (30분~)
 ```
 
 ---
@@ -229,7 +245,7 @@ php spark serve
 | 페이지 내용 | `/admin/pages` |
 | 게시판 권한 | `/admin/boards` |
 | 로고 · 파비콘 | 미디어 업로드 후 경로를 설정에 입력 |
-| 테마 디자인 | `public/themes/클라이언트명/` 폴더 복사 후 CSS 수정 |
+| 테마 디자인 | `public/themes/{테마명}/css/style.css` + `app/Views/themes/{테마명}/` 추가 → `/admin/settings/theme` 에서 전환 |
 
 ---
 
@@ -243,12 +259,37 @@ php spark serve
 
 ---
 
+## 테마 추가 방법
+
+새 테마는 두 폴더만 만들면 됩니다.
+
+```
+# 1) CSS/JS
+public/themes/{테마명}/css/style.css
+public/themes/{테마명}/js/main.js
+public/themes/{테마명}/preview.png   ← 관리자 UI 미리보기 (선택)
+
+# 2) 레이아웃·컴포넌트 (바꾸고 싶은 파일만 — 없으면 default 폴백)
+app/Views/themes/{테마명}/layouts/main.php
+app/Views/themes/{테마명}/components/navbar.php
+app/Views/themes/{테마명}/components/footer.php
+```
+
+이후 `/admin/settings/theme` 에서 해당 테마를 선택하면 즉시 적용됩니다.  
+콘텐츠 뷰(`board/`, `auth/`, `admin/` 등)는 테마에 영향을 받지 않습니다.
+
+---
+
 ## 변경 이력
 
 ### 2026-06-09 (최근 추가)
 
 | 항목 | 변경 내용 |
 |------|----------|
+| **테마 시스템** | `ThemeView` 렌더러 도입 — `app/Views/themes/{테마명}/` 폴더 기반 레이아웃·컴포넌트 교체 지원. 해석 순서: 활성 테마 → default 테마 → 원본 경로. `Config/Services.php`로 CI4 기본 렌더러 교체 |
+| **테마 관리 UI** | `/admin/settings/theme` 탭 추가 — 설치된 테마 카드 목록 표시, 클릭 한 번으로 전환. `preview.png` 있으면 미리보기 표시 |
+| **views 구조 개편** | `layouts/main.php`, `components/` → `themes/default/` 로 이동. 콘텐츠 뷰(`board/`, `auth/`, `admin/`)는 테마와 분리 유지 |
+| **DB 마이그레이션** | `settings` 테이블에 `active_theme` 키 추가 (migration #6) |
 | 관리자 회원 관리 | `/admin/users` 추가 — 닉네임·이메일 검색, 역할·활성 상태 필터, 역할 변경 및 비활성 처리, 삭제 (본인 계정 보호) |
 | 관리자 전체 게시물 | `/admin/posts` 추가 — 게시판 필터 + 키워드 검색, 공지·비밀 배지, 강제 삭제 (첨부파일 포함) |
 | 게시판 관리 뷰 수정 | `admin/board/list.php`, `admin/board/form.php`가 `layouts/main`을 잘못 참조해 사이드바가 사라지던 문제 수정 → `layouts/admin`으로 교체 |
