@@ -117,9 +117,20 @@ tinymce.init({
     selector: '#content-editor',
     language: 'ko_KR',
     height: 400,
-    plugins: 'lists link table code',
-    toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright | bullist numlist | link | removeformat | code',
+    plugins: 'lists link image table code',
+    toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright | bullist numlist | link image | removeformat | code',
     menubar: false,
+    images_upload_handler(blobInfo) {
+        return new Promise((resolve, reject) => {
+            const fd = new FormData();
+            fd.append('file', blobInfo.blob(), blobInfo.filename());
+            fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+            fetch('/board/image-upload', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => data.location ? resolve(data.location) : reject(data.error ?? '업로드 실패'))
+                .catch(() => reject('업로드 실패'));
+        });
+    },
     setup(editor) {
         editor.on('submit', () => editor.save());
     },

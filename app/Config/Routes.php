@@ -31,6 +31,9 @@ $routes->get( 'board/file/(:num)/download',                    'Front\BoardContr
 $routes->post('board/(:segment)/(:num)/comment',               'Front\BoardController::commentStore/$1/$2');
 $routes->post('board/(:segment)/(:num)/comment/(:num)/delete', 'Front\BoardController::commentDelete/$1/$2/$3');
 
+// ─── 에디터 이미지 업로드 ─────────────────────────────────────────────────────
+$routes->post('board/image-upload', 'Front\BoardController::imageUpload');
+
 // ─── 문의폼 ───────────────────────────────────────────────────────────────────
 $routes->post('inquiry/submit', 'Front\PageController::inquirySubmit');
 

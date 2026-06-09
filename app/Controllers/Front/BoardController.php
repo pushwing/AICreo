@@ -335,6 +335,41 @@ class BoardController extends BaseController
         return redirect()->to("/board/{$boardSlug}/{$postId}#comments");
     }
 
+    // ─── 에디터 이미지 업로드 ───────────────────────────────────────────────
+
+    public function imageUpload()
+    {
+        if (! session()->get('user_id')) {
+            return $this->response->setJSON(['error' => '로그인이 필요합니다.'])->setStatusCode(403);
+        }
+
+        $file = $this->request->getFile('file');
+        if (! $file || ! $file->isValid()) {
+            return $this->response->setJSON(['error' => '파일을 찾을 수 없습니다.'])->setStatusCode(400);
+        }
+
+        $ext = strtolower($file->getClientExtension());
+        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+            return $this->response->setJSON(['error' => '이미지 파일만 허용됩니다.'])->setStatusCode(400);
+        }
+
+        if ($file->getSize() > 10 * 1024 * 1024) {
+            return $this->response->setJSON(['error' => '파일 크기는 10MB 이하여야 합니다.'])->setStatusCode(400);
+        }
+
+        $uploadPath = FCPATH . 'uploads/board/images/' . date('Y/m');
+        if (! is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        $storedName = bin2hex(random_bytes(16)) . '.' . $ext;
+        $file->move($uploadPath, $storedName);
+
+        return $this->response->setJSON([
+            'location' => base_url('uploads/board/images/' . date('Y/m') . '/' . $storedName),
+        ]);
+    }
+
     // ─── 내부 헬퍼 ──────────────────────────────────────────────────────────
 
     private function canEditPost(array $post): bool
