@@ -48,7 +48,7 @@
 | 미디어 라이브러리 | 드래그 업로드, 이미지 경로 복사 |
 | 문의 수신함 | 문의 목록·상세 확인, 이메일로 바로 답장 |
 | 사이트 설정 | 기본 · 연락처 · SNS · SEO · 푸터 정보 관리 |
-| 테마 관리 | 설치된 테마 목록 확인 · 클릭 한 번으로 테마 전환 |
+| 테마 관리 | ZIP 업로드로 테마 설치 · 설치된 테마 목록 확인 · 클릭 한 번으로 테마 전환 |
 
 ---
 
@@ -261,15 +261,53 @@ php spark serve
 
 ## 테마 추가 방법
 
-새 테마는 두 폴더만 만들면 됩니다.
+### 방법 A — 관리자 ZIP 업로드 (권장)
+
+`/admin/settings/theme` 에서 ZIP 파일을 업로드하면 자동으로 압축 해제 후 설치됩니다.
+
+**ZIP 패키징 구조**
 
 ```
-# 1) CSS/JS
+my-theme.zip
+├── views/                           → app/Views/themes/my-theme/ 로 복사
+│   ├── layouts/
+│   │   └── main.php                 ★ 필수
+│   └── components/
+│       ├── navbar.php
+│       ├── footer.php
+│       └── contact_form.php
+└── public/                          → public/themes/my-theme/ 로 복사
+    ├── css/
+    │   └── style.css                ★ 필수
+    ├── js/
+    │   └── main.js
+    └── preview.png                  (관리자 UI 미리보기 이미지)
+```
+
+업로드 시 자동으로 수행되는 검사:
+
+| 검사 항목 | 내용 |
+|-----------|------|
+| 필수 파일 | `views/layouts/main.php`, `public/css/style.css` 존재 여부 |
+| Zip-slip 방지 | `..` · `/` · `\` 시작 경로 차단 |
+| 확장자 화이트리스트 | `views/` → `.php` 만 허용 / `public/` → CSS·JS·이미지·폰트만 허용 |
+| 예약어 보호 | 테마명 `default` 사용 불가 |
+
+설치 완료 후 테마 카드에서 **이 테마 적용** 버튼으로 즉시 전환할 수 있습니다.
+
+---
+
+### 방법 B — 직접 폴더 배치
+
+서버에 직접 접근 가능한 경우 아래 두 폴더를 만들면 관리자 목록에 자동으로 표시됩니다.
+
+```
+# 에셋 (필수)
 public/themes/{테마명}/css/style.css
 public/themes/{테마명}/js/main.js
-public/themes/{테마명}/preview.png   ← 관리자 UI 미리보기 (선택)
+public/themes/{테마명}/preview.png   ← 관리자 미리보기 이미지 (선택)
 
-# 2) 레이아웃·컴포넌트 (바꾸고 싶은 파일만 — 없으면 default 폴백)
+# 레이아웃·컴포넌트 (바꾸고 싶은 파일만 — 없으면 default 폴백)
 app/Views/themes/{테마명}/layouts/main.php
 app/Views/themes/{테마명}/components/navbar.php
 app/Views/themes/{테마명}/components/footer.php
@@ -286,6 +324,7 @@ app/Views/themes/{테마명}/components/footer.php
 
 | 항목 | 변경 내용 |
 |------|----------|
+| **테마 ZIP 업로드** | `/admin/settings/theme` 에서 ZIP 파일 업로드 → 압축 해제 → 자동 설치. 필수 파일 체크(`views/layouts/main.php`, `public/css/style.css`), Zip-slip 방지, 확장자 화이트리스트, `default` 예약어 보호 |
 | **테마 시스템** | `ThemeView` 렌더러 도입 — `app/Views/themes/{테마명}/` 폴더 기반 레이아웃·컴포넌트 교체 지원. 해석 순서: 활성 테마 → default 테마 → 원본 경로. `Config/Services.php`로 CI4 기본 렌더러 교체 |
 | **테마 관리 UI** | `/admin/settings/theme` 탭 추가 — 설치된 테마 카드 목록 표시, 클릭 한 번으로 전환. `preview.png` 있으면 미리보기 표시 |
 | **views 구조 개편** | `layouts/main.php`, `components/` → `themes/default/` 로 이동. 콘텐츠 뷰(`board/`, `auth/`, `admin/`)는 테마와 분리 유지 |
