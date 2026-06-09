@@ -80,3 +80,28 @@ footer a:hover {
 .object-fit-cover {
     object-fit: cover;
 }
+
+/* ─── 배너 슬롯 ──────────────────────────────────── */
+.sp-banner-slot {
+    width: 320px;
+}
+.sp-banner-img {
+    display: block;
+    width: 300px;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 8px;
+}
+
+/* ─── 메인 배너 ──────────────────────────────────── */
+.main-banner-wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+.main-banner-wrap img {
+    display: block;
+    width: 100%;
+    max-width: 1000px;
+    height: auto;
+    margin-bottom: 8px;
+}

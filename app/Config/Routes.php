@@ -94,6 +94,14 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'inquiries',              'Admin\InquiryController::index');
     $routes->get( 'inquiries/(:num)',       'Admin\InquiryController::view/$1');
     $routes->post('inquiries/(:num)/delete','Admin\InquiryController::delete/$1');
+
+    // 배너 관리
+    $routes->get( 'banners',              'Admin\BannerController::index');
+    $routes->get( 'banners/create',       'Admin\BannerController::create');
+    $routes->post('banners/create',       'Admin\BannerController::store');
+    $routes->get( 'banners/(:num)/edit',  'Admin\BannerController::edit/$1');
+    $routes->post('banners/(:num)/edit',  'Admin\BannerController::update/$1');
+    $routes->post('banners/(:num)/delete','Admin\BannerController::delete/$1');
 });
 
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────

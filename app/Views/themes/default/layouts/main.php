@@ -19,20 +19,36 @@
 
 <?= $this->include('components/navbar') ?>
 
-<main>
-    <?php foreach (['success' => 'success', 'warning' => 'warning', 'error' => 'danger'] as $key => $cls): ?>
-        <?php if (session()->has($key)): ?>
-        <div class="container mt-3">
-            <div class="alert alert-<?= $cls ?> alert-dismissible fade show">
-                <?= esc(session($key)) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
+<div class="d-flex align-items-start">
+    <?php if (!empty($subLeftBanners)): ?>
+    <aside class="sp-banner-slot d-none d-lg-block flex-shrink-0 p-2">
+        <?php foreach ($subLeftBanners as $b): ?>
+        <?php if ($b['link_url']): ?>
+        <a href="<?= esc($b['link_url']) ?>" target="<?= esc($b['link_target']) ?>">
+            <img src="/<?= esc($b['image_path']) ?>" alt="" class="sp-banner-img">
+        </a>
+        <?php else: ?>
+        <img src="/<?= esc($b['image_path']) ?>" alt="" class="sp-banner-img">
         <?php endif; ?>
-    <?php endforeach; ?>
+        <?php endforeach; ?>
+    </aside>
+    <?php endif; ?>
 
-    <?= $this->renderSection('content') ?>
-</main>
+    <main class="flex-grow-1 min-width-0">
+        <?php foreach (['success' => 'success', 'warning' => 'warning', 'error' => 'danger'] as $key => $cls): ?>
+            <?php if (session()->has($key)): ?>
+            <div class="container mt-3">
+                <div class="alert alert-<?= $cls ?> alert-dismissible fade show">
+                    <?= esc(session($key)) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+            <?php endif; ?>
+        <?php endforeach; ?>
+
+        <?= $this->renderSection('content') ?>
+    </main>
+</div>
 
 <?= $this->include('components/footer') ?>
 

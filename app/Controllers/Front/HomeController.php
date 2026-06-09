@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Models\BannerModel;
 use App\Models\BoardModel;
 use App\Models\PostModel;
 
@@ -23,12 +24,16 @@ class HomeController extends BaseController
                 ->findAll(3);
         }
 
+        $bannerModel = new BannerModel();
+
         return $this->render('pages/home', [
-            'page'        => [
+            'page'           => [
                 'title'     => $this->viewData['settings']['site_name'] ?? '',
                 'meta_desc' => $this->viewData['settings']['site_desc'] ?? '',
             ],
-            'latestPosts' => $latestPosts,
+            'latestPosts'    => $latestPosts,
+            'mainTopBanners' => $bannerModel->getActiveByPosition('main_top'),
+            'mainBotBanners' => $bannerModel->getActiveByPosition('main_bottom'),
         ]);
     }
 }

@@ -1,6 +1,9 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<!-- 메인 상단 배너 -->
+<?= view('components/banner_slot', ['banners' => $mainTopBanners]) ?>
+
 <!-- 히어로 -->
 <section class="py-5 bg-primary text-white">
     <div class="container py-4 text-center">
@@ -69,5 +72,8 @@
         <a href="/contact" class="btn btn-primary">온라인 문의</a>
     </div>
 </section>
+
+<!-- 메인 하단 배너 -->
+<?= view('components/banner_slot', ['banners' => $mainBotBanners]) ?>
 
 <?= $this->endSection() ?>

@@ -45,6 +45,10 @@
             <i class="bi bi-images me-2"></i>미디어
         </a>
 
+        <a href="/admin/banners" class="nav-link <?= str_starts_with(uri_string(), 'admin/banners') ? 'active' : '' ?>">
+            <i class="bi bi-image me-2"></i>배너 관리
+        </a>
+
         <div class="nav-section">운영</div>
         <a href="/admin/users" class="nav-link <?= str_starts_with(uri_string(), 'admin/users') ? 'active' : '' ?>">
             <i class="bi bi-person-lines-fill me-2"></i>회원 관리

@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\BannerModel;
 use App\Models\InquiryModel;
 use App\Models\MenuModel;
 use App\Models\SettingModel;
@@ -38,7 +39,11 @@ class BaseController extends Controller
             $unreadInquiries = (new InquiryModel())->getUnreadCount();
         }
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries');
+        $subLeftBanners = str_starts_with(uri_string(), 'admin')
+            ? []
+            : (new BannerModel())->getActiveByPosition('sub_left');
+
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'subLeftBanners');
     }
 
     protected function getUserRole(): string
