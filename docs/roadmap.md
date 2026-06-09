@@ -38,12 +38,15 @@
 | `app/Views/themes/default/components/banner_slot.php` | 메인 배너 렌더링 컴포넌트 |
 | `app/Views/themes/default/layouts/main.php` | default 레이아웃 서브 좌측 배너 슬롯 |
 
-### Spring 테마 추가 구현 파일
+### 테마별 추가 구현 파일 (spring / dark)
 | 파일 | 설명 |
 |---|---|
 | `app/Views/themes/spring/layouts/main.php` | 홈/서브 조건 분기, 서브 좌측 배너 사이드바 |
 | `app/Views/themes/spring/pages/home.php` | 메인 상단/하단 배너 섹션 포함 홈 뷰 |
 | `public/themes/spring/css/style.css` | `.sp-main-banner-*`, `.sp-banner-img` 스타일 |
+| `dark.zip / views/layouts/main.php` | 서브 좌측 배너 사이드바(`dk-layout`) |
+| `dark.zip / views/pages/home.php` | 메인 상단/하단 배너 섹션 포함 홈 뷰 |
+| `dark.zip / public/css/style.css` | `dk-*` 레이아웃/배너 스타일 추가 |
 
 ### 주요 트러블슈팅
 | 항목 | 원인 | 해결 |
@@ -96,3 +99,10 @@
 | `public/themes/default/js/popup.js` | 표시/닫기/쿠키 JS |
 | `app/Views/themes/default/layouts/main.php` | 팝업 컴포넌트 삽입 |
 | `app/Views/themes/spring/layouts/main.php` | spring 테마 팝업 컴포넌트 삽입 |
+| `dark.zip / views/layouts/main.php` | dark 테마 팝업 컴포넌트 삽입 |
+| `dark.zip / public/css/style.css` | `.site-popup` 다크 스타일 추가 |
+
+### 주요 트러블슈팅
+| 항목 | 원인 | 해결 |
+|---|---|---|
+| spring 팝업 `position:static` | spring CSS에 팝업 스타일 미포함 | `spring/css/style.css`에 `.site-popup` 블록 추가 |
