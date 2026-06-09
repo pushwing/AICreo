@@ -55,7 +55,7 @@
 
 ---
 
-## 2. 팝업 관리 ⬜ 예정
+## 2. 팝업 관리 ✅ 완료
 
 ### 등록 항목
 - 제목
@@ -78,6 +78,21 @@
 ### 기술 사항
 - 팝업 크기: 이미지 비율 자동 (width 고정, height auto)
 - 동일 페이지에 복수 팝업: 우선순위 순으로 정렬 후 좌표 기반 개별 표시 (겹침 없음)
-- 닫기 동작: X 버튼 즉시 닫기 + "오늘 하루 보지 않기" (쿠키 24h)
+- 닫기 동작: X 버튼 즉시 닫기 + "오늘 하루 보지 않기" (쿠키 24h, 체크 시 즉시 닫힘)
 - 특정 페이지 지정: `menus` 테이블 기반 체크박스 다중 선택 → `popup_pages` 중간 테이블
 - 좌표 기본값: X=20, Y=20 (미입력 시)
+
+### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Database/Migrations/2024-01-01-000008_CreatePopupsTable.php` | popups + popup_pages 테이블 |
+| `app/Models/PopupModel.php` | 모델, `getActiveForPage()`, `syncPages()` (트랜잭션) |
+| `app/Libraries/PopupUploader.php` | 이미지 업로드 (`uploads/popups/`) |
+| `app/Controllers/Admin/PopupController.php` | 관리자 CRUD |
+| `app/Controllers/BaseController.php` | `$activePopups` 전역 주입 |
+| `app/Views/admin/popups/list.php` | 관리자 목록 뷰 |
+| `app/Views/admin/popups/form.php` | 등록/수정 폼 (TinyMCE + 이미지 + 메뉴 체크박스) |
+| `app/Views/themes/default/components/popups.php` | 프론트 팝업 오버레이 렌더링 |
+| `public/themes/default/js/popup.js` | 표시/닫기/쿠키 JS |
+| `app/Views/themes/default/layouts/main.php` | 팝업 컴포넌트 삽입 |
+| `app/Views/themes/spring/layouts/main.php` | spring 테마 팝업 컴포넌트 삽입 |
