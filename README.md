@@ -119,7 +119,7 @@ public/
     ├── default/            # 기본 테마 CSS / JS
     │   ├── css/style.css
     │   └── js/main.js
-    └── {테마명}/           # 새 테마 CSS / JS / preview.png
+    └── {테마명}/           # 새 테마 CSS / JS / thumbnail.png
 ```
 
 ---
@@ -281,7 +281,7 @@ my-theme.zip
     │   └── style.css                ★ 필수
     ├── js/
     │   └── main.js
-    └── preview.png                  (관리자 UI 미리보기 이미지)
+    └── thumbnail.png                  (관리자 UI 미리보기 이미지)
 ```
 
 업로드 시 자동으로 수행되는 검사:
@@ -305,7 +305,7 @@ my-theme.zip
 # 에셋 (필수)
 public/themes/{테마명}/css/style.css
 public/themes/{테마명}/js/main.js
-public/themes/{테마명}/preview.png   ← 관리자 미리보기 이미지 (선택)
+public/themes/{테마명}/thumbnail.png   ← 관리자 미리보기 이미지 (선택)
 
 # 레이아웃·컴포넌트 (바꾸고 싶은 파일만 — 없으면 default 폴백)
 app/Views/themes/{테마명}/layouts/main.php
@@ -343,7 +343,7 @@ app/Views/themes/{테마명}/components/footer.php
 | **dark 샘플 테마** | `dark.zip` 추가 — 다크 네이비 네비게이션, 인디고 포인트, 다크 푸터. `/admin/settings/theme` 업로드로 즉시 테스트 가능 |
 | **테마 ZIP 업로드** | `/admin/settings/theme` 에서 ZIP 파일 업로드 → 압축 해제 → 자동 설치. 필수 파일 체크(`views/layouts/main.php`, `public/css/style.css`), Zip-slip 방지, 확장자 화이트리스트, `default` 예약어 보호 |
 | **테마 시스템** | `ThemeView` 렌더러 도입 — `app/Views/themes/{테마명}/` 폴더 기반 레이아웃·컴포넌트 교체 지원. 해석 순서: 활성 테마 → default 테마 → 원본 경로. `Config/Services.php`로 CI4 기본 렌더러 교체 |
-| **테마 관리 UI** | `/admin/settings/theme` 탭 추가 — 설치된 테마 카드 목록 표시, 클릭 한 번으로 전환. `preview.png` 있으면 미리보기 표시 |
+| **테마 관리 UI** | `/admin/settings/theme` 탭 추가 — 설치된 테마 카드 목록 표시, 클릭 한 번으로 전환. `thumbnail.png` 있으면 미리보기 표시 |
 | **views 구조 개편** | `layouts/main.php`, `components/` → `themes/default/` 로 이동. 콘텐츠 뷰(`board/`, `auth/`, `admin/`)는 테마와 분리 유지 |
 | **DB 마이그레이션** | `settings` 테이블에 `active_theme` 키 추가 (migration #6) |
 | 관리자 회원 관리 | `/admin/users` 추가 — 닉네임·이메일 검색, 역할·활성 상태 필터, 역할 변경 및 비활성 처리, 삭제 (본인 계정 보호) |

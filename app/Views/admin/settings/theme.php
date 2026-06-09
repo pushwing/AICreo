@@ -57,7 +57,7 @@
     │   └── style.css            ★ 필수
     ├── js/
     │   └── main.js
-    └── preview.png              (관리자 미리보기 이미지)</pre>
+    └── thumbnail.png              (관리자 미리보기 이미지)</pre>
                 </div>
             </div>
         </div>
@@ -73,9 +73,9 @@
                 <div class="card-img-top d-flex align-items-center justify-content-center bg-light"
                      style="height:120px; overflow:hidden; border-bottom:1px solid #e9ecef">
                     <?php
-                    $preview = FCPATH . "themes/{$theme['name']}/preview.png";
+                    $preview = FCPATH . "themes/{$theme['name']}/thumbnail.png";
                     if (is_file($preview)): ?>
-                        <img src="/themes/<?= esc($theme['name']) ?>/preview.png"
+                        <img src="/themes/<?= esc($theme['name']) ?>/thumbnail.png"
                              style="width:100%;height:120px;object-fit:cover" alt="">
                     <?php else: ?>
                         <div class="text-center text-muted">
