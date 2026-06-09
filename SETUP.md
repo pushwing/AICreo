@@ -19,16 +19,22 @@ database.default.password =
 database.default.DBDriver = MySQLi
 ```
 
-## 4. 마이그레이션 실행
+## 4. 타임존 설정
+`app/Config/App.php`에서 한국 시간대로 변경:
+```php
+public string $appTimezone = 'Asia/Seoul';
+```
+
+## 5. 마이그레이션 실행
 ```bash
 php spark migrate
 ```
 
-## 5. 기본 계정
+## 6. 기본 계정
 - 이메일: admin@example.com
 - 비밀번호: admin1234!
 
-## 6. 업로드 폴더 권한 (Linux)
+## 7. 업로드 폴더 권한 (Linux)
 ```bash
 chmod -R 755 public/uploads
 ```
