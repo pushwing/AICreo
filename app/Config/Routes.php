@@ -26,6 +26,7 @@ $routes->get( 'board/(:segment)/(:num)',                       'Front\BoardContr
 $routes->get( 'board/(:segment)/(:num)/edit',                  'Front\BoardController::edit/$1/$2');
 $routes->post('board/(:segment)/(:num)/edit',                  'Front\BoardController::update/$1/$2');
 $routes->post('board/(:segment)/(:num)/delete',                'Front\BoardController::delete/$1/$2');
+$routes->post('board/(:segment)/(:num)/verify',                'Front\BoardController::guestVerify/$1/$2');
 $routes->get( 'board/file/(:num)/download',                    'Front\BoardController::download/$1');
 $routes->post('board/(:segment)/(:num)/comment',               'Front\BoardController::commentStore/$1/$2');
 $routes->post('board/(:segment)/(:num)/comment/(:num)/delete', 'Front\BoardController::commentDelete/$1/$2/$3');

@@ -23,7 +23,7 @@ class PostModel extends Model
         $notices = $this->where('board_id', $boardId)
                         ->where('is_notice', 1)
                         ->orderBy('id', 'DESC')
-                        ->findAll();
+                        ->findAll(5);
 
         $posts = $this->select('posts.*, users.nickname as user_nickname')
                       ->join('users', 'users.id = posts.user_id', 'left')

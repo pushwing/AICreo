@@ -155,7 +155,7 @@ const guestModal = document.getElementById('guestModal');
 guestModal.addEventListener('show.bs.modal', function(e) {
     const action = e.relatedTarget.dataset.action;
     const base = '/board/<?= esc($board['slug']) ?>/<?= $post['id'] ?>';
-    document.getElementById('guestForm').action = action === 'edit' ? base + '/edit' : base + '/delete';
+    document.getElementById('guestForm').action = action === 'edit' ? base + '/verify' : base + '/delete';
 });
 </script>
 <?= $this->endSection() ?>

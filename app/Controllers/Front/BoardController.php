@@ -154,14 +154,9 @@ class BoardController extends BaseController
         $postId = $this->postModel->insert($data);
 
         // 파일 업로드
-        $files = $this->request->getFiles('attachments') ?? [];
-        if ($files && ($board['allow_file'] || $board['allow_image'])) {
-            $uploadedFiles = is_array($files['attachments'] ?? null) ? $files['attachments'] : ($files ? [$files] : []);
-            // CI4 다중파일은 getFileMultiple 사용
-            $multiFiles = $this->request->getFileMultiple('attachments');
-            if ($multiFiles) {
-                $this->uploader->savePostFiles($postId, $multiFiles);
-            }
+        $multiFiles = $this->request->getFileMultiple('attachments');
+        if ($multiFiles && ($board['allow_file'] || $board['allow_image'])) {
+            $this->uploader->savePostFiles($postId, $multiFiles);
         }
 
         return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '게시글이 등록되었습니다.');
@@ -178,12 +173,40 @@ class BoardController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        if (! $this->canEditPost($post)) {
+        $userId = session()->get('user_id');
+        $role   = $this->getUserRole();
+
+        if ($role === 'admin' || ($userId && $post['user_id'] == $userId)) {
+            // 관리자 또는 본인: 바로 수정 폼
+        } elseif (! $userId && $post['author_password']) {
+            // 비회원 게시글: 세션 인증 토큰 없으면 비밀번호 재확인
+            if (! session()->get('edit_auth_' . $postId)) {
+                return redirect()->back()->with('error', '수정하려면 비밀번호 확인이 필요합니다.');
+            }
+        } else {
             return redirect()->back()->with('error', '수정 권한이 없습니다.');
         }
 
         $files = $this->fileModel->getByPost($postId);
         return $this->render('board/write', compact('board', 'post', 'files'));
+    }
+
+    // ─── 비회원 비밀번호 인증 → 세션 토큰 발급 ─────────────────────────────────
+
+    public function guestVerify(string $boardSlug, int $postId)
+    {
+        $post = $this->postModel->find($postId);
+        if (! $post || ! $post['author_password']) {
+            return redirect()->back()->with('error', '잘못된 요청입니다.');
+        }
+
+        $inputPw = $this->request->getPost('author_password');
+        if (! $inputPw || ! password_verify($inputPw, $post['author_password'])) {
+            return redirect()->back()->with('error', '비밀번호가 틀렸습니다.');
+        }
+
+        session()->set('edit_auth_' . $postId, true);
+        return redirect()->to("/board/{$boardSlug}/{$postId}/edit");
     }
 
     public function update(string $boardSlug, int $postId)
@@ -217,6 +240,7 @@ class BoardController extends BaseController
             }
         }
 
+        session()->remove('edit_auth_' . $postId);
         return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '수정되었습니다.');
     }
 
@@ -233,6 +257,7 @@ class BoardController extends BaseController
 
         $this->fileModel->deleteByPost($postId);
         $this->postModel->delete($postId);
+        session()->remove('edit_auth_' . $postId);
 
         return redirect()->to("/board/{$boardSlug}")->with('success', '삭제되었습니다.');
     }
@@ -254,10 +279,8 @@ class BoardController extends BaseController
         $this->fileModel->incrementDownload($fileId);
 
         return $this->response
-            ->setHeader('Content-Disposition', 'attachment; filename="' . rawurlencode($file['original_name']) . '"')
-            ->setHeader('Content-Type', 'application/octet-stream')
-            ->setHeader('Content-Length', filesize($fullPath))
-            ->setBody(file_get_contents($fullPath));
+            ->download($fullPath, null)
+            ->setFileName($file['original_name']);
     }
 
     // ─── 댓글 ───────────────────────────────────────────────────────────────
@@ -323,8 +346,9 @@ class BoardController extends BaseController
         if ($role === 'admin') return true;
         if ($userId && $post['user_id'] == $userId) return true;
 
-        // 비회원: POST로 넘어온 비밀번호 검증
+        // 비회원: 세션 인증 토큰 또는 POST 비밀번호 검증
         if (! $userId && $post['author_password']) {
+            if (session()->get('edit_auth_' . $post['id'])) return true;
             $inputPw = $this->request->getPost('author_password');
             return $inputPw && password_verify($inputPw, $post['author_password']);
         }
