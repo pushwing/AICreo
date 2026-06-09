@@ -75,9 +75,10 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('media/(:num)/delete','Admin\MediaController::delete/$1');
 
     // 사이트 설정
-    $routes->get( 'settings',            'Admin\SettingController::index');
-    $routes->get( 'settings/(:segment)', 'Admin\SettingController::index/$1');
-    $routes->post('settings/(:segment)', 'Admin\SettingController::update/$1');
+    $routes->get( 'settings',                   'Admin\SettingController::index');
+    $routes->get( 'settings/(:segment)',         'Admin\SettingController::index/$1');
+    $routes->post('settings/theme/upload',       'Admin\SettingController::uploadTheme');
+    $routes->post('settings/(:segment)',         'Admin\SettingController::update/$1');
 
     // 전체 게시물 관리
     $routes->get( 'posts',              'Admin\PostController::index');

@@ -15,10 +15,55 @@
 </ul>
 
 <div style="max-width:720px">
-    <p class="text-muted small mb-4">
-        테마는 <code>app/Views/themes/{테마명}/</code> 폴더에 레이아웃과 컴포넌트를 추가하면 자동으로 목록에 표시됩니다.
-        CSS/JS는 <code>public/themes/{테마명}/</code>에 위치해야 합니다.
-    </p>
+
+    <!-- 업로드 카드 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h6 class="fw-semibold mb-1"><i class="bi bi-upload me-2"></i>테마 업로드</h6>
+            <p class="text-muted small mb-3">
+                ZIP 파일로 패키징된 테마를 업로드합니다.
+                파일명이 테마 이름이 됩니다 (예: <code>my-theme.zip</code> → <code>my-theme</code>).
+            </p>
+
+            <form method="post" action="/admin/settings/theme/upload" enctype="multipart/form-data">
+                <?= csrf_field() ?>
+                <div class="d-flex gap-2 align-items-start">
+                    <div class="flex-grow-1">
+                        <input type="file" name="theme_zip" class="form-control form-control-sm" accept=".zip" required>
+                        <div class="form-text">
+                            필수: <code>views/layouts/main.php</code> · <code>public/css/style.css</code>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary text-nowrap">업로드 · 설치</button>
+                </div>
+            </form>
+
+            <!-- ZIP 구조 안내 (접기/펼치기) -->
+            <div class="mt-3">
+                <a class="small text-muted" data-bs-toggle="collapse" href="#zipStructure" role="button">
+                    <i class="bi bi-info-circle me-1"></i>ZIP 구조 보기
+                </a>
+                <div class="collapse mt-2" id="zipStructure">
+                    <pre class="bg-light rounded p-3 small mb-0">my-theme.zip
+├── views/                       ← app/Views/themes/my-theme/ 로 복사
+│   ├── layouts/
+│   │   └── main.php             ★ 필수
+│   └── components/
+│       ├── navbar.php
+│       ├── footer.php
+│       └── contact_form.php
+└── public/                      ← public/themes/my-theme/ 로 복사
+    ├── css/
+    │   └── style.css            ★ 필수
+    ├── js/
+    │   └── main.js
+    └── preview.png              (관리자 미리보기 이미지)</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted small mb-3">설치된 테마 목록 — 직접 폴더를 추가해도 자동으로 표시됩니다.</p>
 
     <div class="row g-3">
         <?php foreach ($availableThemes as $theme): ?>
