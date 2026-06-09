@@ -54,11 +54,11 @@ class FileUploader
         $ext = strtolower($file->getClientExtension());
 
         if (! in_array($ext, self::ALLOWED_EXTS)) {
-            return ['success' => false, 'error' => "{$file->getClientFilename()}: 허용되지 않는 파일 형식"];
+            return ['success' => false, 'error' => "{$file->getName()}: 허용되지 않는 파일 형식"];
         }
 
         if ($file->getSize() > self::MAX_SIZE) {
-            return ['success' => false, 'error' => "{$file->getClientFilename()}: 파일 크기 초과 (최대 10MB)"];
+            return ['success' => false, 'error' => "{$file->getName()}: 파일 크기 초과 (최대 10MB)"];
         }
 
         $isImage    = in_array($ext, self::IMAGE_EXTS);
@@ -76,7 +76,7 @@ class FileUploader
 
         $this->fileModel->insert([
             'post_id'       => $postId,
-            'original_name' => $file->getClientFilename(),
+            'original_name' => $file->getName(),
             'stored_name'   => $storedName,
             'file_path'     => $relativePath,
             'file_size'     => $file->getSize(),
