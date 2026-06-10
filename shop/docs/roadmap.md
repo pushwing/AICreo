@@ -150,7 +150,7 @@
 
 #### 재고 차감 방식: 결제 확정 후 차감 (방식 A)
 - **OrderController**: 주문 생성(status: pending) → PG 결제창 호출
-- **PaymentController**: PG 콜백 수신 → 금액 검증 → 재고 차감 → 주문 확정(status: paid)
+- **PaymentController**: PG 리다이렉트 콜백 처리 → 금액 검증 → 재고 차감 → 주문 확정(status: paid)
 - pending 주문은 재고를 차감하지 않으므로 결제 실패 시 복구 로직 불필요
 
 #### 결제 흐름
@@ -159,7 +159,7 @@
   ↓
 PG 결제창 (프론트)
   ↓
-GET|POST /payment/callback/{pg} (PG 서버 콜백)
+GET|POST /payment/callback/{pg} (사용자 브라우저 리다이렉트 콜백)
   ↓
 금액 검증 → SELECT FOR UPDATE → UPDATE stock (조건부) → 주문 paid
   ↓
@@ -171,11 +171,15 @@ GET /order/complete/{orderNumber}
 |---|---|
 | 결제창 이탈 / 시간 초과 | `orders:expire` 커맨드가 5분마다 30분 초과 pending → expired 처리 |
 | PG 결제 실패 | 콜백 미수신 → pending 상태 유지 → 스케줄러가 expired 전환 |
-| PG 콜백 수신 후 재고 부족 | confirmPaid 롤백 → PG 자동 취소 호출 (TODO) |
+| PG 콜백 수신 후 재고 부족 | confirmPaid 롤백 → 운영 TODO의 PG 자동 취소 구현 필요 |
 | 주문 취소 (paid) | stock + qty 복구 + sold_out → on_sale 자동 전환 |
 
 #### 이중 결제 방지
 - `payments.pg_tid` UNIQUE 제약으로 PG 콜백 중복 처리 차단
+
+#### 운영 TODO
+- PG 승인 성공 후 재고 부족으로 `confirmPaid()`가 실패한 경우, PG 자동 취소 API 호출 구현 필요
+- `/payment/callback/{pg}`는 현재 로그인 세션 기반 브라우저 리다이렉트 콜백이므로, PG 서버 웹훅을 받을 경우 별도 엔드포인트/서명 검증/멱등 처리 필요
 
 #### 지원 PG
 | PG | 어댑터 | 설정 환경변수 |
@@ -218,7 +222,7 @@ GET /order/complete/{orderNumber}
 | `app/Libraries/PG/PaycoAdapter.php` | PAYCO 어댑터 |
 | `app/Libraries/PG/PGFactory.php` | PG 팩토리 (provider 문자열 → 어댑터 인스턴스) |
 | `app/Controllers/Front/OrderController.php` | 주문서 · 주문 생성 · 완료/실패 · 취소 |
-| `app/Controllers/Front/PaymentController.php` | PG 콜백 수신 · 금액 검증 · 재고 차감 · 이중처리 방지 |
+| `app/Controllers/Front/PaymentController.php` | PG 리다이렉트 콜백 처리 · 금액 검증 · 재고 차감 · 이중처리 방지 |
 | `app/Config/Scheduler.php` | CI4 스케줄러 설정 (5분 주기 expire) |
 | `app/Commands/ExpireOrders.php` | `php spark orders:expire` 커맨드 |
 | `app/Views/shop/checkout.php` | 주문서 뷰 |
@@ -341,6 +345,10 @@ POST /admin/orders/{id}/bank_confirm → status: paid + 재고 차감
 - 검색: 주문번호·수취인명·회원명·이메일 키워드 필터
 - 결제 완료 주문 목록: 최근 50건 (검색 조건 적용), 주문 상세 링크
 
+#### 집계 기준
+- 현재 총 매출은 `paid/preparing/shipped/delivered/refund_requested/refunded` 주문의 `total_amount` 합계 기준
+- `refunded` 주문도 포함되는 gross 매출 기준이므로, 순매출(net) 기준이 필요하면 환불 차감/제외 지표 추가 필요
+
 #### 구현 파일
 | 파일 | 설명 |
 |---|---|
@@ -359,6 +367,21 @@ POST /admin/orders/{id}/bank_confirm → status: paid + 재고 차감
 
 ---
 
-### 4-10. 배송지 주소록 📋 예정
+### 4-10. 배송지 주소록 ✅ 완료
 
-- 배송지 주소록 관리 (추가/수정/삭제/기본 설정)
+#### 주요 기능
+- 배송지 주소록 관리: 추가/삭제/기본 배송지 설정
+- 주문서에서 저장된 배송지 선택 및 기본 배송지 자동 입력
+- 주문서에서 "배송지 저장" 선택 시 주소록 저장
+- 첫 번째 배송지는 자동으로 기본 배송지 설정
+- 동일 주소(zipcode + address1 + address2)는 중복 생성 대신 수취인/연락처 갱신
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Models/ShippingAddressModel.php` | 배송지 목록·기본 배송지·저장/삭제 |
+| `app/Controllers/Front/MyPageController.php` | 배송지 관리 화면·저장·기본 설정·삭제 |
+| `app/Controllers/Front/OrderController.php` | 주문서 기본 배송지/저장 배송지 연동 |
+| `app/Views/shop/addresses/index.php` | 마이페이지 배송지 관리 뷰 |
+| `app/Views/shop/checkout.php` | 주문서 저장 배송지 선택 UI |
+| `app/Config/Routes.php` | `/mypage/addresses` 라우트 |

@@ -30,7 +30,6 @@ class SalesController extends BaseController
             ) latest_paid ON latest_paid.id = p1.id
         ";
 
-        // ── 공통 베이스 빌더 — 주문당 대표 결제 1건만 JOIN ───────────────────
         $base = $db->table('orders o')
             ->join('users u',    'u.id = o.user_id', 'left')
             ->join("({$paidPaymentSql}) p", 'p.order_id = o.id', 'inner', false)
@@ -47,34 +46,42 @@ class SalesController extends BaseController
                 ->groupEnd();
         }
 
-        // ── 기간별 매출 집계 ──────────────────────────────────────────────────
         $groupExpr = match ($period) {
             'weekly'  => "DATE_FORMAT(DATE_SUB(o.created_at, INTERVAL (DAYOFWEEK(o.created_at)-2+7)%7 DAY), '%Y-%m-%d')",
             'monthly' => "DATE_FORMAT(o.created_at, '%Y-%m')",
             default   => "DATE(o.created_at)",
         };
 
+        // GMV = total_amount (할인 전), 실매출 = payable_amount (실 결제액)
         $periodRows = (clone $base)
-            ->select("{$groupExpr} AS period_key, COUNT(o.id) AS order_count, SUM(o.total_amount) AS revenue", false)
+            ->select("{$groupExpr} AS period_key,
+                COUNT(o.id)                                              AS order_count,
+                SUM(o.total_amount)                                      AS gmv,
+                SUM(o.payable_amount)                                    AS revenue,
+                SUM(o.coupon_discount_amount + o.point_used_amount)      AS total_discount", false)
             ->groupBy('period_key')
             ->orderBy('period_key', 'DESC')
             ->get()->getResultArray();
 
-        // ── 결제수단별 집계 ────────────────────────────────────────────────────
         $methodRows = (clone $base)
-            ->select('p.pg_provider, p.method, COUNT(o.id) AS order_count, SUM(o.total_amount) AS revenue', false)
+            ->select('p.pg_provider, p.method, COUNT(o.id) AS order_count,
+                SUM(o.total_amount) AS gmv, SUM(o.payable_amount) AS revenue', false)
             ->groupBy('p.pg_provider, p.method')
             ->orderBy('revenue', 'DESC')
             ->get()->getResultArray();
 
-        // ── 요약 카드 ──────────────────────────────────────────────────────────
         $summary = (clone $base)
-            ->select('COUNT(o.id) AS total_orders, SUM(o.total_amount) AS total_revenue, AVG(o.total_amount) AS avg_order', false)
+            ->select('COUNT(o.id) AS total_orders,
+                SUM(o.total_amount)                                  AS total_gmv,
+                SUM(o.payable_amount)                                AS total_revenue,
+                SUM(o.coupon_discount_amount + o.point_used_amount)  AS total_discount,
+                AVG(o.payable_amount)                                AS avg_order', false)
             ->get()->getRowArray();
 
-        // ── 주문 목록 (검색 결과 / 최근 50건) ────────────────────────────────
         $orders = (clone $base)
-            ->select('o.id, o.order_number, o.total_amount, o.created_at, o.receiver_name,
+            ->select('o.id, o.order_number, o.total_amount, o.payable_amount,
+                      o.shipping_fee, o.coupon_discount_amount, o.point_used_amount,
+                      o.created_at, o.receiver_name,
                       u.nickname, u.email, p.method AS payment_method, p.pg_provider')
             ->orderBy('o.id', 'DESC')
             ->limit(50)

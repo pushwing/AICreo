@@ -73,8 +73,18 @@ $methodLabels = [
                 <dt class="col-4 fw-normal text-muted">배송비</dt>
                 <dd class="col-8"><?= (int) $order['shipping_fee'] > 0 ? number_format($order['shipping_fee']) . '원' : '무료' ?></dd>
 
-                <dt class="col-4 fw-bold text-dark">총 결제 금액</dt>
-                <dd class="col-8 fw-bold text-primary fs-6"><?= number_format($order['total_amount']) ?>원</dd>
+                <?php if ((int) $order['coupon_discount_amount'] > 0): ?>
+                <dt class="col-4 fw-normal text-muted">쿠폰 할인</dt>
+                <dd class="col-8 text-danger">- <?= number_format($order['coupon_discount_amount']) ?>원</dd>
+                <?php endif; ?>
+
+                <?php if ((int) $order['point_used_amount'] > 0): ?>
+                <dt class="col-4 fw-normal text-muted">포인트 사용</dt>
+                <dd class="col-8 text-danger">- <?= number_format($order['point_used_amount']) ?>원</dd>
+                <?php endif; ?>
+
+                <dt class="col-4 fw-bold text-dark">최종 결제 금액</dt>
+                <dd class="col-8 fw-bold text-primary fs-6"><?= number_format($order['payable_amount'] ?? $order['total_amount']) ?>원</dd>
 
                 <?php if ($payment): ?>
                 <dt class="col-4 fw-normal text-muted mt-2">결제 수단</dt>

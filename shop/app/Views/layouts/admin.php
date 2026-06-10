@@ -70,6 +70,12 @@
         <a href="/admin/sales" class="nav-link <?= str_starts_with(uri_string(), 'admin/sales') ? 'active' : '' ?>">
             <i class="bi bi-graph-up-arrow me-2"></i>매출 관리
         </a>
+        <a href="/admin/coupons" class="nav-link <?= str_starts_with(uri_string(), 'admin/coupons') ? 'active' : '' ?>">
+            <i class="bi bi-ticket-perforated me-2"></i>쿠폰 관리
+        </a>
+        <a href="/admin/points" class="nav-link <?= str_starts_with(uri_string(), 'admin/points') ? 'active' : '' ?>">
+            <i class="bi bi-star me-2"></i>포인트 관리
+        </a>
 
         <div class="nav-section">운영</div>
         <a href="/admin/users" class="nav-link <?= str_starts_with(uri_string(), 'admin/users') ? 'active' : '' ?>">

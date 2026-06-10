@@ -41,7 +41,7 @@
 
                 <dt class="col-4 text-muted fw-normal small border-top pt-2 mt-1">입금 금액</dt>
                 <dd class="col-8 fw-bold text-primary fs-5 border-top pt-2 mt-1">
-                    <?= number_format((int) $order['total_amount']) ?>원
+                    <?= number_format((int) ($order['payable_amount'] ?? $order['total_amount'])) ?>원
                 </dd>
             </dl>
         </div>
@@ -68,9 +68,21 @@
                 <span class="flex-shrink-0"><?= number_format($item['subtotal']) ?>원</span>
             </div>
             <?php endforeach; ?>
+            <?php if ((int) ($order['coupon_discount_amount'] ?? 0) > 0): ?>
+            <div class="d-flex justify-content-between text-muted mb-1 small">
+                <span>쿠폰 할인</span>
+                <span class="text-danger">- <?= number_format($order['coupon_discount_amount']) ?>원</span>
+            </div>
+            <?php endif; ?>
+            <?php if ((int) ($order['point_used_amount'] ?? 0) > 0): ?>
+            <div class="d-flex justify-content-between text-muted mb-1 small">
+                <span>포인트 사용</span>
+                <span class="text-danger">- <?= number_format($order['point_used_amount']) ?>원</span>
+            </div>
+            <?php endif; ?>
             <div class="d-flex justify-content-between border-top pt-2 mt-1 fw-semibold">
-                <span>총 결제금액</span>
-                <span class="text-primary"><?= number_format((int) $order['total_amount']) ?>원</span>
+                <span>최종 결제금액</span>
+                <span class="text-primary"><?= number_format((int) ($order['payable_amount'] ?? $order['total_amount'])) ?>원</span>
             </div>
         </div>
     </div>

@@ -11,19 +11,6 @@
         <h5 class="fw-bold mb-0">배송지 관리</h5>
     </div>
 
-    <?php if ($flash = session()->getFlashdata('success')): ?>
-    <div class="alert alert-success alert-dismissible fade show">
-        <?= esc($flash) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
-    <?php if ($flash = session()->getFlashdata('error')): ?>
-    <div class="alert alert-danger alert-dismissible fade show">
-        <?= esc($flash) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
-
     <!-- ─── 저장된 배송지 목록 ────────────────────────────────────────────── -->
     <?php if (empty($addresses)): ?>
     <div class="text-center text-muted py-5">

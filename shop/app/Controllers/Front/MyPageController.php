@@ -4,12 +4,16 @@ namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
 use App\Models\OrderModel;
+use App\Models\PointLogModel;
 use App\Models\ShippingAddressModel;
+use App\Models\UserCouponModel;
 
 class MyPageController extends BaseController
 {
     private OrderModel           $orderModel;
     private ShippingAddressModel $addressModel;
+    private UserCouponModel      $userCouponModel;
+    private PointLogModel        $pointLogModel;
 
     // 상태 탭 정의 — key: 쿼리 파라미터 값, label: 표시명
     private const STATUS_TABS = [
@@ -24,8 +28,10 @@ class MyPageController extends BaseController
 
     public function __construct()
     {
-        $this->orderModel   = new OrderModel();
-        $this->addressModel = new ShippingAddressModel();
+        $this->orderModel      = new OrderModel();
+        $this->addressModel    = new ShippingAddressModel();
+        $this->userCouponModel = new UserCouponModel();
+        $this->pointLogModel   = new PointLogModel();
     }
 
     /** GET /mypage/orders */
@@ -102,9 +108,9 @@ class MyPageController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => '배송 완료 처리할 수 없는 주문입니다.']);
         }
 
-        $this->orderModel->update($orderId, ['status' => 'delivered']);
+        $ok = $this->orderModel->updateStatus($orderId, 'delivered');
 
-        return $this->response->setJSON(['success' => true]);
+        return $this->response->setJSON(['success' => $ok, 'message' => $ok ? '' : '처리에 실패했습니다.']);
     }
 
     /** GET /mypage/addresses */
@@ -189,6 +195,53 @@ class MyPageController extends BaseController
         }
 
         return redirect()->to('/mypage/addresses')->with('success', '배송지가 삭제되었습니다.');
+    }
+
+    /** GET /mypage/coupons */
+    public function coupons()
+    {
+        $userId  = (int) session()->get('user_id');
+        $tab         = $this->request->getGet('tab') ?? 'available';
+        $currentPage = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $perPage     = 10;
+
+        if (! in_array($tab, ['available', 'used'], true)) $tab = 'available';
+
+        $now     = date('Y-m-d H:i:s');
+        $builder = \Config\Database::connect()->table('user_coupons uc')
+            ->select('uc.*, c.code, c.name, c.type, c.discount_value,
+                      c.min_order_amount, c.max_discount_amount, c.expires_at')
+            ->join('coupons c', 'c.id = uc.coupon_id')
+            ->where('uc.user_id', $userId);
+
+        if ($tab === 'available') {
+            $builder->where('uc.status', 'issued')
+                ->groupStart()
+                    ->where('c.expires_at IS NULL', null, false)
+                    ->orWhere('c.expires_at >=', $now)
+                ->groupEnd();
+        } else {
+            $builder->where('uc.status', 'used');
+        }
+
+        $total   = (clone $builder)->countAllResults();
+        $coupons = $builder->orderBy('uc.id', 'DESC')
+            ->limit($perPage, ($currentPage - 1) * $perPage)
+            ->get()->getResultArray();
+
+        return $this->render('shop/mypage/coupons', compact('coupons', 'tab', 'total', 'currentPage', 'perPage'));
+    }
+
+    /** GET /mypage/points */
+    public function points()
+    {
+        $userId       = (int) session()->get('user_id');
+        $currentPage  = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $result       = $this->pointLogModel->getByUser($userId, $currentPage);
+        $user         = \Config\Database::connect()->table('users')->select('point_balance')->where('id', $userId)->get()->getRow();
+        $pointBalance = (int) ($user->point_balance ?? 0);
+
+        return $this->render('shop/mypage/points', array_merge($result, compact('pointBalance')));
     }
 
     /** POST /mypage/orders/cancel — 즉시 취소 */

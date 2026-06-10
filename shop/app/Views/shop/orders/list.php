@@ -21,7 +21,20 @@ $statusBadge = [
 
 <div class="container py-4" style="max-width:860px">
 
-    <h4 class="fw-bold mb-4">주문 내역</h4>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold mb-0">주문 내역</h4>
+        <div class="d-flex gap-2">
+            <a href="/mypage/coupons" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-ticket-perforated me-1"></i>쿠폰
+            </a>
+            <a href="/mypage/points" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-star me-1"></i>포인트
+            </a>
+            <a href="/mypage/addresses" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-geo-alt me-1"></i>배송지
+            </a>
+        </div>
+    </div>
 
     <!-- ─── 검색창 ──────────────────────────────────────────────────────────── -->
     <form method="get" action="/mypage/orders" class="mb-3">
@@ -65,19 +78,7 @@ $statusBadge = [
         <?php endforeach; ?>
     </ul>
 
-    <!-- ─── 플래시 메시지 ─────────────────────────────────────────────────── -->
-    <?php if ($flash = session()->getFlashdata('success')): ?>
-    <div class="alert alert-success alert-dismissible fade show">
-        <?= esc($flash) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
-    <?php if ($flash = session()->getFlashdata('error')): ?>
-    <div class="alert alert-danger alert-dismissible fade show">
-        <?= esc($flash) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
+
 
     <!-- ─── 주문 목록 ──────────────────────────────────────────────────────── -->
     <?php if (empty($items)): ?>

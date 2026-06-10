@@ -62,19 +62,6 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
     </div>
 </div>
 
-<!-- 플래시 -->
-<?php if ($flash = session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2">
-    <?= esc($flash) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($flash = session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2">
-    <?= esc($flash) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
 
 <div class="row g-4">
 
@@ -125,9 +112,15 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                 <dl class="row mb-0 small">
                     <dt class="col-4 fw-normal text-muted">회원</dt>
                     <dd class="col-8">
-                        <?= esc($order['user_nickname'] ?? '-') ?>
+                        <?php if (!empty($order['user_id'])): ?>
+                        <a href="/admin/users/<?= (int) $order['user_id'] ?>/edit" class="text-decoration-none">
+                            <?= esc($order['user_nickname'] ?? '-') ?>
+                        </a>
                         <?php if ($order['user_email']): ?>
                         <span class="text-muted ms-1">(<?= esc($order['user_email']) ?>)</span>
+                        <?php endif; ?>
+                        <?php else: ?>
+                        <?= esc($order['user_nickname'] ?? '-') ?>
                         <?php endif; ?>
                     </dd>
 
@@ -135,10 +128,44 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     <dd class="col-8"><?= number_format($order['total_product_price']) ?>원</dd>
 
                     <dt class="col-4 fw-normal text-muted">배송비</dt>
-                    <dd class="col-8"><?= (int) $order['shipping_fee'] > 0 ? number_format($order['shipping_fee']) . '원' : '무료' ?></dd>
+                    <dd class="col-8">
+                    <?php if ((int) $order['shipping_fee'] > 0): ?>
+                        <?= number_format($order['shipping_fee']) ?>원
+                    <?php else:
+                        $totalProduct = (int) $order['total_product_price'];
+                        $freeReason   = '무료';
+                        $hasAllFree   = true;
+                        $metThreshold = null;
+                        foreach ($order['items'] as $_item) {
+                            $type = $_item['shipping_type'] ?? '';
+                            if ($type !== 'free') $hasAllFree = false;
+                            if ($type === 'conditional' && (int) $_item['free_threshold'] > 0
+                                && $totalProduct >= (int) $_item['free_threshold']) {
+                                $metThreshold = (int) $_item['free_threshold'];
+                            }
+                        }
+                        if ($metThreshold !== null) {
+                            $freeReason = '무료 <span class="text-muted small">(조건부 무료, ' . number_format($metThreshold) . '원 이상 구매)</span>';
+                        } elseif ($hasAllFree) {
+                            $freeReason = '무료 <span class="text-muted small">(무료배송 상품)</span>';
+                        }
+                    ?>
+                        <?= $freeReason ?>
+                    <?php endif; ?>
+                    </dd>
 
-                    <dt class="col-4 fw-bold text-dark border-top pt-2 mt-1">총 결제금액</dt>
-                    <dd class="col-8 fw-bold text-primary border-top pt-2 mt-1"><?= number_format($order['total_amount']) ?>원</dd>
+                    <?php if ((int) ($order['coupon_discount_amount'] ?? 0) > 0): ?>
+                    <dt class="col-4 fw-normal text-muted">쿠폰 할인</dt>
+                    <dd class="col-8 text-danger">- <?= number_format($order['coupon_discount_amount']) ?>원</dd>
+                    <?php endif; ?>
+
+                    <?php if ((int) ($order['point_used_amount'] ?? 0) > 0): ?>
+                    <dt class="col-4 fw-normal text-muted">포인트 사용</dt>
+                    <dd class="col-8 text-danger">- <?= number_format($order['point_used_amount']) ?>원</dd>
+                    <?php endif; ?>
+
+                    <dt class="col-4 fw-bold text-dark border-top pt-2 mt-1">최종 결제금액</dt>
+                    <dd class="col-8 fw-bold text-primary border-top pt-2 mt-1"><?= number_format($order['payable_amount'] ?? $order['total_amount']) ?>원</dd>
 
                     <?php if ($payment): ?>
                     <dt class="col-4 fw-normal text-muted mt-2">결제 수단</dt>
@@ -177,7 +204,7 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3">
-                    입금 금액: <strong class="text-dark"><?= number_format((int) $order['total_amount']) ?>원</strong><br>
+                    입금 금액: <strong class="text-dark"><?= number_format((int) ($order['payable_amount'] ?? $order['total_amount'])) ?>원</strong><br>
                     입금자명: <strong class="text-dark"><?= esc($order['receiver_name']) ?></strong>
                 </p>
                 <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/bank_confirm"
@@ -269,6 +296,77 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-danger w-100">강제 취소</button>
                 </form>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- 상태 변경 이력 -->
+        <?php if (!empty($order['statusLogs'])): ?>
+        <div class="card mb-3">
+            <div class="card-header fw-semibold bg-white">
+                <i class="bi bi-clock-history me-1"></i>상태 변경 이력
+            </div>
+            <div class="card-body p-0">
+                <?php
+                $statusLabelsAll = [
+                    'pending'           => '결제 대기',
+                    'awaiting_payment'  => '입금 대기',
+                    'paid'              => '결제 완료',
+                    'preparing'         => '상품 준비 중',
+                    'shipped'           => '배송 중',
+                    'delivered'         => '배송 완료',
+                    'cancelled'         => '취소',
+                    'expired'           => '만료',
+                    'refund_requested'  => '환불 요청',
+                    'refunded'          => '환불 완료',
+                ];
+                $actorBadge = [
+                    'admin'  => ['bg-primary',   '관리자'],
+                    'member' => ['bg-secondary',  '회원'],
+                    'system' => ['bg-dark',       '시스템'],
+                ];
+                ?>
+                <ul class="list-unstyled mb-0" style="font-size:.8rem">
+                    <?php foreach ($order['statusLogs'] as $idx => $log):
+                        [$badgeCls, $badgeLabel] = $actorBadge[$log['actor_type']] ?? ['bg-secondary', $log['actor_type']];
+                        $fromLabel  = $statusLabelsAll[$log['from_status']] ?? $log['from_status'];
+                        $toLabel    = $statusLabelsAll[$log['to_status']]   ?? $log['to_status'];
+                        $sameStatus = $log['from_status'] === $log['to_status'];
+                        $displayName = match($log['actor_type']) {
+                            'admin'  => ($log['actor_name'] && $log['actor_name'] !== 'system')
+                                            ? '관리자 · ' . $log['actor_name'] : '관리자',
+                            'member' => $log['actor_name'] ?: '회원',
+                            default  => '시스템',
+                        };
+                    ?>
+                    <li class="px-3 py-2 <?= $idx < count($order['statusLogs']) - 1 ? 'border-bottom' : '' ?>">
+                        <div class="d-flex align-items-start gap-2">
+                            <div class="flex-shrink-0 pt-1" style="min-width:0">
+                                <span class="badge <?= $badgeCls ?> rounded-pill" style="font-size:.65rem">
+                                    <?= esc($displayName) ?>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1">
+                                <?php if ($sameStatus): ?>
+                                <div class="fw-semibold text-dark"><?= esc($toLabel) ?></div>
+                                <?php else: ?>
+                                <div class="fw-semibold text-dark">
+                                    <span class="text-muted"><?= esc($fromLabel) ?></span>
+                                    <i class="bi bi-arrow-right mx-1" style="font-size:.7rem"></i>
+                                    <?= esc($toLabel) ?>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($log['note']): ?>
+                                <div class="text-muted"><?= esc($log['note']) ?></div>
+                                <?php endif; ?>
+                                <div class="text-muted" style="font-size:.72rem">
+                                    <?= date('Y.m.d H:i:s', strtotime($log['created_at'])) ?>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
         </div>
         <?php endif; ?>

@@ -6,13 +6,6 @@
 
     <h4 class="fw-bold mb-4">장바구니</h4>
 
-    <?php if ($flash = session()->getFlashdata('success')): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?= esc($flash) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <?php endif; ?>
-
     <?php if (empty($items)): ?>
 
     <div class="text-center text-muted py-5">

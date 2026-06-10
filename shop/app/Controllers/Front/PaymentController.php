@@ -54,7 +54,7 @@ class PaymentController extends BaseController
         }
 
         $pg     = PGFactory::make($pgProvider);
-        $result = $pg->confirm($pgToken, (int) $order['total_amount']);
+        $result = $pg->confirm($pgToken, (int) $order['payable_amount']);
 
         if (! $result['success']) {
             session()->setFlashdata('pg_error', $result['message'] ?? '결제 확인에 실패했습니다.');
@@ -62,8 +62,8 @@ class PaymentController extends BaseController
         }
 
         // 금액 2차 검증 (어댑터 내부에서도 검증하지만 여기서 한 번 더)
-        if ((int) $result['amount'] !== (int) $order['total_amount']) {
-            log_message('critical', "결제 금액 불일치: order_id={$orderId}, expected={$order['total_amount']}, got={$result['amount']}");
+        if ((int) $result['amount'] !== (int) $order['payable_amount']) {
+            log_message('critical', "결제 금액 불일치: order_id={$orderId}, expected={$order['payable_amount']}, got={$result['amount']}");
             session()->setFlashdata('pg_error', '결제 금액이 일치하지 않습니다.');
             return redirect()->to('/order/fail/' . $order['order_number']);
         }

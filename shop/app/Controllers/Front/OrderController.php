@@ -3,11 +3,13 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Libraries\CouponService;
 use App\Libraries\PG\PGFactory;
 use App\Models\CartModel;
 use App\Models\OrderModel;
 use App\Models\ProductModel;
 use App\Models\ShippingAddressModel;
+use App\Models\UserCouponModel;
 
 class OrderController extends BaseController
 {
@@ -15,16 +17,18 @@ class OrderController extends BaseController
     private CartModel           $cartModel;
     private ProductModel        $productModel;
     private ShippingAddressModel $addressModel;
+    private UserCouponModel     $userCouponModel;
 
     public function __construct()
     {
-        $this->orderModel   = new OrderModel();
-        $this->cartModel    = new CartModel();
-        $this->productModel = new ProductModel();
-        $this->addressModel = new ShippingAddressModel();
+        $this->orderModel      = new OrderModel();
+        $this->cartModel       = new CartModel();
+        $this->productModel    = new ProductModel();
+        $this->addressModel    = new ShippingAddressModel();
+        $this->userCouponModel = new UserCouponModel();
     }
 
-    /** GET /order — 주문서 (장바구니 상품 기반) */
+    /** GET /order — 주문서 */
     public function index()
     {
         $userId = (int) session()->get('user_id');
@@ -34,7 +38,6 @@ class OrderController extends BaseController
             return redirect()->to('/cart')->with('error', '장바구니가 비어 있습니다.');
         }
 
-        // 구매 불가 상품 걸러내기
         $available = array_filter($items, fn($i) => $i['is_available']);
         if (empty($available)) {
             return redirect()->to('/cart')->with('error', '구매 가능한 상품이 없습니다.');
@@ -45,25 +48,31 @@ class OrderController extends BaseController
             $available
         ));
 
-        $shippingFee  = $this->orderModel->calculateShippingFee($available, $totalProduct);
-        $totalAmount  = $totalProduct + $shippingFee;
+        $shippingFee    = $this->orderModel->calculateShippingFee($available, $totalProduct);
+        $totalAmount    = $totalProduct + $shippingFee;
         $savedAddresses = $this->addressModel->getByUser($userId);
         $savedAddress   = $this->addressModel->getDefault($userId);
         $pgProviders    = PGFactory::labels();
+        $userCoupons    = $this->userCouponModel->getAvailable($userId, $totalAmount);
+
+        $user         = \Config\Database::connect()->table('users')->select('point_balance')->where('id', $userId)->get()->getRow();
+        $pointBalance = (int) ($user->point_balance ?? 0);
 
         return $this->render('shop/checkout', compact(
             'available', 'totalProduct', 'shippingFee', 'totalAmount',
-            'savedAddresses', 'savedAddress', 'pgProviders'
+            'savedAddresses', 'savedAddress', 'pgProviders',
+            'userCoupons', 'pointBalance'
         ));
     }
 
     /**
-     * POST /order/create — 주문 생성 (pending)
-     * 재고는 아직 차감하지 않음 — 결제 확정(PaymentController::callback) 시 차감
+     * POST /order/create — 주문 생성
+     * 쿠폰 확정 + 포인트 차감 + payable_amount 산출까지 서버에서 처리
      */
     public function create()
     {
-        $userId = (int) session()->get('user_id');
+        $userId   = (int) session()->get('user_id');
+        $settings = $this->viewData['settings'];
 
         $rules = [
             'receiver_name'  => 'required|max_length[100]',
@@ -80,6 +89,9 @@ class OrderController extends BaseController
         $shippingData = $this->request->getPost(['receiver_name', 'receiver_phone', 'zipcode', 'address1', 'address2', 'delivery_memo']);
         $pgProvider   = $this->request->getPost('pg_provider');
         $saveAddress  = (bool) $this->request->getPost('save_address');
+        $couponCode   = trim($this->request->getPost('coupon_code') ?? '');
+        $userCouponId = (int) ($this->request->getPost('user_coupon_id') ?? 0);
+        $pointUse     = max(0, (int) ($this->request->getPost('point_use') ?? 0));
 
         $items = $this->cartModel->getByUser($userId);
         $items = array_values(array_filter($items, fn($i) => $i['is_available']));
@@ -88,7 +100,7 @@ class OrderController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => '구매 가능한 상품이 없습니다.']);
         }
 
-        // 최종 재고 검증 (주문 생성 전 빠른 사전 확인 — 실제 차감은 결제 확정 시)
+        // 재고 사전 확인
         foreach ($items as $item) {
             $stock = (int) $this->productModel->db
                 ->table('products')->select('stock')->where('id', $item['product_id'])->get()->getRow()->stock;
@@ -100,38 +112,90 @@ class OrderController extends BaseController
             }
         }
 
-        $orderId = $this->orderModel->createPending($userId, $shippingData, $items);
+        // 서버 금액 재계산
+        $totalProduct = array_sum(array_map(
+            fn($i) => ((int) ($i['discount_price'] ?? $i['price'])) * (int) $i['qty'],
+            $items
+        ));
+        $shippingFee = $this->orderModel->calculateShippingFee($items, $totalProduct);
+        $totalAmount = $totalProduct + $shippingFee;
+
+        // 쿠폰 검증
+        $couponId             = null;
+        $couponDiscountAmount = 0;
+        $resolvedUserCouponId = null;
+
+        if ($userCouponId > 0 || $couponCode !== '') {
+            $svc = new CouponService();
+            $result = $userCouponId > 0
+                ? $svc->validateByUserCouponId($userCouponId, $userId, $totalAmount)
+                : $svc->validate($couponCode, $userId, $totalAmount);
+
+            if (! $result['valid']) {
+                return $this->response->setJSON(['success' => false, 'message' => $result['message']]);
+            }
+            $couponId             = $result['coupon']['id'];
+            $couponDiscountAmount = $result['discount'];
+            $resolvedUserCouponId = $result['user_coupon_id'];
+        }
+
+        // 포인트 검증
+        if ($pointUse > 0) {
+            $user         = \Config\Database::connect()->table('users')->select('point_balance')->where('id', $userId)->get()->getRow();
+            $pointBalance = (int) ($user->point_balance ?? 0);
+            if ($pointUse > $pointBalance) {
+                return $this->response->setJSON(['success' => false, 'message' => '포인트 잔액이 부족합니다.']);
+            }
+        }
+
+        // payable_amount
+        $payableAmount = max(0, $totalAmount - $couponDiscountAmount - $pointUse);
+        $minPayable    = max(0, (int) ($settings['min_payable_amount'] ?? 10000));
+        if ($payableAmount > 0 && $payableAmount < $minPayable) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => '최소 결제 금액은 ' . number_format($minPayable) . '원입니다. 포인트 사용량을 조정해주세요.',
+            ]);
+        }
+
+        // 포인트 적립 예정액
+        $earnRate    = max(0, (float) ($settings['point_earn_rate'] ?? 1));
+        $pointEarned = $payableAmount > 0 ? (int) floor($payableAmount * $earnRate / 100) : 0;
+
+        $orderId = $this->orderModel->createPending(
+            $userId, $shippingData, $items,
+            $couponId, $resolvedUserCouponId,
+            $couponDiscountAmount, $pointUse, $pointEarned
+        );
+
         if (! $orderId) {
-            return $this->response->setJSON(['success' => false, 'message' => '주문 생성에 실패했습니다.']);
+            return $this->response->setJSON(['success' => false, 'message' => '주문 생성에 실패했습니다. (포인트 또는 쿠폰 처리 오류)']);
         }
 
         if ($saveAddress) {
             $this->addressModel->saveAddress($userId, $shippingData);
         }
 
-        // 무통장입금: PG 콜백 없으므로 여기서 바로 처리
+        // 무통장입금
         if ($pgProvider === 'bank_transfer') {
-            $db  = \Config\Database::connect();
-            $now = date('Y-m-d H:i:s');
+            $db    = \Config\Database::connect();
+            $now   = date('Y-m-d H:i:s');
+            $order = $this->orderModel->getWithItems($orderId, $userId);
 
-            // 주문 상태를 입금 대기로 전환
             $this->orderModel->update($orderId, ['status' => 'awaiting_payment']);
 
-            // 결제 레코드 생성 (입금 전 pending 상태)
-            $order = $this->orderModel->getWithItems($orderId, $userId);
             $db->table('payments')->insert([
                 'order_id'     => $orderId,
                 'pg_provider'  => 'bank_transfer',
                 'pg_tid'       => null,
                 'method'       => '무통장입금',
-                'amount'       => (int) $order['total_amount'],
+                'amount'       => (int) $order['payable_amount'],
                 'status'       => 'pending',
                 'raw_response' => '{}',
                 'created_at'   => $now,
                 'updated_at'   => $now,
             ]);
 
-            // 장바구니 비우기 (PG 콜백이 없으므로 여기서 처리)
             $productIds = array_column($items, 'product_id');
             $db->table('cart_items')
                 ->where('user_id', $userId)
@@ -148,11 +212,10 @@ class OrderController extends BaseController
             ]);
         }
 
-        $order        = $this->orderModel->getWithItems($orderId, $userId);
-        $pg           = PGFactory::make($pgProvider);
-        $pgParams     = $pg->buildPaymentParams($order);
+        $order    = $this->orderModel->getWithItems($orderId, $userId);
+        $pg       = PGFactory::make($pgProvider);
+        $pgParams = $pg->buildPaymentParams($order);
 
-        // PG별 세션 저장 (승인 시 사용)
         if ($pgProvider === 'kakaopay' && isset($pgParams['tid'])) {
             session()->set('kakaopay_tid', $pgParams['tid']);
             session()->set('kakaopay_order_number', $order['order_number']);
@@ -168,7 +231,7 @@ class OrderController extends BaseController
         ]);
     }
 
-    /** GET /order/bank_transfer/:orderNumber — 입금 대기 안내 페이지 */
+    /** GET /order/bank_transfer/:orderNumber */
     public function bankTransfer(string $orderNumber)
     {
         $userId = (int) session()->get('user_id');
@@ -208,7 +271,7 @@ class OrderController extends BaseController
         return $this->render('shop/order_fail', compact('order', 'message'));
     }
 
-    /** POST /order/cancel — 주문 취소 */
+    /** POST /order/cancel */
     public function cancel()
     {
         $userId  = (int) session()->get('user_id');
@@ -225,5 +288,4 @@ class OrderController extends BaseController
             'message' => $success ? '주문이 취소되었습니다.' : '취소할 수 없는 주문입니다.',
         ]);
     }
-
 }

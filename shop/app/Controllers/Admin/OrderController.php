@@ -78,6 +78,13 @@ class OrderController extends BaseController
             return redirect()->back()->with('error', '잘못된 상태값입니다.');
         }
 
+        if ($newStatus === 'shipped') {
+            $order = $this->orderModel->find($id);
+            if (! $order || trim($order['tracking_number'] ?? '') === '') {
+                return redirect()->back()->with('error', '송장번호를 먼저 입력해주세요.');
+            }
+        }
+
         $ok = $this->orderModel->updateStatus($id, $newStatus);
 
         return redirect()->to("/admin/orders/{$id}")

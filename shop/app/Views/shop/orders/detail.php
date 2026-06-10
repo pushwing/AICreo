@@ -164,7 +164,7 @@ $isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
             </dl>
             <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded">
                 <span class="fw-semibold text-muted small">입금하실 금액</span>
-                <span class="fs-5 fw-bold text-primary"><?= number_format($order['total_amount']) ?>원</span>
+                <span class="fs-5 fw-bold text-primary"><?= number_format($order['payable_amount'] ?? $order['total_amount']) ?>원</span>
             </div>
             <div class="text-muted small mt-2">
                 <i class="bi bi-info-circle me-1"></i>
@@ -192,8 +192,18 @@ $isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                 <dt class="col-5 fw-normal text-muted">배송비</dt>
                 <dd class="col-7"><?= (int) $order['shipping_fee'] > 0 ? number_format($order['shipping_fee']) . '원' : '무료' ?></dd>
 
-                <dt class="col-5 fw-bold text-dark border-top pt-2 mt-1">총 결제 금액</dt>
-                <dd class="col-7 fw-bold text-primary border-top pt-2 mt-1"><?= number_format($order['total_amount']) ?>원</dd>
+                <?php if ((int) ($order['coupon_discount_amount'] ?? 0) > 0): ?>
+                <dt class="col-5 fw-normal text-muted">쿠폰 할인</dt>
+                <dd class="col-7 text-danger">- <?= number_format($order['coupon_discount_amount']) ?>원</dd>
+                <?php endif; ?>
+
+                <?php if ((int) ($order['point_used_amount'] ?? 0) > 0): ?>
+                <dt class="col-5 fw-normal text-muted">포인트 사용</dt>
+                <dd class="col-7 text-danger">- <?= number_format($order['point_used_amount']) ?>원</dd>
+                <?php endif; ?>
+
+                <dt class="col-5 fw-bold text-dark border-top pt-2 mt-1">최종 결제 금액</dt>
+                <dd class="col-7 fw-bold text-primary border-top pt-2 mt-1"><?= number_format($order['payable_amount'] ?? $order['total_amount']) ?>원</dd>
 
                 <?php if ($payment): ?>
                 <dt class="col-5 fw-normal text-muted mt-2">결제 수단</dt>

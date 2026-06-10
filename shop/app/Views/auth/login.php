@@ -7,13 +7,6 @@
             <div class="card-body p-4">
                 <h5 class="mb-4 fw-bold">로그인</h5>
 
-                <?php if (session()->has('error')): ?>
-                    <div class="alert alert-danger"><?= esc(session('error')) ?></div>
-                <?php endif; ?>
-                <?php if (session()->has('success')): ?>
-                    <div class="alert alert-success"><?= esc(session('success')) ?></div>
-                <?php endif; ?>
-
                 <!-- 일반 로그인 -->
                 <form method="post" action="/auth/login">
                     <?= csrf_field() ?>

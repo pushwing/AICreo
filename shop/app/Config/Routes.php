@@ -116,6 +116,21 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 매출 관리
     $routes->get('sales', 'Admin\SalesController::index');
 
+    // 쿠폰 관리
+    $routes->get( 'coupons',                   'Admin\CouponController::index');
+    $routes->get( 'coupons/create',            'Admin\CouponController::create');
+    $routes->post('coupons/create',            'Admin\CouponController::store');
+    $routes->get( 'coupons/(:num)/edit',       'Admin\CouponController::edit/$1');
+    $routes->post('coupons/(:num)/edit',       'Admin\CouponController::update/$1');
+    $routes->post('coupons/(:num)/delete',     'Admin\CouponController::delete/$1');
+    $routes->get( 'coupons/(:num)/issue',      'Admin\CouponController::issueForm/$1');
+    $routes->post('coupons/(:num)/issue',      'Admin\CouponController::issue/$1');
+
+    // 포인트 관리
+    $routes->get( 'points',                    'Admin\PointController::index');
+    $routes->get( 'points/(:num)/history',     'Admin\PointController::history/$1');
+    $routes->post('points/adjust',             'Admin\PointController::adjust');
+
     // 주문 관리
     $routes->get( 'orders',                        'Admin\OrderController::index');
     $routes->get( 'orders/(:num)',                 'Admin\OrderController::detail/$1');
@@ -166,6 +181,9 @@ $routes->group('order', ['filter' => 'auth:member'], function ($routes) {
     $routes->get( 'bank_transfer/(:segment)', 'Front\OrderController::bankTransfer/$1');
 });
 
+// ─── 쿠폰 (로그인 필요) ──────────────────────────────────────────────────────
+$routes->post('coupon/validate', 'Front\CouponController::validate', ['filter' => 'auth:member']);
+
 // ─── 마이페이지 (로그인 필요) ────────────────────────────────────────────────
 $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
     $routes->get( 'orders',                  'Front\MyPageController::orders');
@@ -177,6 +195,9 @@ $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
     $routes->post('addresses',                      'Front\MyPageController::addressStore');
     $routes->post('addresses/(:num)/default',       'Front\MyPageController::addressSetDefault/$1');
     $routes->post('addresses/(:num)/delete',        'Front\MyPageController::addressDelete/$1');
+    // 쿠폰 · 포인트
+    $routes->get('coupons', 'Front\MyPageController::coupons');
+    $routes->get('points',  'Front\MyPageController::points');
 });
 
 // ─── PG 콜백 (PG 서버에서 직접 호출 — CSRF 예외 필요) ────────────────────────

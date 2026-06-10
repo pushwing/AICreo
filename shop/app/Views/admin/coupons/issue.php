@@ -1,0 +1,104 @@
+<?= $this->extend('layouts/admin') ?>
+<?php $pageTitle = '쿠폰 발급' ?>
+
+<?= $this->section('content') ?>
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="/admin/coupons" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <div>
+        <h4 class="fw-bold mb-0">쿠폰 발급</h4>
+        <div class="text-muted small"><?= esc($coupon['name']) ?> (<?= esc($coupon['code']) ?>)</div>
+    </div>
+</div>
+
+<?php if ($flash = session()->getFlashdata('success')): ?>
+<div class="alert alert-success alert-dismissible fade show py-2">
+    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+<?php if ($flash = session()->getFlashdata('error')): ?>
+<div class="alert alert-danger alert-dismissible fade show py-2">
+    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header fw-semibold bg-white">회원에게 발급</div>
+            <div class="card-body">
+                <form method="post" action="/admin/coupons/<?= (int) $coupon['id'] ?>/issue">
+                    <?= csrf_field() ?>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">회원 ID (쉼표로 여러 명 입력)</label>
+                        <textarea name="user_ids" class="form-control font-monospace"
+                                  rows="3" placeholder="예: 1, 2, 5, 12"></textarea>
+                        <div class="form-text">이미 발급된 회원은 자동으로 건너뜁니다.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">발급</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header fw-semibold bg-white d-flex justify-content-between align-items-center">
+                <span>발급 내역</span>
+                <span class="text-muted small">총 <?= number_format($total) ?>건</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>회원 ID</th>
+                            <th>닉네임</th>
+                            <th>출처</th>
+                            <th>상태</th>
+                            <th>발급일</th>
+                            <th>사용일</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($items)): ?>
+                        <tr><td colspan="6" class="text-center py-4 text-muted">발급 내역이 없습니다.</td></tr>
+                        <?php else: foreach ($items as $uc): ?>
+                        <tr>
+                            <td class="small"><?= (int) $uc['user_id'] ?></td>
+                            <td class="small"><?= esc($uc['nickname'] ?? '—') ?></td>
+                            <td class="small">
+                                <span class="badge bg-<?= $uc['source'] === 'admin' ? 'info' : 'secondary' ?> bg-opacity-75">
+                                    <?= $uc['source'] === 'admin' ? '관리자' : '코드입력' ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-<?= $uc['status'] === 'used' ? 'success' : ($uc['status'] === 'expired' ? 'secondary' : 'primary') ?>">
+                                    <?= ['issued'=>'보유','used'=>'사용','expired'=>'만료'][$uc['status']] ?? $uc['status'] ?>
+                                </span>
+                            </td>
+                            <td class="small text-muted"><?= $uc['issued_at'] ? date('y.m.d', strtotime($uc['issued_at'])) : '—' ?></td>
+                            <td class="small text-muted"><?= $uc['used_at']   ? date('y.m.d', strtotime($uc['used_at']))   : '—' ?></td>
+                        </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php if ($total > $perPage): ?>
+            <div class="card-footer bg-white">
+                <?php $totalPages = (int) ceil($total / $perPage); ?>
+                <nav><ul class="pagination pagination-sm mb-0 justify-content-center">
+                    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                    <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
+                        <a class="page-link" href="?page=<?= $p ?>"><?= $p ?></a></li>
+                    <?php endfor; ?>
+                </ul></nav>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<?= $this->endSection() ?>
