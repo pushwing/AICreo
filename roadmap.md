@@ -137,3 +137,167 @@
 ### 비고
 - 기존 캐시(설정 `site_settings`, 메뉴 `nav_menus`)와 합쳐 일반 페이지는 게시판 데이터 외 반복 쿼리 없음
 - 게시판 검색은 `LIKE '%키워드%'` 구조라 인덱스 불가 — 수만 건 이상 쌓이면 FULLTEXT 인덱스 전환 검토
+
+---
+
+## 4. 쇼핑 기능 (shop 템플릿) ⬜ 예정
+
+### 4-1. 상품 목록 페이지
+
+#### 등록 항목 (관리자)
+- 상품명 · 카테고리 · 가격 · 할인가 · 재고 수량
+- 대표 이미지 + 추가 이미지 다중 업로드
+- 상품 상태: 판매중 / 품절 / 숨김
+- 상품 상세 내용 (WYSIWYG 에디터)
+- 배송비 설정 (무료 / 고정 금액 / 조건부 무료)
+
+#### 프론트 노출
+- 카테고리별 필터링 · 가격순/신상품순 정렬
+- 페이징 · 검색 (상품명)
+- 품절 배지 자동 표시
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Database/Migrations/*_CreateShopTables.php` | products · categories · product_images 테이블 |
+| `app/Models/ProductModel.php` | 상품 모델, 목록·검색·재고 처리 |
+| `app/Controllers/Admin/ProductController.php` | 관리자 상품 CRUD |
+| `app/Controllers/Front/ShopController.php` | 프론트 상품 목록 |
+| `app/Views/shop/list.php` | 상품 목록 뷰 |
+
+---
+
+### 4-2. 상품 상세 페이지
+
+#### 기능
+- 대표 이미지 슬라이더 + 썸네일
+- 가격 / 할인가 / 할인율 표시
+- 수량 선택 · 바로구매 · 장바구니 담기 버튼
+- 상품 상세 내용 탭 (상세정보 / 배송·교환·반품 안내)
+- 재고 0 시 버튼 비활성화
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Controllers/Front/ShopController.php` | `detail()` 메서드 추가 |
+| `app/Views/shop/detail.php` | 상품 상세 뷰 |
+
+---
+
+### 4-3. 장바구니
+
+#### 기능
+- 로그인 회원: DB 저장 (`cart_items` 테이블)
+- 비로그인: 세션 저장 → 로그인 시 DB 병합
+- 수량 변경 · 개별 삭제 · 전체 삭제
+- 선택 합계 금액 실시간 계산
+- 배송비 조건 표시
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Database/Migrations/*_CreateCartTable.php` | cart_items 테이블 |
+| `app/Models/CartModel.php` | 장바구니 모델 (세션·DB 통합) |
+| `app/Controllers/Front/CartController.php` | 담기 · 수정 · 삭제 · 목록 |
+| `app/Views/shop/cart.php` | 장바구니 뷰 |
+
+---
+
+### 4-4. 주문 (결제)
+
+#### 기능
+- 장바구니 → 주문서 작성 (배송지 · 받는 사람 · 연락처)
+- 최근 배송지 자동 입력 (로그인 회원)
+- 쿠폰 · 포인트 적용란 (선택)
+- 결제 수단 선택 → PG 연동
+- 주문 완료 후 재고 차감 + 주문 이력 저장
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Database/Migrations/*_CreateOrderTables.php` | orders · order_items · shipping_addresses 테이블 |
+| `app/Models/OrderModel.php` | 주문 모델 |
+| `app/Controllers/Front/OrderController.php` | 주문서 · 결제 요청 · 완료 처리 |
+| `app/Views/shop/checkout.php` | 주문서 뷰 |
+| `app/Views/shop/order_complete.php` | 주문 완료 뷰 |
+
+---
+
+### 4-5. PG 연동
+
+#### 지원 예정 PG
+| PG | 연동 방식 |
+|---|---|
+| 토스페이먼츠 | 클라이언트 SDK + 서버 승인 API |
+| KG이니시스 | 표준결제창 (INIStdPay.js) |
+| 나이스페이 | 나이스페이 JS SDK |
+
+#### 흐름
+1. 주문서 → 클라이언트에서 PG SDK 결제창 호출
+2. 결제 완료 콜백 → 서버에서 PG API로 **금액 재검증** (위변조 방지)
+3. 검증 통과 → 주문 상태 `paid` 저장 + 재고 차감
+4. 실패/취소 → 주문 상태 `failed` 처리
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Libraries/PG/AbstractPGProvider.php` | PG 공통 인터페이스 |
+| `app/Libraries/PG/TossPayProvider.php` | 토스페이먼츠 구현체 |
+| `app/Libraries/PG/InicisProvider.php` | KG이니시스 구현체 |
+| `app/Libraries/PG/NicePayProvider.php` | 나이스페이 구현체 |
+| `app/Controllers/Front/PaymentController.php` | 결제 요청 · 콜백 · 검증 |
+| `app/Config/PG.php` | PG 키 설정 (.env 참조) |
+
+---
+
+### 4-6. 주문 목록 / 주문 상세 (마이페이지)
+
+#### 주문 목록
+- 기간 필터 (1개월 / 3개월 / 전체)
+- 주문 상태별 탭: 결제완료 · 배송준비 · 배송중 · 배송완료 · 취소/반품
+- 주문번호 · 상품명 · 결제금액 · 상태 표시
+
+#### 주문 상세
+- 주문 상품 목록 + 수량 + 금액
+- 배송지 정보
+- 결제 수단 · 결제 금액 내역
+- 취소 요청 버튼 (결제완료 상태에서만 활성)
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Controllers/Front/MyPageController.php` | 주문 목록 · 상세 · 취소 요청 |
+| `app/Views/shop/orders/list.php` | 주문 목록 뷰 |
+| `app/Views/shop/orders/detail.php` | 주문 상세 뷰 |
+
+---
+
+### 4-7. 주문 관리 (관리자)
+
+#### 기능
+- 전체 주문 목록 · 상태별 필터 · 키워드 검색
+- 주문 상태 변경 (결제확인 → 배송준비 → 배송중 → 배송완료)
+- 송장번호 입력
+- 주문 강제 취소 · 환불 처리
+
+#### 구현 파일 (예정)
+| 파일 | 설명 |
+|---|---|
+| `app/Controllers/Admin/OrderController.php` | 관리자 주문 관리 |
+| `app/Views/admin/orders/list.php` | 관리자 주문 목록 |
+| `app/Views/admin/orders/detail.php` | 관리자 주문 상세 |
+
+---
+
+### DB 스키마 개요 (예정)
+
+```
+products         — 상품 기본 정보 (가격·재고·상태)
+product_images   — 상품 이미지 (대표·추가, 순서)
+categories       — 카테고리 (계층 구조)
+cart_items       — 장바구니 (user_id 또는 session_id)
+orders           — 주문 헤더 (주문번호·상태·결제금액)
+order_items      — 주문 상품 라인 (상품·수량·단가 스냅샷)
+shipping_addresses — 배송지 (주문 시 스냅샷 + 회원 저장 주소)
+payments         — 결제 이력 (PG 응답 원본 보관)
+```
