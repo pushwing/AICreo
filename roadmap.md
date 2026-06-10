@@ -154,7 +154,8 @@
 #### 프론트 노출
 - 카테고리별 필터링 · 가격순/신상품순 정렬
 - 페이징 · 검색 (상품명)
-- 품절 배지 자동 표시
+- 품절 배지 자동 표시 (`products.stock = 0` 기준)
+- **품절 여부 표시는 캐시** — `products.stock` 캐시로 목록 조회 부하 감소, 실제 차감은 항상 DB 직접 처리
 
 #### 구현 파일 (예정)
 | 파일 | 설명 |
@@ -193,6 +194,11 @@
 - 선택 합계 금액 실시간 계산
 - 배송비 조건 표시
 
+#### 재고 처리 원칙
+- **장바구니 담기 시점엔 재고 차감하지 않음** — 결제 확정 시점에만 차감 (오픈마켓 표준 방식)
+- 담기 시점에 재고 0이면 "품절" 안내 후 담기 차단
+- 장바구니 목록 조회 시 현재 재고 재확인 → 품절 전환된 상품 표시
+
 #### 구현 파일 (예정)
 | 파일 | 설명 |
 |---|---|
@@ -212,12 +218,51 @@
 - 결제 수단 선택 → PG 연동
 - 주문 완료 후 재고 차감 + 주문 이력 저장
 
+#### 재고 차감 메커니즘
+결제 확정 시점에 **트랜잭션 + 행 잠금 + 조건부 UPDATE** 2중 방어로 동시 주문 충돌을 차단한다.
+
+```
+트랜잭션 시작
+  ↓
+SELECT stock FROM products WHERE id = ? FOR UPDATE  ← 행 잠금
+  ↓
+재고 부족? → 롤백 → "품절" 응답
+  ↓ 충분
+orders + order_items INSERT  (상태: pending)
+  ↓
+UPDATE products
+  SET stock = stock - ?
+  WHERE id = ? AND stock >= ?          ← 동시 요청 충돌 방어선
+  ↓
+영향 행 0? → 롤백 → "재고 부족" 응답
+  ↓ 1행
+트랜잭션 커밋 → PG 결제창 호출
+```
+
+- `FOR UPDATE`: 동시 요청이 같은 행을 동시에 차감하는 것을 직렬화
+- `AND stock >= ?`: 잠금 사이에 끼어든 요청도 영향 행 0으로 차단 (이중 방어)
+- 재고 차감 타이밍은 **PG 결제 성공 콜백** 시점 (`paid` 상태 전환 시)
+
+#### 재고 복구 시나리오
+| 상황 | 처리 |
+|---|---|
+| 결제창 이탈 / 시간 초과 | `orders` 상태 `pending` 유지 → 스케줄러가 N분 후 `expired` 처리 |
+| PG 결제 실패 | 콜백에서 `failed` 상태 저장, 차감 없음 (차감은 성공 콜백에서만) |
+| 주문 취소 (마이페이지) | `stock = stock + 수량` 복구 + 주문 상태 `cancelled` |
+| 관리자 강제 취소 | 동일하게 재고 복구 처리 |
+
+#### 이중 결제 방지
+- `payments` 테이블 `pg_tid` (PG 거래 ID) 컬럼에 `UNIQUE` 제약
+- PG 콜백 중복 수신 시 INSERT 실패 → 이미 처리된 거래로 무시
+
 #### 구현 파일 (예정)
 | 파일 | 설명 |
 |---|---|
-| `app/Database/Migrations/*_CreateOrderTables.php` | orders · order_items · shipping_addresses 테이블 |
-| `app/Models/OrderModel.php` | 주문 모델 |
+| `app/Database/Migrations/*_CreateOrderTables.php` | orders · order_items · shipping_addresses · payments 테이블 |
+| `app/Models/OrderModel.php` | 주문 모델, 재고 차감 트랜잭션 포함 |
+| `app/Models/ProductModel.php` | `decreaseStock()` — FOR UPDATE + 조건부 UPDATE |
 | `app/Controllers/Front/OrderController.php` | 주문서 · 결제 요청 · 완료 처리 |
+| `app/Controllers/Front/PaymentController.php` | PG 콜백 수신 · 금액 검증 · 재고 차감 · 이중처리 방지 |
 | `app/Views/shop/checkout.php` | 주문서 뷰 |
 | `app/Views/shop/order_complete.php` | 주문 완료 뷰 |
 
@@ -292,12 +337,23 @@
 ### DB 스키마 개요 (예정)
 
 ```
-products         — 상품 기본 정보 (가격·재고·상태)
-product_images   — 상품 이미지 (대표·추가, 순서)
-categories       — 카테고리 (계층 구조)
-cart_items       — 장바구니 (user_id 또는 session_id)
-orders           — 주문 헤더 (주문번호·상태·결제금액)
-order_items      — 주문 상품 라인 (상품·수량·단가 스냅샷)
+products           — 상품 기본 정보 (가격·재고·상태)
+product_images     — 상품 이미지 (대표·추가, 순서)
+categories         — 카테고리 (계층 구조)
+cart_items         — 장바구니 (user_id 또는 session_id)
+orders             — 주문 헤더 (주문번호·상태·결제금액)
+order_items        — 주문 상품 라인 (상품·수량·단가 스냅샷)
 shipping_addresses — 배송지 (주문 시 스냅샷 + 회원 저장 주소)
-payments         — 결제 이력 (PG 응답 원본 보관)
+payments           — 결제 이력, pg_tid UNIQUE (이중 결제 방지)
 ```
+
+### 재고 관련 핵심 설계 원칙 요약
+
+| 원칙 | 내용 |
+|---|---|
+| 차감 타이밍 | 장바구니 담기 X, **PG 결제 성공 콜백 시점에만** 차감 |
+| 동시성 방어 | `FOR UPDATE` 행 잠금 + `WHERE stock >= ?` 조건부 UPDATE 2중 방어 |
+| 품절 표시 | 목록 조회는 캐시, 실제 차감은 항상 DB 직접 |
+| 재고 복구 | 취소·실패·만료 모두 명시적으로 `stock + 수량` 복구 |
+| 이중 결제 | `payments.pg_tid` UNIQUE 제약으로 PG 콜백 중복 처리 차단 |
+| 만료 처리 | 결제창 이탈 주문(`pending`)은 스케줄러로 N분 후 `expired` 전환 |
