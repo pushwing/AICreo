@@ -3,7 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Libraries\PopupUploader;
+use App\Libraries\ImageUploader;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
 
@@ -44,7 +44,7 @@ class PopupController extends BaseController
         $imagePath = null;
         $file      = $this->request->getFile('image');
         if ($file && $file->isValid() && ! $file->hasMoved()) {
-            $result = (new PopupUploader())->upload($file);
+            $result = (new ImageUploader('popups'))->upload($file);
             if (! $result['success']) {
                 return redirect()->back()->withInput()->with('error', $result['error']);
             }
@@ -86,7 +86,7 @@ class PopupController extends BaseController
         $imagePath = $popup['image_path'];
         $file      = $this->request->getFile('image');
         if ($file && $file->isValid() && ! $file->hasMoved()) {
-            $result = (new PopupUploader())->upload($file);
+            $result = (new ImageUploader('popups'))->upload($file);
             if (! $result['success']) {
                 return redirect()->back()->withInput()->with('error', $result['error']);
             }

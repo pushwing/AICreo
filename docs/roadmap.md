@@ -29,7 +29,7 @@
 |---|---|
 | `app/Database/Migrations/2024-01-01-000007_CreateBannersTable.php` | banners 테이블 |
 | `app/Models/BannerModel.php` | 배너 모델 |
-| `app/Libraries/BannerUploader.php` | 이미지 업로드 처리 |
+| `app/Libraries/ImageUploader.php` | 이미지 업로드 처리 (`new ImageUploader('banners')`) |
 | `app/Controllers/Admin/BannerController.php` | 관리자 CRUD |
 | `app/Controllers/BaseController.php` | `$subLeftBanners` 전역 주입 (admin 경로 제외) |
 | `app/Controllers/Front/HomeController.php` | `$mainTopBanners`, `$mainBotBanners` 홈 전달 |
@@ -90,7 +90,7 @@
 |---|---|
 | `app/Database/Migrations/2024-01-01-000008_CreatePopupsTable.php` | popups + popup_pages 테이블 |
 | `app/Models/PopupModel.php` | 모델, `getActiveForPage()`, `syncPages()` (트랜잭션) |
-| `app/Libraries/PopupUploader.php` | 이미지 업로드 (`uploads/popups/`) |
+| `app/Libraries/ImageUploader.php` | 이미지 업로드 (`new ImageUploader('popups')`) |
 | `app/Controllers/Admin/PopupController.php` | 관리자 CRUD |
 | `app/Controllers/BaseController.php` | `$activePopups` 전역 주입 |
 | `app/Views/admin/popups/list.php` | 관리자 목록 뷰 |

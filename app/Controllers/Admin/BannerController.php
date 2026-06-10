@@ -3,7 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Libraries\BannerUploader;
+use App\Libraries\ImageUploader;
 use App\Models\BannerModel;
 
 class BannerController extends BaseController
@@ -46,7 +46,7 @@ class BannerController extends BaseController
             return redirect()->back()->withInput()->with('error', '배너 이미지를 선택해주세요.');
         }
 
-        $result = (new BannerUploader())->upload($file);
+        $result = (new ImageUploader('banners'))->upload($file);
         if (! $result['success']) {
             return redirect()->back()->withInput()->with('error', $result['error']);
         }
@@ -75,7 +75,7 @@ class BannerController extends BaseController
 
         $file = $this->request->getFile('image');
         if ($file && $file->isValid() && ! $file->hasMoved()) {
-            $result = (new BannerUploader())->upload($file);
+            $result = (new ImageUploader('banners'))->upload($file);
             if (! $result['success']) {
                 return redirect()->back()->withInput()->with('error', $result['error']);
             }

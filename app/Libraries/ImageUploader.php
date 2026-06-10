@@ -4,11 +4,13 @@ namespace App\Libraries;
 
 use CodeIgniter\HTTP\Files\UploadedFile;
 
-class BannerUploader
+class ImageUploader
 {
     private const ALLOWED       = ['jpg', 'jpeg', 'png', 'gif'];
     private const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif'];
     private const MAX_SIZE      = 2 * 1024 * 1024; // 2MB
+
+    public function __construct(private string $folder) {}
 
     public function upload(UploadedFile $file): array
     {
@@ -23,12 +25,12 @@ class BannerUploader
         }
 
         $subDir     = date('Y/m');
-        $uploadPath = FCPATH . "uploads/banners/{$subDir}";
+        $uploadPath = FCPATH . "uploads/{$this->folder}/{$subDir}";
 
         if (! is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
 
         $storedName   = bin2hex(random_bytes(16)) . '.' . $ext;
-        $relativePath = "uploads/banners/{$subDir}/{$storedName}";
+        $relativePath = "uploads/{$this->folder}/{$subDir}/{$storedName}";
 
         $file->move($uploadPath, $storedName);
 
