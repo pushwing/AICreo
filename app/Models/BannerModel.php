@@ -21,15 +21,37 @@ class BannerModel extends Model
         'sub_right'   => '서브 우측',
     ];
 
+    protected $afterInsert = ['clearCacheCallback'];
+    protected $afterUpdate = ['clearCacheCallback'];
+    protected $afterDelete = ['clearCacheCallback'];
+
+    /**
+     * 활성 배너 전체를 캐시하고 노출 기간만 PHP에서 필터링 (캐시 1시간)
+     */
     public function getActiveByPosition(string $position): array
     {
+        $grouped = cache()->remember('active_banners', 3600, function () {
+            $rows = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
+            $map  = [];
+            foreach ($rows as $row) {
+                $map[$row['position']][] = $row;
+            }
+            return $map;
+        });
+
         $now = date('Y-m-d H:i:s');
-        return $this->where('position', $position)
-            ->where('is_active', 1)
-            ->where("(started_at IS NULL OR started_at <= '{$now}')")
-            ->where("(ended_at IS NULL OR ended_at >= '{$now}')")
-            ->orderBy('priority', 'ASC')
-            ->findAll();
+
+        return array_values(array_filter(
+            $grouped[$position] ?? [],
+            fn($b) => ($b['started_at'] === null || $b['started_at'] <= $now)
+                   && ($b['ended_at'] === null || $b['ended_at'] >= $now)
+        ));
+    }
+
+    protected function clearCacheCallback(array $data): array
+    {
+        cache()->delete('active_banners');
+        return $data;
     }
 
     public function deleteWithFile(int $id): bool

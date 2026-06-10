@@ -106,3 +106,34 @@
 | 항목 | 원인 | 해결 |
 |---|---|---|
 | spring 팝업 `position:static` | spring CSS에 팝업 스타일 미포함 | `spring/css/style.css`에 `.site-popup` 블록 추가 |
+
+---
+
+## 3. 성능 개선 ✅ 완료
+
+### 배너·팝업 조회 캐싱
+- 매 프론트 요청마다 실행되던 배너 1쿼리 + 팝업 2쿼리를 캐시로 제거 (캐시 1시간)
+- 활성 데이터 전체를 캐시하고 **노출 기간(started_at/ended_at)·스코프 판정은 PHP에서 처리** → 캐시가 살아있어도 시간 경과에 따른 노출/종료 정확히 동작
+- 팝업은 URI별 캐시 키 증가 없이 단일 키(`active_popups`)로 팝업 + 페이지 URL 매핑 저장
+- 캐시 무효화: 모델 콜백(`afterInsert/Update/Delete`) + `syncPages()` → 관리자 수정 즉시 반영
+- 부수 효과: 날짜 문자열 SQL 직접 보간 패턴 제거
+
+### DB 인덱스 추가 (`php spark migrate` 필요)
+| 인덱스 | 용도 |
+|---|---|
+| `posts (board_id, is_notice, id)` | 게시판 목록·페이징·카운트 — filesort 제거 |
+| `posts (deleted_at)` / `post_comments (deleted_at)` | 소프트 삭제 `deleted_at IS NULL` 조건 |
+| `banners (position, is_active)` | 캐시 미스 시 활성 배너 조회 |
+| `popups (is_active, show_scope)` | 캐시 미스 시 활성 팝업 조회 |
+| `inquiries (is_read)` | 관리자 전 페이지 미읽음 문의 카운트 |
+
+### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Models/BannerModel.php` | `getActiveByPosition()` 캐싱 + 무효화 콜백 |
+| `app/Models/PopupModel.php` | `getActiveForPage()` 캐싱 + 무효화 콜백 |
+| `app/Database/Migrations/2026-06-10-000001_AddPerformanceIndexes.php` | 인덱스 마이그레이션 |
+
+### 비고
+- 기존 캐시(설정 `site_settings`, 메뉴 `nav_menus`)와 합쳐 일반 페이지는 게시판 데이터 외 반복 쿼리 없음
+- 게시판 검색은 `LIKE '%키워드%'` 구조라 인덱스 불가 — 수만 건 이상 쌓이면 FULLTEXT 인덱스 전환 검토

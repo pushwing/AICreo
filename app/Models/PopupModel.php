@@ -20,51 +20,58 @@ class PopupModel extends Model
         'specific'  => '특정 페이지',
     ];
 
+    protected $afterInsert = ['clearCacheCallback'];
+    protected $afterUpdate = ['clearCacheCallback'];
+    protected $afterDelete = ['clearCacheCallback'];
+
     /**
      * 현재 URI 기준으로 노출할 팝업 목록 반환
+     * 활성 팝업·페이지 매핑을 캐시하고 기간·스코프는 PHP에서 필터링 (캐시 1시간)
      */
     public function getActiveForPage(string $uri): array
     {
-        $now    = date('Y-m-d H:i:s');
-        $isHome = ($uri === '' || $uri === '/');
+        $cached = cache()->remember('active_popups', 3600, function () {
+            $popups = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
 
-        $scopes = ['all'];
-        if ($isHome) {
-            $scopes[] = 'home_only';
-        }
+            $pageUrls = [];
+            $rows = \Config\Database::connect()->table('popup_pages pp')
+                ->select('pp.popup_id, m.url')
+                ->join('menus m', 'm.id = pp.menu_id')
+                ->get()->getResultArray();
+            foreach ($rows as $row) {
+                $pageUrls[$row['popup_id']][] = $row['url'];
+            }
 
-        $general = (new self())
-            ->where('is_active', 1)
-            ->where("(started_at IS NULL OR started_at <= '{$now}')")
-            ->where("(ended_at IS NULL OR ended_at >= '{$now}')")
-            ->whereIn('show_scope', $scopes)
-            ->orderBy('priority', 'ASC')
-            ->findAll();
+            return ['popups' => $popups, 'pageUrls' => $pageUrls];
+        });
 
-        $db = \Config\Database::connect();
-        $specific = $db->table('popups p')
-            ->select('p.*')
-            ->join('popup_pages pp', 'pp.popup_id = p.id')
-            ->join('menus m', 'm.id = pp.menu_id')
-            ->where('p.is_active', 1)
-            ->where("(p.started_at IS NULL OR p.started_at <= '{$now}')")
-            ->where("(p.ended_at IS NULL OR p.ended_at >= '{$now}')")
-            ->where('p.show_scope', 'specific')
-            ->where('m.url', '/' . ltrim($uri, '/'))
-            ->orderBy('p.priority', 'ASC')
-            ->get()->getResultArray();
+        $now        = date('Y-m-d H:i:s');
+        $isHome     = ($uri === '' || $uri === '/');
+        $currentUrl = '/' . ltrim($uri, '/');
 
-        $seen   = [];
         $result = [];
-        foreach (array_merge($general, $specific) as $popup) {
-            if (! isset($seen[$popup['id']])) {
-                $seen[$popup['id']] = true;
-                $result[]           = $popup;
+        foreach ($cached['popups'] as $popup) {
+            if ($popup['started_at'] !== null && $popup['started_at'] > $now) continue;
+            if ($popup['ended_at'] !== null && $popup['ended_at'] < $now) continue;
+
+            $show = match ($popup['show_scope']) {
+                'all'       => true,
+                'home_only' => $isHome,
+                'specific'  => in_array($currentUrl, $cached['pageUrls'][$popup['id']] ?? [], true),
+                default     => false,
+            };
+            if ($show) {
+                $result[] = $popup;
             }
         }
-        usort($result, fn($a, $b) => $a['priority'] <=> $b['priority']);
 
         return $result;
+    }
+
+    protected function clearCacheCallback(array $data): array
+    {
+        cache()->delete('active_popups');
+        return $data;
     }
 
     /**
@@ -98,6 +105,8 @@ class PopupModel extends Model
         }
 
         $db->transComplete();
+
+        cache()->delete('active_popups');
     }
 
     public function deleteWithFile(int $id): bool
