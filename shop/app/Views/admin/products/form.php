@@ -111,7 +111,7 @@
                         <label class="form-label">무료배송 기준금액 (원)</label>
                         <input type="number" name="free_threshold" class="form-control" min="0"
                                value="<?= esc(old('free_threshold', $product['free_threshold'] ?? 0)) ?>">
-                        <div class="form-text">이 금액 이상 구매 시 무료배송</div>
+                        <div class="form-text">이 금액 이상 구매 시 무료배송 (미달 시 위 배송비 적용)</div>
                     </div>
                 </div>
             </div>
@@ -120,7 +120,12 @@
             <div class="card mb-3">
                 <div class="card-header fw-semibold">상품 상세 내용</div>
                 <div class="card-body">
-                    <textarea name="description" id="editor" class="form-control" rows="12"><?= old('description', $product['description'] ?? '') ?></textarea>
+                    <?php
+                        $desc = old('description', $product['description'] ?? '');
+                        // DB에 저장된 상대경로(../../uploads/)를 절대경로로 변환
+                        $desc = preg_replace('#(\.\.\/)+uploads/#', base_url('uploads/'), $desc);
+                    ?>
+                    <textarea name="description" id="editor" class="form-control" rows="12"><?= esc($desc, 'html') ?></textarea>
                 </div>
             </div>
 
@@ -190,11 +195,13 @@ tinymce.init({
     toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image | table | code',
     images_upload_url: '/admin/media/upload',
     automatic_uploads: true,
+    convert_urls: false,
+    relative_urls: false,
 });
 
 function toggleShippingFields() {
     const type = document.getElementById('shippingType').value;
-    document.getElementById('shippingFeeField').style.display    = type === 'fixed' ? '' : 'none';
+    document.getElementById('shippingFeeField').style.display    = (type === 'fixed' || type === 'conditional') ? '' : 'none';
     document.getElementById('freeThresholdField').style.display  = type === 'conditional' ? '' : 'none';
 }
 

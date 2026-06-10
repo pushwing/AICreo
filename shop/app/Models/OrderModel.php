@@ -34,14 +34,13 @@ class OrderModel extends Model
     public function createPending(int $userId, array $shippingData, array $cartItems): int
     {
         $totalProduct = 0;
-        $shippingFee  = 0;
 
         foreach ($cartItems as $item) {
             $price        = (int) ($item['discount_price'] ?? $item['price']);
             $totalProduct += $price * (int) $item['qty'];
-            $shippingFee  = max($shippingFee, $this->calcShippingFee($item, $totalProduct));
         }
 
+        $shippingFee = $this->calculateShippingFee($cartItems, $totalProduct);
         $totalAmount = $totalProduct + $shippingFee;
         $orderNumber = $this->generateOrderNumber();
 
@@ -542,13 +541,21 @@ class OrderModel extends Model
         return $prefix . $seq;
     }
 
-    private function calcShippingFee(array $item, int $totalProduct): int
+    public function calculateShippingFee(array $items, int $totalProduct): int
     {
-        return match ($item['shipping_type']) {
-            'free'        => 0,
-            'fixed'       => (int) $item['shipping_fee'],
-            'conditional' => $totalProduct >= (int) $item['free_threshold'] ? 0 : (int) $item['shipping_fee'],
-            default       => 0,
-        };
+        $fee = 0;
+        foreach ($items as $item) {
+            $itemFee = match ($item['shipping_type']) {
+                'free'        => 0,
+                'fixed'       => (int) $item['shipping_fee'],
+                'conditional' => $totalProduct >= (int) $item['free_threshold']
+                                    ? 0
+                                    : (int) $item['shipping_fee'],
+                default       => 0,
+            };
+            $fee = max($fee, $itemFee);
+        }
+
+        return $fee;
     }
 }

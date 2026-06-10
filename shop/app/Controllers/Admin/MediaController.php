@@ -41,6 +41,11 @@ class MediaController extends BaseController
         $alt    = $this->request->getPost('alt') ?? '';
         $result = $this->uploader->upload($file, $alt);
 
+        // TinyMCE images_upload_url 응답 형식: { location: "url" }
+        if ($result['success']) {
+            $result['location'] = $result['url'];
+        }
+
         return $this->response->setJSON($result);
     }
 

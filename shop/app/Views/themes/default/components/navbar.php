@@ -68,6 +68,9 @@
                             <li><a class="dropdown-item" href="/mypage/orders">
                                 <i class="bi bi-bag me-2"></i>주문내역
                             </a></li>
+                            <li><a class="dropdown-item" href="/mypage/addresses">
+                                <i class="bi bi-geo-alt me-2"></i>배송지 관리
+                            </a></li>
                             <li><a class="dropdown-item" href="/auth/profile">
                                 <i class="bi bi-person-gear me-2"></i>내 정보
                             </a></li>

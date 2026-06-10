@@ -27,22 +27,37 @@ $shippingFee  = (int) ($shippingFee  ?? 0);
                     </div>
                     <div class="card-body">
 
-                        <?php if (! empty($savedAddress)): ?>
-                        <div class="alert alert-light border d-flex align-items-start gap-3 mb-3 p-3">
-                            <i class="bi bi-house-fill text-primary mt-1"></i>
-                            <div class="flex-grow-1 small">
-                                <div class="fw-semibold mb-1">
-                                    <?= esc($savedAddress['receiver_name']) ?>
-                                    <span class="text-muted fw-normal ms-2"><?= esc($savedAddress['receiver_phone']) ?></span>
-                                </div>
-                                <div class="text-muted">
-                                    (<?= esc($savedAddress['zipcode']) ?>)
-                                    <?= esc($savedAddress['address1']) ?>
-                                    <?= ! empty($savedAddress['address2']) ? ' ' . esc($savedAddress['address2']) : '' ?>
-                                </div>
+                        <?php if (! empty($savedAddresses)): ?>
+                        <!-- 저장된 배송지 선택 -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small fw-semibold text-muted">저장된 배송지</span>
+                                <a href="/mypage/addresses" class="small text-primary text-decoration-none" target="_blank">
+                                    <i class="bi bi-pencil-square me-1"></i>배송지 관리
+                                </a>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0"
-                                    id="btnFillSaved">적용</button>
+                            <div class="d-flex flex-wrap gap-2">
+                                <?php foreach ($savedAddresses as $addr): ?>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary addr-card <?= $addr['is_default'] ? 'active border-primary text-primary' : '' ?>"
+                                        data-name="<?= esc($addr['receiver_name'], 'attr') ?>"
+                                        data-phone="<?= esc($addr['receiver_phone'], 'attr') ?>"
+                                        data-zip="<?= esc($addr['zipcode'], 'attr') ?>"
+                                        data-addr1="<?= esc($addr['address1'], 'attr') ?>"
+                                        data-addr2="<?= esc($addr['address2'] ?? '', 'attr') ?>">
+                                    <?php if ($addr['is_default']): ?>
+                                    <i class="bi bi-star-fill me-1 small"></i>
+                                    <?php endif; ?>
+                                    <?= esc($addr['receiver_name']) ?>
+                                    <span class="text-muted small ms-1 d-none d-sm-inline">
+                                        <?= esc(mb_substr($addr['address1'], 0, 12)) ?>…
+                                    </span>
+                                </button>
+                                <?php endforeach; ?>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnNewAddr">
+                                    <i class="bi bi-plus me-1"></i>새 배송지
+                                </button>
+                            </div>
                         </div>
                         <?php endif; ?>
 
@@ -240,16 +255,40 @@ $shippingFee  = (int) ($shippingFee  ?? 0);
     const CSRF_NAME = '<?= csrf_token() ?>';
     let   csrfHash  = '<?= csrf_hash() ?>';
 
-    // ─── 저장된 배송지 적용 ────────────────────────────────────────────────────
-    document.getElementById('btnFillSaved')?.addEventListener('click', function () {
-        <?php if (! empty($savedAddress)): ?>
-        document.querySelector('[name=receiver_name]').value  = '<?= esc($savedAddress['receiver_name'], 'js') ?>';
-        document.querySelector('[name=receiver_phone]').value = '<?= esc($savedAddress['receiver_phone'], 'js') ?>';
-        document.getElementById('zipcode').value   = '<?= esc($savedAddress['zipcode'], 'js') ?>';
-        document.getElementById('address1').value  = '<?= esc($savedAddress['address1'], 'js') ?>';
-        document.getElementById('address2').value  = '<?= esc($savedAddress['address2'] ?? '', 'js') ?>';
-        <?php endif; ?>
+    // ─── 저장된 배송지 카드 선택 ─────────────────────────────────────────────
+    function fillAddress(name, phone, zip, addr1, addr2) {
+        document.querySelector('[name=receiver_name]').value  = name;
+        document.querySelector('[name=receiver_phone]').value = phone;
+        document.getElementById('zipcode').value   = zip;
+        document.getElementById('address1').value  = addr1;
+        document.getElementById('address2').value  = addr2;
+    }
+
+    document.querySelectorAll('.addr-card').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.addr-card').forEach(b => b.classList.remove('active', 'border-primary', 'text-primary'));
+            this.classList.add('active', 'border-primary', 'text-primary');
+            fillAddress(this.dataset.name, this.dataset.phone, this.dataset.zip, this.dataset.addr1, this.dataset.addr2);
+        });
     });
+
+    // 새 배송지 버튼 — 폼 초기화
+    document.getElementById('btnNewAddr')?.addEventListener('click', function () {
+        document.querySelectorAll('.addr-card').forEach(b => b.classList.remove('active', 'border-primary', 'text-primary'));
+        fillAddress('', '', '', '', '');
+        document.querySelector('[name=receiver_name]').focus();
+    });
+
+    // 페이지 로드 시 기본 배송지 자동 적용
+    <?php if (! empty($savedAddress)): ?>
+    fillAddress(
+        '<?= esc($savedAddress['receiver_name'],  'js') ?>',
+        '<?= esc($savedAddress['receiver_phone'], 'js') ?>',
+        '<?= esc($savedAddress['zipcode'],        'js') ?>',
+        '<?= esc($savedAddress['address1'],       'js') ?>',
+        '<?= esc($savedAddress['address2'] ?? '', 'js') ?>'
+    );
+    <?php endif; ?>
 
     // ─── 카카오 우편번호 검색 ──────────────────────────────────────────────────
     document.getElementById('btnPostcode')?.addEventListener('click', function () {

@@ -45,13 +45,15 @@ class OrderController extends BaseController
             $available
         ));
 
-        $shippingFee  = $this->calcShippingFee($available, $totalProduct);
+        $shippingFee  = $this->orderModel->calculateShippingFee($available, $totalProduct);
         $totalAmount  = $totalProduct + $shippingFee;
-        $savedAddress = $this->addressModel->getDefault($userId);
-        $pgProviders  = PGFactory::labels();
+        $savedAddresses = $this->addressModel->getByUser($userId);
+        $savedAddress   = $this->addressModel->getDefault($userId);
+        $pgProviders    = PGFactory::labels();
 
         return $this->render('shop/checkout', compact(
-            'available', 'totalProduct', 'shippingFee', 'totalAmount', 'savedAddress', 'pgProviders'
+            'available', 'totalProduct', 'shippingFee', 'totalAmount',
+            'savedAddresses', 'savedAddress', 'pgProviders'
         ));
     }
 
@@ -224,18 +226,4 @@ class OrderController extends BaseController
         ]);
     }
 
-    private function calcShippingFee(array $items, int $totalProduct): int
-    {
-        $fee = 0;
-        foreach ($items as $item) {
-            $itemFee = match ($item['shipping_type']) {
-                'free'        => 0,
-                'fixed'       => (int) $item['shipping_fee'],
-                'conditional' => $totalProduct >= (int) $item['free_threshold'] ? 0 : (int) $item['shipping_fee'],
-                default       => 0,
-            };
-            $fee = max($fee, $itemFee);
-        }
-        return $fee;
-    }
 }

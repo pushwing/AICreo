@@ -205,7 +205,11 @@
                     $pgLabel = $pgLabels[$order['pg_provider']] ?? ($order['pg_provider'] ?? '—');
                 ?>
                 <tr>
-                    <td class="small font-monospace"><?= esc($order['order_number']) ?></td>
+                    <td class="small font-monospace">
+                        <a href="/admin/orders/<?= (int) $order['id'] ?>" class="text-decoration-none">
+                            <?= esc($order['order_number']) ?>
+                        </a>
+                    </td>
                     <td class="small text-muted"><?= date('Y.m.d H:i', strtotime($order['created_at'])) ?></td>
                     <td class="small"><?= esc($order['receiver_name']) ?></td>
                     <td class="small"><?= esc($order['nickname'] ?? $order['email'] ?? '—') ?></td>

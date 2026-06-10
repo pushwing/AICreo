@@ -5,7 +5,7 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // ─── 홈 ──────────────────────────────────────────────────────────────────────
-$routes->get('/', 'Front\HomeController::index');
+$routes->get('/', 'Front\ShopController::index');
 
 // ─── 인증 ────────────────────────────────────────────────────────────────────
 $routes->get( 'auth/login',    'Front\AuthController::login');
@@ -172,6 +172,11 @@ $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
     $routes->get( 'orders/(:segment)',       'Front\MyPageController::orderDetail/$1');
     $routes->post('orders/cancel',           'Front\MyPageController::cancel');
     $routes->post('orders/confirm-delivery', 'Front\MyPageController::confirmDelivery');
+    // 배송지 관리
+    $routes->get( 'addresses',                      'Front\MyPageController::addresses');
+    $routes->post('addresses',                      'Front\MyPageController::addressStore');
+    $routes->post('addresses/(:num)/default',       'Front\MyPageController::addressSetDefault/$1');
+    $routes->post('addresses/(:num)/delete',        'Front\MyPageController::addressDelete/$1');
 });
 
 // ─── PG 콜백 (PG 서버에서 직접 호출 — CSRF 예외 필요) ────────────────────────

@@ -19,14 +19,22 @@ class SalesController extends BaseController
             $period = 'daily';
         }
 
-        // ── 공통 베이스 빌더 (paid 주문 + 결제 정보 조인) ─────────────────────
+        $paidPaymentSql = "
+            SELECT p1.*
+            FROM payments p1
+            INNER JOIN (
+                SELECT order_id, MAX(id) AS id
+                FROM payments
+                WHERE status IN ('paid', 'refunded')
+                GROUP BY order_id
+            ) latest_paid ON latest_paid.id = p1.id
+        ";
+
+        // ── 공통 베이스 빌더 — 주문당 대표 결제 1건만 JOIN ───────────────────
         $base = $db->table('orders o')
-            ->select('o.id, o.order_number, o.total_amount, o.created_at, o.receiver_name,
-                      u.nickname, u.email,
-                      p.method AS payment_method, p.pg_provider')
             ->join('users u',    'u.id = o.user_id', 'left')
-            ->join('payments p', 'p.order_id = o.id', 'left')
-            ->where('o.status', 'paid')
+            ->join("({$paidPaymentSql}) p", 'p.order_id = o.id', 'inner', false)
+            ->whereIn('o.status', ['paid', 'preparing', 'shipped', 'delivered', 'refund_requested', 'refunded'])
             ->where('DATE(o.created_at) >=', $from)
             ->where('DATE(o.created_at) <=', $to);
 
@@ -66,6 +74,8 @@ class SalesController extends BaseController
 
         // ── 주문 목록 (검색 결과 / 최근 50건) ────────────────────────────────
         $orders = (clone $base)
+            ->select('o.id, o.order_number, o.total_amount, o.created_at, o.receiver_name,
+                      u.nickname, u.email, p.method AS payment_method, p.pg_provider')
             ->orderBy('o.id', 'DESC')
             ->limit(50)
             ->get()->getResultArray();

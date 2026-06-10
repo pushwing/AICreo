@@ -4,10 +4,12 @@ namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
 use App\Models\OrderModel;
+use App\Models\ShippingAddressModel;
 
 class MyPageController extends BaseController
 {
-    private OrderModel $orderModel;
+    private OrderModel           $orderModel;
+    private ShippingAddressModel $addressModel;
 
     // 상태 탭 정의 — key: 쿼리 파라미터 값, label: 표시명
     private const STATUS_TABS = [
@@ -22,7 +24,8 @@ class MyPageController extends BaseController
 
     public function __construct()
     {
-        $this->orderModel = new OrderModel();
+        $this->orderModel   = new OrderModel();
+        $this->addressModel = new ShippingAddressModel();
     }
 
     /** GET /mypage/orders */
@@ -102,6 +105,90 @@ class MyPageController extends BaseController
         $this->orderModel->update($orderId, ['status' => 'delivered']);
 
         return $this->response->setJSON(['success' => true]);
+    }
+
+    /** GET /mypage/addresses */
+    public function addresses()
+    {
+        $userId    = (int) session()->get('user_id');
+        $addresses = $this->addressModel->getByUser($userId);
+        return $this->render('shop/addresses/index', compact('addresses'));
+    }
+
+    /** POST /mypage/addresses */
+    public function addressStore()
+    {
+        $userId = (int) session()->get('user_id');
+
+        $rules = [
+            'receiver_name'  => 'required|max_length[100]',
+            'receiver_phone' => 'required|max_length[20]',
+            'zipcode'        => 'required|max_length[10]',
+            'address1'       => 'required|max_length[200]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $data = $this->request->getPost(['receiver_name', 'receiver_phone', 'zipcode', 'address1', 'address2']);
+
+        $count = $this->addressModel->where('user_id', $userId)->countAllResults();
+        $id    = $this->addressModel->saveAddress($userId, $data);
+
+        if (! $id) {
+            return redirect()->back()->withInput()->with('error', '배송지 저장에 실패했습니다. 다시 시도해주세요.');
+        }
+
+        // 첫 번째 주소는 자동으로 기본 배송지로 설정
+        if ($count === 0) {
+            $this->addressModel->setDefault($id, $userId);
+        }
+
+        return redirect()->to('/mypage/addresses')->with('success', '배송지가 저장되었습니다.');
+    }
+
+    /** POST /mypage/addresses/:id/default */
+    public function addressSetDefault(int $id)
+    {
+        $userId = (int) session()->get('user_id');
+
+        if (! $this->addressModel->setDefault($id, $userId)) {
+            return redirect()->to('/mypage/addresses')->with('error', '배송지를 찾을 수 없습니다.');
+        }
+
+        return redirect()->to('/mypage/addresses')->with('success', '기본 배송지가 변경되었습니다.');
+    }
+
+    /** POST /mypage/addresses/:id/delete */
+    public function addressDelete(int $id)
+    {
+        $userId  = (int) session()->get('user_id');
+        $address = $this->addressModel->where('id', $id)->where('user_id', $userId)->first();
+
+        if (! $address) {
+            return redirect()->to('/mypage/addresses')->with('error', '배송지를 찾을 수 없습니다.');
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $deleted = $this->addressModel->deleteByUser($id, $userId);
+
+        if ($deleted && $address['is_default']) {
+            $next = $this->addressModel->where('user_id', $userId)->orderBy('id', 'DESC')->first();
+            if ($next) {
+                $this->addressModel->setDefault($next['id'], $userId);
+            }
+        }
+
+        $db->transComplete();
+
+        if (! $db->transStatus() || ! $deleted) {
+            return redirect()->to('/mypage/addresses')->with('error', '배송지 삭제에 실패했습니다.');
+        }
+
+        return redirect()->to('/mypage/addresses')->with('success', '배송지가 삭제되었습니다.');
     }
 
     /** POST /mypage/orders/cancel — 즉시 취소 */

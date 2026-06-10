@@ -31,12 +31,16 @@ class MediaUploader
         $subDir     = date('Y/m');
         $uploadPath = FCPATH . "uploads/media/{$subDir}";
 
-        if (! is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+        if (! is_dir($uploadPath) && ! mkdir($uploadPath, 0755, true)) {
+            return ['success' => false, 'error' => '업로드 디렉토리를 생성할 수 없습니다.'];
+        }
 
         $storedName   = bin2hex(random_bytes(16)) . '.' . $ext;
         $relativePath = "uploads/media/{$subDir}/{$storedName}";
 
-        $file->move($uploadPath, $storedName);
+        if (! $file->move($uploadPath, $storedName)) {
+            return ['success' => false, 'error' => '파일 이동에 실패했습니다.'];
+        }
 
         $id = $this->model->insert([
             'original_name' => $file->getName(),

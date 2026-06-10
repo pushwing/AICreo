@@ -24,12 +24,24 @@ class ShippingAddressModel extends Model
     }
 
     /** 기본 배송지로 설정 (기존 기본 해제 후 지정) */
-    public function setDefault(int $id, int $userId): void
+    public function setDefault(int $id, int $userId): bool
     {
+        $address = $this->where('id', $id)->where('user_id', $userId)->first();
+        if (! $address) {
+            return false;
+        }
+
         $this->db->transStart();
         $this->where('user_id', $userId)->set('is_default', 0)->update();
         $this->where('id', $id)->where('user_id', $userId)->set('is_default', 1)->update();
         $this->db->transComplete();
+
+        return $this->db->transStatus();
+    }
+
+    public function deleteByUser(int $id, int $userId): bool
+    {
+        return $this->where('id', $id)->where('user_id', $userId)->delete() > 0;
     }
 
     /** 저장 또는 업데이트 — 동일 주소(zipcode + address1 + address2)면 덮어씀 */

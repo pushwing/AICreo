@@ -1,6 +1,7 @@
 # CI4 기본 제외
 /vendor/
 .env
+app/Config/App.php
 writable/cache/*
 writable/logs/*
 writable/session/*

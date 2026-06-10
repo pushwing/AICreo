@@ -118,6 +118,8 @@
                                 <!-- 배송비 뱃지 -->
                                 <?php if ($p['shipping_type'] === 'free'): ?>
                                 <span class="badge bg-light text-success border border-success small mt-1">무료배송</span>
+                                <?php elseif ($p['shipping_type'] === 'conditional'): ?>
+                                <span class="badge bg-light text-secondary border small mt-1"><?= number_format((int)$p['free_threshold']) ?>원 이상 무료</span>
                                 <?php endif; ?>
                             </div>
                         </div>
