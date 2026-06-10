@@ -158,7 +158,7 @@
                         <i class="bi bi-info-circle me-1"></i>배송비는 결제 시 확인됩니다.
                     </div>
 
-                    <button class="btn btn-primary w-100 mb-2" disabled title="결제 기능 준비 중">
+                    <button id="btnCheckout" class="btn btn-primary w-100 mb-2" disabled>
                         주문하기
                     </button>
                     <a href="/shop" class="btn btn-outline-secondary w-100">쇼핑 계속하기</a>
@@ -189,7 +189,15 @@
         });
         document.getElementById('selectedCount').textContent = count + '개';
         document.getElementById('selectedTotal').textContent = total.toLocaleString('ko-KR') + '원';
+
+        const btn = document.getElementById('btnCheckout');
+        if (btn) btn.disabled = (count === 0);
     }
+
+    // 주문하기 버튼 — 선택 상품 product_id 목록을 세션에 저장 후 주문서로 이동
+    document.getElementById('btnCheckout')?.addEventListener('click', function () {
+        window.location.href = '/order';
+    });
 
     // 전체 선택 토글
     document.getElementById('selectAll')?.addEventListener('change', function () {

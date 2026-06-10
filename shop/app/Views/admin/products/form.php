@@ -120,7 +120,7 @@
             <div class="card mb-3">
                 <div class="card-header fw-semibold">상품 상세 내용</div>
                 <div class="card-body">
-                    <textarea name="description" id="editor" class="form-control" rows="12"><?= esc(old('description', $product['description'] ?? '')) ?></textarea>
+                    <textarea name="description" id="editor" class="form-control" rows="12"><?= old('description', $product['description'] ?? '') ?></textarea>
                 </div>
             </div>
 
@@ -180,7 +180,18 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<script src="https://cdn.tiny.cloud/1/<?= config('Editor')->tinymceApiKey ?>/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
+tinymce.init({
+    selector: '#editor',
+    language: 'ko_KR',
+    height: 450,
+    plugins: 'lists link image table code',
+    toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image | table | code',
+    images_upload_url: '/admin/media/upload',
+    automatic_uploads: true,
+});
+
 function toggleShippingFields() {
     const type = document.getElementById('shippingType').value;
     document.getElementById('shippingFeeField').style.display    = type === 'fixed' ? '' : 'none';

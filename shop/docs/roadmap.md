@@ -137,3 +137,228 @@
 ### 비고
 - 기존 캐시(설정 `site_settings`, 메뉴 `nav_menus`)와 합쳐 일반 페이지는 게시판 데이터 외 반복 쿼리 없음
 - 게시판 검색은 `LIKE '%키워드%'` 구조라 인덱스 불가 — 수만 건 이상 쌓이면 FULLTEXT 인덱스 전환 검토
+
+---
+
+## 4. 쇼핑 기능
+
+### 4-1. 상품 목록 · 상세 ✅ 완료 (이슈 #3, #4)
+
+### 4-2. 장바구니 ✅ 완료 (이슈 #5)
+
+### 4-3. 주문 · 결제 ✅ 완료 (이슈 #6)
+
+#### 재고 차감 방식: 결제 확정 후 차감 (방식 A)
+- **OrderController**: 주문 생성(status: pending) → PG 결제창 호출
+- **PaymentController**: PG 콜백 수신 → 금액 검증 → 재고 차감 → 주문 확정(status: paid)
+- pending 주문은 재고를 차감하지 않으므로 결제 실패 시 복구 로직 불필요
+
+#### 결제 흐름
+```
+장바구니 → POST /order/create (pending 생성)
+  ↓
+PG 결제창 (프론트)
+  ↓
+GET|POST /payment/callback/{pg} (PG 서버 콜백)
+  ↓
+금액 검증 → SELECT FOR UPDATE → UPDATE stock (조건부) → 주문 paid
+  ↓
+GET /order/complete/{orderNumber}
+```
+
+#### 재고 복구 시나리오
+| 상황 | 처리 |
+|---|---|
+| 결제창 이탈 / 시간 초과 | `orders:expire` 커맨드가 5분마다 30분 초과 pending → expired 처리 |
+| PG 결제 실패 | 콜백 미수신 → pending 상태 유지 → 스케줄러가 expired 전환 |
+| PG 콜백 수신 후 재고 부족 | confirmPaid 롤백 → PG 자동 취소 호출 (TODO) |
+| 주문 취소 (paid) | stock + qty 복구 + sold_out → on_sale 자동 전환 |
+
+#### 이중 결제 방지
+- `payments.pg_tid` UNIQUE 제약으로 PG 콜백 중복 처리 차단
+
+#### 지원 PG
+| PG | 어댑터 | 설정 환경변수 |
+|---|---|---|
+| 토스페이먼츠 | `TossPaymentsAdapter` | `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY` |
+| KG이니시스 | `InicisAdapter` | `INICIS_MERCHANT_ID`, `INICIS_SIGN_KEY` |
+| 나이스페이 | `NicePayAdapter` | `NICEPAY_CLIENT_ID`, `NICEPAY_SECRET_KEY` |
+| 카카오페이 | `KakaoPayAdapter` | `KAKAOPAY_SECRET_KEY`, `KAKAOPAY_CID` |
+| 네이버페이 | `NaverPayAdapter` | `NAVERPAY_CLIENT_ID`, `NAVERPAY_CLIENT_SECRET`, `NAVERPAY_CHAIN_ID` |
+| PAYCO | `PaycoAdapter` | `PAYCO_SELLER_KEY`, `PAYCO_SECRET_KEY` |
+
+#### DB 스키마
+| 테이블 | 설명 |
+|---|---|
+| `orders` | 주문 (배송지 스냅샷 포함) — status: pending/paid/preparing/shipped/delivered/cancelled/expired/refund_requested/refunded |
+| `order_items` | 주문 상품 (상품명·단가 스냅샷) |
+| `shipping_addresses` | 회원 배송지 이력 (주소록, is_default 지원) |
+| `payments` | 결제 기록 (pg_tid UNIQUE) |
+
+#### 스케줄러 설정
+```
+# crontab -e
+* * * * * cd /path/to/shop && php spark schedule:run >> /dev/null 2>&1
+```
+- `App\Commands\ExpireOrders` — `orders:expire` 커맨드
+- `App\Config\Scheduler` — 5분 주기 등록
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Database/Migrations/2026-06-10-000005_CreateOrderTables.php` | orders · order_items · shipping_addresses · payments 테이블 |
+| `app/Models/OrderModel.php` | 주문 모델 (createPending / confirmPaid / cancelOrder / expirePending) |
+| `app/Models/ShippingAddressModel.php` | 배송지 이력 모델 |
+| `app/Libraries/PG/PGInterface.php` | PG 어댑터 인터페이스 |
+| `app/Libraries/PG/TossPaymentsAdapter.php` | 토스페이먼츠 어댑터 |
+| `app/Libraries/PG/InicisAdapter.php` | KG이니시스 어댑터 |
+| `app/Libraries/PG/NicePayAdapter.php` | 나이스페이 어댑터 |
+| `app/Libraries/PG/KakaoPayAdapter.php` | 카카오페이 어댑터 |
+| `app/Libraries/PG/NaverPayAdapter.php` | 네이버페이 어댑터 |
+| `app/Libraries/PG/PaycoAdapter.php` | PAYCO 어댑터 |
+| `app/Libraries/PG/PGFactory.php` | PG 팩토리 (provider 문자열 → 어댑터 인스턴스) |
+| `app/Controllers/Front/OrderController.php` | 주문서 · 주문 생성 · 완료/실패 · 취소 |
+| `app/Controllers/Front/PaymentController.php` | PG 콜백 수신 · 금액 검증 · 재고 차감 · 이중처리 방지 |
+| `app/Config/Scheduler.php` | CI4 스케줄러 설정 (5분 주기 expire) |
+| `app/Commands/ExpireOrders.php` | `php spark orders:expire` 커맨드 |
+| `app/Views/shop/checkout.php` | 주문서 뷰 |
+| `app/Views/shop/order_complete.php` | 주문 완료 뷰 |
+| `app/Views/shop/order_fail.php` | 결제 실패 뷰 |
+
+---
+
+### 4-4. 무통장입금 결제 ✅ 완료
+
+#### 결제 흐름
+```
+장바구니 → POST /order/create
+  ↓ pg_provider = bank_transfer
+주문 status: awaiting_payment, payments.status: pending 생성
+  ↓
+GET /order/bank_transfer/{orderNumber} (입금 안내 페이지)
+  ↓ 관리자 확인
+POST /admin/orders/{id}/bank_confirm → status: paid + 재고 차감
+```
+
+#### 주요 구현
+- `BankTransferAdapter`: PG 콜백 없음, `buildPaymentParams()` → 입금 안내 URL 반환
+- `orders.status` ENUM에 `awaiting_payment` 추가 (마이그레이션)
+- `payments.pg_provider` ENUM에 `bank_transfer` 추가
+- `payments.pg_tid` NULL 허용 (UNIQUE KEY는 NULL 복수 허용)
+- 관리자 입금 확인 시 `SELECT FOR UPDATE` 재고 차감
+
+#### 트러블슈팅
+| 항목 | 원인 | 해결 |
+|---|---|---|
+| "유효하지 않은 주문" | ENUM에 awaiting_payment·bank_transfer·pending 미존재 | `2026-06-10-000008_AlterOrderEnums.php` ENUM 확장 |
+| `duplicate entry '' for key 'pg_tid'` | `pg_tid = ''` 빈 문자열이 UNIQUE 충돌 | `pg_tid = null` 로 변경 |
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Libraries/PG/BankTransferAdapter.php` | 무통장 어댑터 |
+| `app/Database/Migrations/2026-06-10-000007_SeedBankTransferSettings.php` | bank_name·bank_account·bank_holder 설정 시드 |
+| `app/Database/Migrations/2026-06-10-000008_AlterOrderEnums.php` | orders·payments ENUM 확장 |
+| `app/Views/shop/bank_transfer.php` | 입금 안내 페이지 (계좌 복사 버튼) |
+| `app/Views/shop/checkout.php` | 무통장 선택 시 계좌 정보 패널 표시 |
+
+---
+
+### 4-5. 재고 관리 (관리자) ✅ 완료
+
+#### 주요 기능
+- 요약 카드: 전체 상품 수 / 품절 수 / 부족(10개 이하) 수
+- 상품 목록: 키워드 검색 + 전체/품절/부족 필터 + 페이징
+- 재고 조정 모달: in(입고)/out(출고)/adjust(직접 설정) 타입, 변경 후 수량 미리보기, 메모 입력
+- 조정 이력 모달: 상품별 재고 변경 로그 (타입·수량·변경 전후·메모·관리자명)
+
+#### DB 스키마
+| 테이블 | 설명 |
+|---|---|
+| `stock_logs` | id, product_id, type ENUM(adjust/order/cancel/return/in/out), quantity, stock_before, stock_after, note, admin_id, created_at |
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Database/Migrations/2026-06-10-000006_CreateStockLogTable.php` | stock_logs 테이블 |
+| `app/Models/StockLogModel.php` | `record()` · `getByProduct()` |
+| `app/Controllers/Admin/InventoryController.php` | 재고 목록·조정·로그 API |
+| `app/Views/admin/inventory/index.php` | 재고 관리 뷰 |
+
+---
+
+### 4-6. 마이페이지 (주문 이력) ✅ 완료
+
+#### 주요 기능
+- 주문 목록: 기간 필터(1개월/3개월/전체) + 상태 탭 + 키워드 검색(상품명·설명·가격) + 페이징
+- 주문 상세:
+  - 상품 썸네일 + 제목 링크(slug 기반 `/shop/{slug}`)
+  - 운송장 번호 복사 버튼
+  - 무통장 입금일 경우 은행명·계좌번호·예금주·입금 금액 표시, 계좌 복사 버튼
+  - 배송 완료 확인 버튼 (shipped → delivered)
+- 즉시 취소: pending/awaiting_payment/paid 주문 취소
+- 내비바: 닉네임 드롭다운 → 주문내역 / 내 정보 / 로그아웃
+
+#### CI4 Model 클론 버그 (핵심 트러블슈팅)
+`$this->where()` 체이닝은 `$this`(Model 객체)를 반환. `clone $model`은 내부 `$db` 커넥션 객체를 공유하는 얕은 복사 → `countAllResults()`가 빌더 상태를 리셋해 후속 `findAll()` 결과 오염.
+**해결**: `$this->db->table('테이블명')`으로 DB Builder 직접 생성 → PHP clone이 배열 프로퍼티를 copy-on-write로 처리해 안전.
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Controllers/Front/MyPageController.php` | 주문 목록·상세·배송완료확인·취소 |
+| `app/Views/shop/orders/list.php` | 주문 목록 뷰 (검색창·페이징) |
+| `app/Views/shop/orders/detail.php` | 주문 상세 뷰 |
+| `app/Views/themes/default/components/navbar.php` | 마이페이지 드롭다운 |
+
+---
+
+### 4-7. 주문 관리 (관리자) ✅ 완료
+
+#### 주요 기능
+- 주문 목록: 상태 필터 + 키워드(주문번호/수취인명/이메일) 검색 + 결제수단 컬럼 + 페이징
+- 상태 변경: paid → preparing → shipped → delivered (단방향 흐름)
+- 환불 요청 → 환불 완료 처리 (PG 콘솔 취소 후 상태 변경)
+- 송장번호·택배사 입력
+- 강제 취소: pending/awaiting_payment/paid/preparing 주문 취소 + 재고 자동 복구
+- 무통장 입금 확인: awaiting_payment → paid + 재고 차감
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Controllers/Admin/OrderController.php` | 주문 목록·상세·상태변경·송장·취소·환불·무통장확인 |
+| `app/Views/admin/orders/list.php` | 관리자 주문 목록 뷰 (결제수단 컬럼) |
+| `app/Views/admin/orders/detail.php` | 관리자 주문 상세 뷰 |
+
+---
+
+### 4-8. 매출 관리 (관리자) ✅ 완료
+
+#### 주요 기능
+- 요약 카드: 조회 기간 내 총 매출 / 총 주문 수 / 평균 주문 금액
+- 기간별 집계: 일별 / 주별 / 월별 전환, 날짜 범위 직접 입력, 빠른 기간 버튼(이번달·지난달·최근7일·최근30일·올해)
+- 결제수단별 집계: pg_provider + method GROUP BY, 비율 프로그레스 바
+- 검색: 주문번호·수취인명·회원명·이메일 키워드 필터
+- 결제 완료 주문 목록: 최근 50건 (검색 조건 적용), 주문 상세 링크
+
+#### 구현 파일
+| 파일 | 설명 |
+|---|---|
+| `app/Controllers/Admin/SalesController.php` | 매출 집계 (기간별·결제수단별·요약) |
+| `app/Views/admin/sales/index.php` | 매출 관리 뷰 |
+| `app/Views/layouts/admin.php` | 사이드바 "매출 관리" 메뉴 추가 |
+
+---
+
+### 4-9. 쿠폰 · 포인트 📋 예정
+
+- 쿠폰 테이블 설계 (발급·사용·만료·조건 할인)
+- 포인트 적립/차감 이력 테이블
+- 주문서 쿠폰·포인트 적용 UI
+- 관리자 쿠폰 발급 화면
+
+---
+
+### 4-10. 배송지 주소록 📋 예정
+
+- 배송지 주소록 관리 (추가/수정/삭제/기본 설정)

@@ -40,8 +40,10 @@ class ProductModel extends Model
         $perPage    = $params['per_page']    ?? 12;
         $page       = max(1, (int) ($params['page'] ?? 1));
 
-        $builder = $this->select('products.*, categories.name as category_name')
+        $builder = $this->db->table('products')
+            ->select('products.*, categories.name as category_name')
             ->join('categories', 'categories.id = products.category_id', 'left')
+            ->where('products.deleted_at IS NULL')
             ->whereIn('products.status', ['on_sale', 'sold_out']);
 
         if ($keyword) {
@@ -83,8 +85,10 @@ class ProductModel extends Model
         $perPage  = 20;
         $page     = max(1, (int) ($params['page'] ?? 1));
 
-        $builder = $this->select('products.*, categories.name as category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left');
+        $builder = $this->db->table('products')
+            ->select('products.*, categories.name as category_name')
+            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->where('products.deleted_at IS NULL');
 
         if ($keyword) {
             $builder->like('products.name', $keyword);
@@ -100,11 +104,12 @@ class ProductModel extends Model
 
     private function buildPage($builder, int $page, int $perPage): array
     {
-        $total  = (clone $builder)->where('products.deleted_at IS NULL', null, false)->countAllResults();
+        // DB Builder는 배열 기반 상태라 clone이 안전함 (Model clone과 달리 DB 커넥션을 통한 상태 공유 없음)
+        $total  = (clone $builder)->countAllResults();
         $offset = ($page - 1) * $perPage;
 
         return [
-            'items'       => $builder->findAll($perPage, $offset),
+            'items'       => $builder->limit($perPage, $offset)->get()->getResultArray(),
             'total'       => $total,
             'totalPages'  => (int) ceil($total / $perPage),
             'currentPage' => $page,

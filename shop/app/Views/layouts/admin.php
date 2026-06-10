@@ -53,8 +53,20 @@
         </a>
 
         <div class="nav-section">쇼핑</div>
-        <a href="/admin/products" class="nav-link <?= str_starts_with(uri_string(), 'admin/products') ? 'active' : '' ?>">
+        <a href="/admin/products" class="nav-link <?= str_starts_with(uri_string(), 'admin/products') && ! str_starts_with(uri_string(), 'admin/products/categories') ? 'active' : '' ?>">
             <i class="bi bi-bag me-2"></i>상품 관리
+        </a>
+        <a href="/admin/products/categories" class="nav-link <?= str_starts_with(uri_string(), 'admin/products/categories') ? 'active' : '' ?>">
+            <i class="bi bi-tags me-2"></i>카테고리 관리
+        </a>
+        <a href="/admin/inventory" class="nav-link <?= str_starts_with(uri_string(), 'admin/inventory') ? 'active' : '' ?>">
+            <i class="bi bi-boxes me-2"></i>재고 관리
+        </a>
+        <a href="/admin/orders" class="nav-link <?= str_starts_with(uri_string(), 'admin/orders') ? 'active' : '' ?>">
+            <i class="bi bi-receipt me-2"></i>주문 관리
+        </a>
+        <a href="/admin/sales" class="nav-link <?= str_starts_with(uri_string(), 'admin/sales') ? 'active' : '' ?>">
+            <i class="bi bi-graph-up-arrow me-2"></i>매출 관리
         </a>
 
         <div class="nav-section">운영</div>

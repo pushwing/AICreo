@@ -15,7 +15,8 @@ class Filters extends BaseConfig
 
     public array $globals = [
         'before' => [
-            'csrf' => ['except' => ['api/*', 'board/image-upload', 'admin/media/upload']],
+            // payment/callback/* — PG 서버에서 직접 POST 요청 (CSRF 토큰 없음)
+            'csrf' => ['except' => ['api/*', 'board/image-upload', 'admin/media/upload', 'payment/callback/*']],
         ],
         'after'  => ['toolbar'],
     ];

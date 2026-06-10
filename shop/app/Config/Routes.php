@@ -108,6 +108,23 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/categories/(:num)/edit',         'Admin\ProductController::categoryUpdate/$1');
     $routes->post('products/categories/(:num)/delete',       'Admin\ProductController::categoryDelete/$1');
 
+    // 재고 관리
+    $routes->get( 'inventory',                        'Admin\InventoryController::index');
+    $routes->post('inventory/(:num)/adjust',          'Admin\InventoryController::adjust/$1');
+    $routes->get( 'inventory/(:num)/logs',            'Admin\InventoryController::logs/$1');
+
+    // 매출 관리
+    $routes->get('sales', 'Admin\SalesController::index');
+
+    // 주문 관리
+    $routes->get( 'orders',                        'Admin\OrderController::index');
+    $routes->get( 'orders/(:num)',                 'Admin\OrderController::detail/$1');
+    $routes->post('orders/(:num)/status',          'Admin\OrderController::updateStatus/$1');
+    $routes->post('orders/(:num)/tracking',        'Admin\OrderController::updateTracking/$1');
+    $routes->post('orders/(:num)/cancel',          'Admin\OrderController::cancel/$1');
+    $routes->post('orders/(:num)/refund',          'Admin\OrderController::refund/$1');
+    $routes->post('orders/(:num)/bank_confirm',    'Admin\OrderController::confirmBankTransfer/$1');
+
     // 배너 관리
     $routes->get( 'banners',              'Admin\BannerController::index');
     $routes->get( 'banners/create',       'Admin\BannerController::create');
@@ -138,6 +155,28 @@ $routes->group('cart', ['filter' => 'auth:member'], function ($routes) {
     $routes->post('delete', 'Front\CartController::delete');
     $routes->post('clear',  'Front\CartController::clear');
 });
+
+// ─── 주문 (로그인 필요) ──────────────────────────────────────────────────────
+$routes->group('order', ['filter' => 'auth:member'], function ($routes) {
+    $routes->get( '',                         'Front\OrderController::index');
+    $routes->post('create',                   'Front\OrderController::create');
+    $routes->post('cancel',                   'Front\OrderController::cancel');
+    $routes->get( 'complete/(:segment)',      'Front\OrderController::complete/$1');
+    $routes->get( 'fail/(:segment)',          'Front\OrderController::fail/$1');
+    $routes->get( 'bank_transfer/(:segment)', 'Front\OrderController::bankTransfer/$1');
+});
+
+// ─── 마이페이지 (로그인 필요) ────────────────────────────────────────────────
+$routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
+    $routes->get( 'orders',                  'Front\MyPageController::orders');
+    $routes->get( 'orders/(:segment)',       'Front\MyPageController::orderDetail/$1');
+    $routes->post('orders/cancel',           'Front\MyPageController::cancel');
+    $routes->post('orders/confirm-delivery', 'Front\MyPageController::confirmDelivery');
+});
+
+// ─── PG 콜백 (PG 서버에서 직접 호출 — CSRF 예외 필요) ────────────────────────
+$routes->get( 'payment/callback/(:segment)', 'Front\PaymentController::callback/$1');
+$routes->post('payment/callback/(:segment)', 'Front\PaymentController::callback/$1');
 
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────
 $routes->get('(:segment)', 'Front\PageController::show/$1');

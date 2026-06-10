@@ -188,6 +188,29 @@ chmod -R 755 writable
 php spark serve
 ```
 
+### 7. Cron 등록 (운영 서버 — 주문 만료 처리)
+
+결제 대기(pending) 상태가 30분 이상 지속된 주문을 자동으로 만료 처리합니다.
+
+```bash
+crontab -e
+```
+
+아래 줄을 추가합니다 (`/path/to/shop`을 실제 프로젝트 경로로 교체):
+
+```
+* * * * * cd /path/to/shop && php spark schedule:run >> /dev/null 2>&1
+```
+
+> **동작 방식**: CI4 스케줄러가 매 분 실행되며, `App\Config\Scheduler`에 등록된  
+> `orders:expire` 커맨드를 **5분 간격**으로 호출합니다.  
+> 수동 실행이 필요할 때는 아래 명령으로 직접 실행할 수 있습니다.
+>
+> ```bash
+> php spark orders:expire        # 기본 30분 초과 만료
+> php spark orders:expire 60     # 60분 초과로 기준 변경
+> ```
+
 ---
 
 ## 기본 계정

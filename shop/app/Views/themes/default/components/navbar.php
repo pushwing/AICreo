@@ -45,7 +45,6 @@
                     </a>
                 <?php endif; ?>
                 <?php if ($authUser['loggedIn']): ?>
-                    <span class="text-muted small d-none d-lg-inline"><?= esc($authUser['nickname']) ?></span>
                     <?php if ($authUser['role'] === 'admin'): ?>
                         <a href="/admin" class="btn btn-sm btn-outline-warning">관리자</a>
                     <?php endif; ?>
@@ -61,8 +60,23 @@
                               style="font-size:.6rem;padding:.2em .4em;display:none">0</span>
                         <?php endif; ?>
                     </a>
-                    <a href="/auth/profile" class="btn btn-sm btn-outline-secondary">내 정보</a>
-                    <a href="/auth/logout" class="btn btn-sm btn-outline-secondary">로그아웃</a>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person me-1"></i><?= esc($authUser['nickname']) ?>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/mypage/orders">
+                                <i class="bi bi-bag me-2"></i>주문내역
+                            </a></li>
+                            <li><a class="dropdown-item" href="/auth/profile">
+                                <i class="bi bi-person-gear me-2"></i>내 정보
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/auth/logout">
+                                <i class="bi bi-box-arrow-right me-2"></i>로그아웃
+                            </a></li>
+                        </ul>
+                    </div>
                 <?php else: ?>
                     <a href="/auth/login" class="btn btn-sm btn-outline-secondary">로그인</a>
                 <?php endif; ?>
