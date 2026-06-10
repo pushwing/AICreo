@@ -153,10 +153,16 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                 <?php if ($isSoldOut): ?>
                 <button class="btn btn-secondary btn-lg" disabled>품절</button>
                 <?php else: ?>
-                <button class="btn btn-primary btn-lg" disabled title="장바구니 기능 준비 중">
+                <button class="btn btn-primary btn-lg" id="btnAddCart"
+                        data-product-id="<?= (int) $product['id'] ?>"
+                        data-csrf="<?= csrf_token() ?>"
+                        data-csrf-val="<?= csrf_hash() ?>">
                     <i class="bi bi-bag-plus me-1"></i>장바구니 담기
                 </button>
-                <button class="btn btn-dark btn-lg" disabled title="바로구매 기능 준비 중">
+                <button class="btn btn-dark btn-lg" id="btnBuyNow"
+                        data-product-id="<?= (int) $product['id'] ?>"
+                        data-csrf="<?= csrf_token() ?>"
+                        data-csrf-val="<?= csrf_hash() ?>">
                     바로구매
                 </button>
                 <?php endif; ?>
@@ -248,6 +254,54 @@ document.getElementById('productCarousel')?.addEventListener('slide.bs.carousel'
         b.classList.toggle('border-dark', i === e.to);
         b.classList.toggle('border-2',    i === e.to);
         b.classList.toggle('border-secondary', i !== e.to);
+    });
+});
+
+// ─── 장바구니 담기 / 바로구매 ─────────────────────────────────────────────────
+function addToCart(btn, onSuccess) {
+    const qty = parseInt(document.getElementById('qtyInput')?.value || 1);
+    const body = new FormData();
+    body.append(btn.dataset.csrf, btn.dataset.csrfVal);
+    body.append('product_id', btn.dataset.productId);
+    body.append('qty', qty);
+
+    btn.disabled = true;
+    fetch('/cart/add', { method: 'POST', body })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                // 네비바 장바구니 뱃지 업데이트
+                const badge = document.getElementById('cartBadge');
+                if (badge) {
+                    badge.textContent  = data.cartCount;
+                    badge.style.display = data.cartCount > 0 ? '' : 'none';
+                }
+                onSuccess(data);
+            } else {
+                alert(data.message);
+                btn.disabled = false;
+            }
+        })
+        .catch(function () {
+            alert('오류가 발생했습니다. 다시 시도해주세요.');
+            btn.disabled = false;
+        });
+}
+
+document.getElementById('btnAddCart')?.addEventListener('click', function () {
+    const btn = this;
+    addToCart(btn, function () {
+        btn.innerHTML    = '<i class="bi bi-check-lg me-1"></i>담기 완료';
+        setTimeout(function () {
+            btn.innerHTML = '<i class="bi bi-bag-plus me-1"></i>장바구니 담기';
+            btn.disabled  = false;
+        }, 1500);
+    });
+});
+
+document.getElementById('btnBuyNow')?.addEventListener('click', function () {
+    addToCart(this, function () {
+        window.location.href = '/cart';
     });
 });
 </script>

@@ -129,5 +129,15 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 $routes->get('shop',             'Front\ShopController::index');
 $routes->get('shop/(:segment)',  'Front\ShopController::detail/$1');
 
+// ─── 장바구니 ──────────────────────────────────────────────────────────────────
+// add: 비로그인도 허용 (세션 저장), 나머지: 로그인 필요
+$routes->post('cart/add', 'Front\CartController::add');
+$routes->group('cart', ['filter' => 'auth:member'], function ($routes) {
+    $routes->get( '',       'Front\CartController::index');
+    $routes->post('update', 'Front\CartController::update');
+    $routes->post('delete', 'Front\CartController::delete');
+    $routes->post('clear',  'Front\CartController::clear');
+});
+
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────
 $routes->get('(:segment)', 'Front\PageController::show/$1');

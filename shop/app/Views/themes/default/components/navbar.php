@@ -49,6 +49,18 @@
                     <?php if ($authUser['role'] === 'admin'): ?>
                         <a href="/admin" class="btn btn-sm btn-outline-warning">관리자</a>
                     <?php endif; ?>
+                    <a href="/cart" class="btn btn-sm btn-outline-secondary position-relative" title="장바구니">
+                        <i class="bi bi-cart2"></i>
+                        <?php if (($cartCount ?? 0) > 0): ?>
+                        <span id="cartBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              style="font-size:.6rem;padding:.2em .4em">
+                            <?= (int) $cartCount ?>
+                        </span>
+                        <?php else: ?>
+                        <span id="cartBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              style="font-size:.6rem;padding:.2em .4em;display:none">0</span>
+                        <?php endif; ?>
+                    </a>
                     <a href="/auth/profile" class="btn btn-sm btn-outline-secondary">내 정보</a>
                     <a href="/auth/logout" class="btn btn-sm btn-outline-secondary">로그아웃</a>
                 <?php else: ?>

@@ -20,6 +20,7 @@ class AuthFilter implements FilterInterface
         $requiredRole = $arguments[0] ?? 'member';
 
         if (! $isLoggedIn) {
+            session()->setTempdata('redirect_url', current_url(), 300);
             return redirect()->to('/auth/login')->with('error', '로그인이 필요합니다.');
         }
 

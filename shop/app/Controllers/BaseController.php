@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\BannerModel;
+use App\Models\CartModel;
 use App\Models\InquiryModel;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
@@ -40,6 +41,9 @@ class BaseController extends Controller
             $unreadInquiries = (new InquiryModel())->getUnreadCount();
         }
 
+        // 장바구니 수 (로그인 회원만)
+        $cartCount = $authUser['loggedIn'] ? (new CartModel())->getCount($authUser['id']) : 0;
+
         $isAdmin = str_starts_with(uri_string(), 'admin');
 
         $subLeftBanners = $isAdmin
@@ -50,7 +54,7 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'subLeftBanners', 'activePopups');
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'subLeftBanners', 'activePopups', 'cartCount');
     }
 
     protected function getUserRole(): string
