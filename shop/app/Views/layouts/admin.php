@@ -52,6 +52,11 @@
             <i class="bi bi-window me-2"></i>팝업 관리
         </a>
 
+        <div class="nav-section">쇼핑</div>
+        <a href="/admin/products" class="nav-link <?= str_starts_with(uri_string(), 'admin/products') ? 'active' : '' ?>">
+            <i class="bi bi-bag me-2"></i>상품 관리
+        </a>
+
         <div class="nav-section">운영</div>
         <a href="/admin/users" class="nav-link <?= str_starts_with(uri_string(), 'admin/users') ? 'active' : '' ?>">
             <i class="bi bi-person-lines-fill me-2"></i>회원 관리

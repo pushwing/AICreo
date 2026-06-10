@@ -95,6 +95,19 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'inquiries/(:num)',       'Admin\InquiryController::view/$1');
     $routes->post('inquiries/(:num)/delete','Admin\InquiryController::delete/$1');
 
+    // 상품 관리
+    $routes->get( 'products',                                'Admin\ProductController::index');
+    $routes->get( 'products/create',                         'Admin\ProductController::create');
+    $routes->post('products/create',                         'Admin\ProductController::store');
+    $routes->get( 'products/(:num)/edit',                    'Admin\ProductController::edit/$1');
+    $routes->post('products/(:num)/edit',                    'Admin\ProductController::update/$1');
+    $routes->post('products/(:num)/delete',                  'Admin\ProductController::delete/$1');
+    $routes->post('products/image/(:num)/delete',            'Admin\ProductController::imageDelete/$1');
+    $routes->get( 'products/categories',                     'Admin\ProductController::categories');
+    $routes->post('products/categories',                     'Admin\ProductController::categoryStore');
+    $routes->post('products/categories/(:num)/edit',         'Admin\ProductController::categoryUpdate/$1');
+    $routes->post('products/categories/(:num)/delete',       'Admin\ProductController::categoryDelete/$1');
+
     // 배너 관리
     $routes->get( 'banners',              'Admin\BannerController::index');
     $routes->get( 'banners/create',       'Admin\BannerController::create');
@@ -111,6 +124,10 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('popups/(:num)/edit',  'Admin\PopupController::update/$1');
     $routes->post('popups/(:num)/delete','Admin\PopupController::delete/$1');
 });
+
+// ─── 쇼핑 ────────────────────────────────────────────────────────────────────
+$routes->get('shop',             'Front\ShopController::index');
+$routes->get('shop/(:segment)',  'Front\ShopController::detail/$1');
 
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────
 $routes->get('(:segment)', 'Front\PageController::show/$1');
