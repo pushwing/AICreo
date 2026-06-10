@@ -7,13 +7,29 @@ use CodeIgniter\HTTP\Files\UploadedFile;
 
 class FileUploader
 {
-    // 허용 이미지 확장자
     private const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    // 허용 파일 확장자 (보안: 실행파일 차단)
     private const ALLOWED_EXTS = [
         'jpg', 'jpeg', 'png', 'gif', 'webp',
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
         'zip', 'txt', 'hwp',
+    ];
+    // 확장자 → 허용 MIME 매핑 (서버사이드 검증용)
+    private const EXT_MIME_MAP = [
+        'jpg'  => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'png'  => ['image/png'],
+        'gif'  => ['image/gif'],
+        'webp' => ['image/webp'],
+        'pdf'  => ['application/pdf'],
+        'doc'  => ['application/msword'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        'xls'  => ['application/vnd.ms-excel'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        'ppt'  => ['application/vnd.ms-powerpoint'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+        'zip'  => ['application/zip', 'application/x-zip-compressed'],
+        'txt'  => ['text/plain'],
+        'hwp'  => ['application/x-hwp', 'application/haansofthwp', 'application/octet-stream'],
     ];
     private const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -106,10 +122,16 @@ class FileUploader
 
     private function saveFile(int $postId, UploadedFile $file): array
     {
-        $ext = strtolower($file->getClientExtension());
+        $ext  = strtolower($file->getClientExtension());
+        $mime = $file->getMimeType(); // 서버사이드 MIME (클라이언트 헤더 무시)
 
         if (! in_array($ext, self::ALLOWED_EXTS)) {
             return ['success' => false, 'error' => "{$file->getName()}: 허용되지 않는 파일 형식"];
+        }
+
+        $allowedMimes = self::EXT_MIME_MAP[$ext] ?? [];
+        if (! empty($allowedMimes) && ! in_array($mime, $allowedMimes, true)) {
+            return ['success' => false, 'error' => "{$file->getName()}: 파일 형식이 올바르지 않습니다."];
         }
 
         if ($file->getSize() > self::MAX_SIZE) {
@@ -135,7 +157,7 @@ class FileUploader
             'stored_name'   => $storedName,
             'file_path'     => $relativePath,
             'file_size'     => $file->getSize(),
-            'mime_type'     => $file->getClientMimeType(),
+            'mime_type'     => $mime,
             'is_image'      => $isImage ? 1 : 0,
         ]);
 
