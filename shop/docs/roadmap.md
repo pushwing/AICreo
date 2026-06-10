@@ -358,7 +358,7 @@ POST /admin/orders/{id}/bank_confirm → status: paid + 재고 차감
 
 ---
 
-### 4-9. 쿠폰 · 포인트 📋 예정
+### 4-9. 쿠폰 · 포인트 ✅ 완료 (이슈 #11)
 
 - 쿠폰 테이블 설계 (발급·사용·만료·조건 할인)
 - 포인트 적립/차감 이력 테이블
@@ -385,3 +385,60 @@ POST /admin/orders/{id}/bank_confirm → status: paid + 재고 차감
 | `app/Views/shop/addresses/index.php` | 마이페이지 배송지 관리 뷰 |
 | `app/Views/shop/checkout.php` | 주문서 저장 배송지 선택 UI |
 | `app/Config/Routes.php` | `/mypage/addresses` 라우트 |
+
+---
+
+## 5. 라이센스 관리 📋 예정
+
+### 개요
+
+배포된 쇼핑몰 인스턴스의 정품 사용 여부를 외부 라이센스 서버와 연동해 검증한다.  
+라이센스 키는 관리자가 최초 1회 입력 후 수정 불가로 고정되며, 어드민 로그인 시마다 서버 검증을 거친다.
+
+### 기능 요구사항
+
+#### 5-1. 라이센스 키 등록 (관리자 설정)
+- 어드민 설정 화면에 "라이센스 키" 입력란 추가
+- 저장 후에는 입력란을 마스킹 처리(\*\*\*\*\*\*\*\*)하고 수정 불가 상태로 전환
+- 키 미등록 상태에서는 어드민 접근 시 라이센스 등록 안내 페이지로 리다이렉트
+- 등록된 키는 `settings` 테이블의 `license_key` 항목에 저장 (캐시 포함)
+
+#### 5-2. 어드민 로그인 시 라이센스 검증
+- 로그인 성공 직후 라이센스 서버 API 호출
+- 검증 실패(키 무효·만료·서버 오류) 시 로그인 차단 및 오류 메시지 표시
+- API 응답 타임아웃(예: 5초) 초과 시 처리 방침 결정 필요 (허용 또는 차단)
+- 검증 결과(유효 여부, 만료일)를 세션에 캐싱 — 매 요청마다 API 호출하지 않음
+
+#### 5-3. 라이센스 서버 API 연동
+- API 엔드포인트 URL은 `.env`의 `LICENSE_API_URL` 환경변수에서 읽기
+- 요청 방식: POST, Body: `{ "license_key": "...", "domain": "..." }`
+- 응답 예시: `{ "valid": true, "expires_at": "2027-01-01" }`
+- API 키(서명 시크릿 등)가 필요한 경우 `LICENSE_API_SECRET`으로 추가
+
+### 정책 결정 필요 항목
+
+| 항목 | 선택지 |
+|------|--------|
+| API 타임아웃 시 처리 | 허용(관대) vs 차단(엄격) |
+| 검증 캐싱 유효 시간 | 1시간 / 1일 / 세션 종료까지 |
+| 라이센스 만료 시 처리 | 로그인 차단 vs 경고 배너만 표시 |
+| 도메인 바인딩 여부 | 서버 도메인과 등록 도메인 일치 여부 확인 |
+
+### 구현 계획 파일
+
+| 파일 | 설명 |
+|------|------|
+| `app/Libraries/LicenseService.php` | 라이센스 서버 API 호출·검증 로직 |
+| `app/Filters/LicenseFilter.php` | 어드민 전체 라우트에 적용되는 라이센스 유효성 필터 |
+| `app/Controllers/Admin/AuthController.php` | 로그인 성공 후 `LicenseService::verify()` 호출 |
+| `app/Controllers/Admin/SettingController.php` | 라이센스 키 저장 (최초 1회, 이후 수정 불가 처리) |
+| `app/Views/admin/settings/index.php` | 라이센스 키 입력란 추가 (등록 후 마스킹·읽기전용) |
+| `app/Views/admin/license_required.php` | 라이센스 미등록 시 안내 페이지 |
+| `.env` | `LICENSE_API_URL`, `LICENSE_API_SECRET` 환경변수 추가 |
+
+### 환경변수 예시 (`.env`)
+
+```
+LICENSE_API_URL = https://license.example.com/api/verify
+LICENSE_API_SECRET = your-hmac-secret
+```
