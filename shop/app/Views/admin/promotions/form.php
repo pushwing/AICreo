@@ -7,7 +7,7 @@
     <a href="/admin/promotions" class="btn btn-outline-secondary btn-sm">목록</a>
 </div>
 
-<form method="post" action="/admin/promotions/<?= $isEdit ? $promotion['id'].'/edit' : 'create' ?>">
+<form method="post" action="/admin/promotions/<?= $isEdit ? $promotion['id'].'/edit' : 'create' ?>" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="products_json" id="productsJson" value="[]">
 
@@ -33,10 +33,16 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">배너 이미지 URL</label>
-                        <input type="text" name="banner_image" class="form-control form-control-sm"
-                               placeholder="/uploads/... (미디어 라이브러리에서 URL 복사)"
-                               value="<?= esc($promotion['banner_image'] ?? '') ?>">
+                        <label class="form-label small fw-semibold">배너 이미지</label>
+                        <?php if (! empty($promotion['banner_image'])): ?>
+                        <div class="mb-2">
+                            <img src="<?= base_url(esc($promotion['banner_image'])) ?>" alt="배너 이미지"
+                                 class="img-thumbnail" style="max-height:100px">
+                        </div>
+                        <?php endif; ?>
+                        <input type="file" name="banner_image_file" class="form-control form-control-sm"
+                               accept="image/jpeg,image/png,image/gif">
+                        <div class="form-text">jpg, png, gif / 최대 2MB<?= ! empty($promotion['banner_image']) ? ' (새 파일 선택 시 교체)' : '' ?></div>
                     </div>
                 </div>
             </div>
@@ -108,8 +114,8 @@
                     </div>
 
                     <!-- 검색 결과 -->
-                    <div id="searchResults" class="mb-2" style="max-height:180px;overflow-y:auto;display:none">
-                        <table class="table table-sm table-hover mb-0 small">
+                    <div id="searchResults" class="mb-2" style="max-height:220px;overflow-y:auto;display:none">
+                        <table class="table table-sm table-hover mb-0 small align-middle">
                             <tbody id="searchResultBody"></tbody>
                         </table>
                     </div>
@@ -158,16 +164,40 @@ tinymce.init({
     images_upload_url: '/admin/media/upload',
     automatic_uploads: true,
     file_picker_types: 'image',
+    convert_urls: false,
+    relative_urls: false,
+    document_base_url: '<?= base_url('/') ?>',
 });
 
 // ── 슬러그 자동생성 ────────────────────────────────────────────────────────────
+function koreanToRoman(str) {
+    const cho  = ['g','kk','n','d','tt','r','m','b','pp','s','ss','','j','jj','ch','k','t','p','h'];
+    const jung = ['a','ae','ya','yae','eo','e','yeo','ye','o','wa','wae','oe','yo','u','wo','we','wi','yu','eu','ui','i'];
+    const jong = ['','k','k','k','n','n','n','t','l','k','m','p','l','l','p','l','m','p','p','t','t','ng','t','t','k','t','p','t'];
+    let result = '';
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        if (code >= 0xAC00 && code <= 0xD7A3) {
+            const offset  = code - 0xAC00;
+            const choIdx  = Math.floor(offset / (21 * 28));
+            const jungIdx = Math.floor((offset % (21 * 28)) / 28);
+            const jongIdx = offset % 28;
+            result += cho[choIdx] + jung[jungIdx] + jong[jongIdx];
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
 document.getElementById('btnGenSlug').addEventListener('click', function () {
-    const title = document.getElementById('titleInput').value.trim();
+    const title = koreanToRoman(document.getElementById('titleInput').value.trim());
     const slug  = title
         .toLowerCase()
-        .replace(/[^a-z0-9가-힣\s-]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
         .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '')
         .substring(0, 100);
     document.getElementById('slugInput').value = slug;
 });
@@ -234,7 +264,11 @@ document.getElementById('btnProdSearch').addEventListener('click', function () {
             tbody.innerHTML = '';
             (data.products || []).forEach(p => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="text-truncate" style="max-width:140px">${escHtml(p.name)}</td>
+                const thumb = p.primary_image
+                    ? `<img src="${escHtml(p.primary_image)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px">`
+                    : `<span class="text-muted" style="display:inline-block;width:36px;height:36px;background:#f0f0f0;border-radius:4px;line-height:36px;text-align:center">-</span>`;
+                tr.innerHTML = `<td style="width:44px">${thumb}</td>
+                    <td class="text-truncate" style="max-width:120px">${escHtml(p.name)}</td>
                     <td class="text-end text-muted">${Number(p.price).toLocaleString()}원</td>
                     <td><button type="button" class="btn btn-sm btn-link p-0 text-primary btn-add" data-id="${p.id}" data-name="${escHtml(p.name)}">추가</button></td>`;
                 tbody.appendChild(tr);

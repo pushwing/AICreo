@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\ImageUploader;
 use App\Models\CategoryModel;
 use App\Models\ProductModel;
 use App\Models\PromotionModel;
@@ -38,7 +39,17 @@ class PromotionController extends BaseController
     public function store(): \CodeIgniter\HTTP\RedirectResponse
     {
         $data = $this->buildData();
-        $id   = (int) $this->model->insert($data);
+
+        $file = $this->request->getFile('banner_image_file');
+        if ($file && $file->isValid() && ! $file->hasMoved()) {
+            $result = (new ImageUploader('promotions'))->upload($file);
+            if (! $result['success']) {
+                return redirect()->back()->withInput()->with('error', $result['error']);
+            }
+            $data['banner_image'] = $result['path'];
+        }
+
+        $id = (int) $this->model->insert($data);
         if ($id > 0) {
             $this->model->syncProducts($id, $this->parseProducts());
         }
@@ -62,7 +73,27 @@ class PromotionController extends BaseController
     /** POST /admin/promotions/:id/edit */
     public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
-        $this->model->update($id, $this->buildData());
+        $promotion = $this->model->find($id);
+        if (! $promotion) {
+            return redirect()->to('/admin/promotions')->with('error', '기획전을 찾을 수 없습니다.');
+        }
+
+        $data = $this->buildData();
+        $data['banner_image'] = $promotion['banner_image'];
+
+        $file = $this->request->getFile('banner_image_file');
+        if ($file && $file->isValid() && ! $file->hasMoved()) {
+            $result = (new ImageUploader('promotions'))->upload($file);
+            if (! $result['success']) {
+                return redirect()->back()->withInput()->with('error', $result['error']);
+            }
+            if ($promotion['banner_image'] && file_exists(FCPATH . $promotion['banner_image'])) {
+                unlink(FCPATH . $promotion['banner_image']);
+            }
+            $data['banner_image'] = $result['path'];
+        }
+
+        $this->model->update($id, $data);
         $this->model->syncProducts($id, $this->parseProducts());
         return redirect()->to('/admin/promotions')->with('success', '기획전이 수정되었습니다.');
     }
@@ -78,17 +109,28 @@ class PromotionController extends BaseController
     /** GET /admin/promotions/product-search — AJAX */
     public function productSearch(): \CodeIgniter\HTTP\ResponseInterface
     {
-        $q      = trim($this->request->getGet('q') ?? '');
-        $catId  = $this->request->getGet('category_id');
+        $q     = trim($this->request->getGet('q') ?? '');
+        $catId = $this->request->getGet('category_id');
 
         $builder = (new ProductModel())
-            ->select('id, name, price, discount_price, stock, status')
-            ->where('deleted_at IS NULL', null, false);
+            ->select('products.id, products.name, products.price, products.discount_price, products.stock, products.status, media.file_path AS primary_image')
+            ->join('product_images', 'product_images.product_id = products.id AND product_images.is_primary = 1', 'left')
+            ->join('media', 'media.id = product_images.media_id', 'left')
+            ->where('products.deleted_at IS NULL', null, false);
 
-        if ($q !== '') $builder->like('name', $q);
-        if ($catId)    $builder->where('category_id', (int) $catId);
+        if ($q !== '') {
+            $builder->groupStart()
+                    ->like('products.name', $q)
+                    ->orLike('products.description', $q)
+                    ->groupEnd();
+        }
+        if ($catId) $builder->where('products.category_id', (int) $catId);
 
-        $products = $builder->orderBy('id', 'DESC')->findAll(30);
+        $products = $builder->orderBy('products.id', 'DESC')->findAll(30);
+
+        foreach ($products as &$p) {
+            $p['primary_image'] = $p['primary_image'] ? base_url($p['primary_image']) : null;
+        }
 
         return $this->response->setJSON(['products' => $products]);
     }
@@ -103,7 +145,7 @@ class PromotionController extends BaseController
             'title'        => trim($this->request->getPost('title') ?? ''),
             'slug'         => trim($this->request->getPost('slug')  ?? ''),
             'description'  => $this->request->getPost('description') ?? '',
-            'banner_image' => trim($this->request->getPost('banner_image') ?? '') ?: null,
+            'banner_image' => null,
             'grade_access' => $this->request->getPost('grade_access') ?? 'all',
             'start_date'   => $startDate !== '' ? $startDate : null,
             'end_date'     => $endDate   !== '' ? $endDate   : null,

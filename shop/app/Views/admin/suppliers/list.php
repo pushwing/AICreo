@@ -8,12 +8,6 @@
     </a>
 </div>
 
-<?php if (session()->getFlashdata('success')): ?>
-<div class="alert alert-success py-2"><?= esc(session()->getFlashdata('success')) ?></div>
-<?php endif; ?>
-<?php if (session()->getFlashdata('error')): ?>
-<div class="alert alert-danger py-2"><?= esc(session()->getFlashdata('error')) ?></div>
-<?php endif; ?>
 
 <div class="card">
     <?php if (empty($suppliers)): ?>
@@ -24,6 +18,7 @@
             <thead class="table-light">
                 <tr>
                     <th>매입처명</th>
+                    <th>사업자등록번호</th>
                     <th>담당자</th>
                     <th>전화번호</th>
                     <th>이메일</th>
@@ -34,7 +29,16 @@
             <tbody>
                 <?php foreach ($suppliers as $s): ?>
                 <tr>
-                    <td class="fw-semibold"><?= esc($s['name']) ?></td>
+                    <td class="fw-semibold">
+                        <?= esc($s['name']) ?>
+                        <?php if (! empty($s['business_license_path'])): ?>
+                        <a href="<?= esc($s['business_license_path']) ?>" target="_blank"
+                           class="ms-1 text-muted small" title="사업자등록증">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </a>
+                        <?php endif; ?>
+                    </td>
+                    <td class="small text-muted"><?= esc($s['business_no'] ?? '—') ?></td>
                     <td class="text-muted small"><?= esc($s['contact_person'] ?? '—') ?></td>
                     <td class="small"><?= esc($s['phone'] ?? '—') ?></td>
                     <td class="small"><?= esc($s['email'] ?? '—') ?></td>

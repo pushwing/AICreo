@@ -64,4 +64,9 @@ class ProductQnaModel extends Model
 
         return compact('items', 'total', 'page', 'perPage');
     }
+
+    public function getUnansweredCount(): int
+    {
+        return (int) $this->where('is_answered', 0)->countAllResults();
+    }
 }

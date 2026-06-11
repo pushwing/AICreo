@@ -76,6 +76,9 @@ tinymce.init({
     toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
     images_upload_url: '/admin/media/upload',
     automatic_uploads: true,
+    convert_urls: false,
+    relative_urls: false,
+    document_base_url: '<?= base_url('/') ?>',
 });
 </script>
 <?= $this->endSection() ?>

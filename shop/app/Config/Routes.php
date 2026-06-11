@@ -251,7 +251,8 @@ $routes->get( 'payment/callback/(:segment)', 'Front\PaymentController::callback/
 $routes->post('payment/callback/(:segment)', 'Front\PaymentController::callback/$1');
 
 // ─── 기획전 ───────────────────────────────────────────────────────────────────
-$routes->get('promotion/(:segment)', 'Front\PromotionController::detail/$1');
+$routes->get('promotions',             'Front\PromotionController::index');
+$routes->get('promotion/(:segment)',   'Front\PromotionController::detail/$1');
 
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────
 $routes->get('(:segment)', 'Front\PageController::show/$1');

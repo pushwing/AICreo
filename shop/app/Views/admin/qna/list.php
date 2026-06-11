@@ -2,19 +2,6 @@
 <?php $pageTitle = '상품 문의 관리' ?>
 <?= $this->section('content') ?>
 
-<?php if (session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show">
-    <?= esc(session()->getFlashdata('success')) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if (session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show">
-    <?= esc(session()->getFlashdata('error')) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-
 <!-- 필터 -->
 <form method="get" action="/admin/qna" class="row g-2 mb-3">
     <div class="col-auto">

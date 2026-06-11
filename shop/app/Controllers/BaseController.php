@@ -6,6 +6,7 @@ use App\Models\BannerModel;
 use App\Models\InquiryModel;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
+use App\Models\ProductQnaModel;
 use App\Models\SettingModel;
 use CodeIgniter\Controller;
 
@@ -36,10 +37,12 @@ class BaseController extends Controller
             'loggedIn' => (bool) session()->get('user_id'),
         ];
 
-        // 관리자용: 미읽음 문의 수
-        $unreadInquiries = 0;
+        // 관리자용: 미읽음 문의 수, 미답변 상품 문의 수
+        $unreadInquiries  = 0;
+        $unansweredQna    = 0;
         if ($authUser['role'] === 'admin') {
             $unreadInquiries = (new InquiryModel())->getUnreadCount();
+            $unansweredQna   = (new ProductQnaModel())->getUnansweredCount();
         }
 
         // 장바구니 수 (로그인 회원만)
@@ -57,7 +60,7 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'subLeftBanners', 'activePopups', 'cartCount');
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'subLeftBanners', 'activePopups', 'cartCount');
     }
 
     protected function getUserRole(): string

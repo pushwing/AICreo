@@ -23,6 +23,24 @@ class PromotionModel extends Model
         return $this->orderBy('sort_order', 'ASC')->orderBy('id', 'DESC')->findAll();
     }
 
+    /** 프론트용 — 활성 기획전 목록 (날짜 유효한 것만) */
+    public function getActiveFrontList(): array
+    {
+        $today = date('Y-m-d');
+        return $this->where('is_active', 1)
+            ->groupStart()
+                ->where('start_date IS NULL', null, false)
+                ->orWhere('start_date <=', $today)
+            ->groupEnd()
+            ->groupStart()
+                ->where('end_date IS NULL', null, false)
+                ->orWhere('end_date >=', $today)
+            ->groupEnd()
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('id', 'DESC')
+            ->findAll();
+    }
+
     /** 프론트용 — 활성·날짜 유효 기획전 반환 */
     public function getActiveBySlug(string $slug): ?array
     {

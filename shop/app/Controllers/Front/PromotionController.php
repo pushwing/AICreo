@@ -8,6 +8,27 @@ use App\Models\UserModel;
 
 class PromotionController extends BaseController
 {
+    /** GET /promotions */
+    public function index(): string
+    {
+        $model      = new PromotionModel();
+        $promotions = $model->getActiveFrontList();
+
+        $userId    = (int) session()->get('user_id');
+        $userGrade = null;
+        if ($userId > 0) {
+            $user      = (new UserModel())->find($userId);
+            $userGrade = $user['grade'] ?? 'bronze';
+        }
+
+        foreach ($promotions as &$p) {
+            $p['accessible'] = $model->checkGradeAccess($p['grade_access'], $userGrade);
+        }
+        unset($p);
+
+        return $this->render('promotions/list', ['promotions' => $promotions]);
+    }
+
     /** GET /promotion/:slug */
     public function detail(string $slug): string|\CodeIgniter\HTTP\RedirectResponse
     {
@@ -29,7 +50,9 @@ class PromotionController extends BaseController
             if (! $userId) {
                 return redirect()->to('/auth/login?redirect=' . urlencode(current_url()));
             }
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->render('promotions/grade_denied', [
+                'promotion' => $promotion,
+            ]);
         }
 
         $products = $model->getProducts((int) $promotion['id']);

@@ -7,7 +7,7 @@
     <!-- 배너 이미지 -->
     <?php if (! empty($promotion['banner_image'])): ?>
     <div class="mb-4 rounded overflow-hidden">
-        <img src="<?= esc($promotion['banner_image']) ?>"
+        <img src="<?= base_url(esc($promotion['banner_image'])) ?>"
              alt="<?= esc($promotion['title']) ?>"
              class="w-100" style="max-height:400px;object-fit:cover">
     </div>
@@ -48,8 +48,8 @@
             <a href="/shop/<?= esc($product['slug']) ?>" class="text-decoration-none text-dark">
                 <div class="card border-0 shadow-sm h-100 product-card">
                     <div class="position-relative overflow-hidden" style="aspect-ratio:1">
-                        <?php if (isset($product['primary_image'])): ?>
-                        <img src="<?= esc($product['primary_image']['media_url']) ?>"
+                        <?php if (! empty($product['primary_image'])): ?>
+                        <img src="<?= esc($product['primary_image']) ?>"
                              alt="<?= esc($product['name']) ?>"
                              class="card-img-top w-100 h-100" style="object-fit:cover">
                         <?php else: ?>

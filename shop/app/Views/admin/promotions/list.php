@@ -8,10 +8,6 @@
     </a>
 </div>
 
-<?php if (session()->getFlashdata('success')): ?>
-<div class="alert alert-success py-2"><?= esc(session()->getFlashdata('success')) ?></div>
-<?php endif; ?>
-
 <div class="table-responsive">
     <table class="table table-sm table-hover align-middle">
         <thead class="table-light">

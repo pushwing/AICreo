@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\AccessLogModel;
 use Config\Database;
 
 class StatsController extends BaseController
@@ -15,9 +16,23 @@ class StatsController extends BaseController
         $from = $this->request->getGet('from') ?: date('Y-m-d', strtotime('-29 days'));
         $to   = $this->request->getGet('to')   ?: date('Y-m-d');
 
-        // 날짜 유효성 보정
-        if ($from > $to) [$from, $to] = [$to, $from];
+        // 날짜 유효성 검증 및 보정
+        try {
+            $cursorObj = new \DateTime($from);
+            $endObj    = new \DateTime($to);
+        } catch (\Exception) {
+            $cursorObj = new \DateTime(date('Y-m-d', strtotime('-29 days')));
+            $endObj    = new \DateTime(date('Y-m-d'));
+        }
+        if ($cursorObj > $endObj) [$cursorObj, $endObj] = [$endObj, $cursorObj];
 
+        // 최대 90일 제한
+        if ($cursorObj->diff($endObj)->days > 90) {
+            $endObj = (clone $cursorObj)->modify('+90 days');
+        }
+
+        $from   = $cursorObj->format('Y-m-d');
+        $to     = $endObj->format('Y-m-d');
         $fromDt = $from . ' 00:00:00';
         $toDt   = $to   . ' 23:59:59';
 
@@ -39,9 +54,8 @@ class StatsController extends BaseController
             $dailyMap[$row['day']] = $row;
         }
         $dailyLabels = $dailyPv = $dailyUv = [];
-        $cursor = new \DateTime($from);
-        $end    = new \DateTime($to);
-        while ($cursor <= $end) {
+        $cursor = clone $cursorObj;
+        while ($cursor <= $endObj) {
             $d = $cursor->format('Y-m-d');
             $dailyLabels[] = $cursor->format('m/d');
             $dailyPv[]     = (int) ($dailyMap[$d]['pv'] ?? 0);
@@ -71,12 +85,7 @@ class StatsController extends BaseController
             [$fromDt, $toDt]
         )->getRow();
 
-        $today = date('Y-m-d');
-        $todayRow = $db->query(
-            "SELECT COUNT(*) AS pv, COUNT(DISTINCT ip) AS uv
-             FROM access_logs WHERE DATE(created_at) = ?",
-            [$today]
-        )->getRow();
+        $todayStats = (new AccessLogModel())->getTodayStats();
 
         return $this->render('admin/stats/index', [
             'from'         => $from,
@@ -87,8 +96,8 @@ class StatsController extends BaseController
             'topPages'     => $topPages,
             'totalPv'      => (int) ($summary->total_pv ?? 0),
             'totalUv'      => (int) ($summary->total_uv ?? 0),
-            'todayPv'      => (int) ($todayRow->pv ?? 0),
-            'todayUv'      => (int) ($todayRow->uv ?? 0),
+            'todayPv'      => $todayStats['pv'],
+            'todayUv'      => $todayStats['uv'],
         ]);
     }
 }

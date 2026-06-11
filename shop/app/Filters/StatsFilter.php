@@ -11,11 +11,10 @@ class StatsFilter implements FilterInterface
 {
     /** 로깅 제외 경로 접두사 */
     private const SKIP_PREFIXES = [
-        '/admin',
+        '/admin/',
         '/auth/',
         '/payment/callback/',
         '/board/image-upload',
-        '/admin/media/upload',
     ];
 
     /** 정적 파일 확장자 */
@@ -44,6 +43,7 @@ class StatsFilter implements FilterInterface
         $path = '/' . ltrim($request->getUri()->getPath(), '/');
 
         // 관리자·인증·콜백 등 제외
+        if ($path === '/admin') return null;
         foreach (self::SKIP_PREFIXES as $prefix) {
             if (str_starts_with($path, $prefix)) return null;
         }
