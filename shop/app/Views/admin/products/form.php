@@ -86,6 +86,33 @@
                 </div>
             </div>
 
+            <!-- 매입처 / 원가 -->
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">매입 정보</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label">매입처</label>
+                            <select name="supplier_id" class="form-select">
+                                <option value="">선택 안함</option>
+                                <?php foreach ($suppliers as $sup): ?>
+                                <option value="<?= $sup['id'] ?>"
+                                        <?= old('supplier_id', $product['supplier_id'] ?? '') == $sup['id'] ? 'selected' : '' ?>>
+                                    <?= esc($sup['name']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">매입단가 (원)</label>
+                            <input type="number" name="cost_price" class="form-control" min="0" step="0.01"
+                                   value="<?= esc(old('cost_price', $product['cost_price'] ?? 0)) ?>">
+                            <div class="form-text">영업이익 계산에 사용됩니다.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 배송비 -->
             <div class="card mb-3">
                 <div class="card-header fw-semibold">배송비 설정</div>

@@ -180,6 +180,14 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 접속 통계
     $routes->get('stats', 'Admin\StatsController::index');
 
+    // 매입처 관리
+    $routes->get( 'suppliers',              'Admin\SupplierController::index');
+    $routes->get( 'suppliers/create',       'Admin\SupplierController::create');
+    $routes->post('suppliers/create',       'Admin\SupplierController::store');
+    $routes->get( 'suppliers/(:num)/edit',  'Admin\SupplierController::edit/$1');
+    $routes->post('suppliers/(:num)/edit',  'Admin\SupplierController::update/$1');
+    $routes->post('suppliers/(:num)/delete','Admin\SupplierController::delete/$1');
+
     // 기획전 관리
     $routes->get( 'promotions',                          'Admin\PromotionController::index');
     $routes->get( 'promotions/create',                   'Admin\PromotionController::create');
