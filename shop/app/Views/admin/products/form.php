@@ -383,8 +383,7 @@ function addOptionGroup() {
 function removeOptionGroup(gi) {
     optionGroups.splice(gi, 1);
     renderOptionGroups();
-    skuList = [];
-    renderSkuSection();
+    generateSkus();
 }
 
 function addOptionValue(gi) {
@@ -395,8 +394,7 @@ function addOptionValue(gi) {
 function removeOptionValue(gi, vi) {
     optionGroups[gi].values.splice(vi, 1);
     renderOptionGroups();
-    skuList = [];
-    renderSkuSection();
+    generateSkus();
 }
 
 function renderSkuSection() {
