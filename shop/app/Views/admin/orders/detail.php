@@ -18,6 +18,7 @@ $statusBadge = [
     'expired'           => 'secondary',
     'refund_requested'  => 'warning',
     'refunded'          => 'dark',
+    'return_requested'  => 'warning',
 ];
 
 $pgLabels = [
@@ -34,6 +35,7 @@ $currentStatus      = $order['status'];
 $next               = $nextStatus[$currentStatus] ?? null;
 $canCancel          = in_array($currentStatus, ['pending', 'awaiting_payment', 'paid', 'preparing'], true);
 $canRefund          = $currentStatus === 'refund_requested';
+$canApproveReturn   = $currentStatus === 'return_requested';
 $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
 ?>
@@ -282,6 +284,48 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
         </div>
         <?php endif; ?>
 
+        <!-- 반품 요청 처리 -->
+        <?php if ($canApproveReturn): ?>
+        <div class="card mb-3 border-warning">
+            <div class="card-header fw-semibold bg-warning bg-opacity-10">
+                <i class="bi bi-arrow-return-left me-1"></i>반품 요청 처리
+            </div>
+            <div class="card-body">
+                <?php if (! empty($order['return_reason'])): ?>
+                <p class="text-muted small mb-3">
+                    <strong>반품 사유:</strong><br><?= esc($order['return_reason']) ?>
+                </p>
+                <?php endif; ?>
+                <p class="text-muted small mb-3">
+                    승인 시 재고가 복구되고 환불 완료 처리됩니다.<br>
+                    PG 실제 환불은 콘솔에서 직접 진행해주세요.
+                    <?php if ($payment): ?>
+                    <br>PG TID: <code><?= esc($payment['pg_tid'] ?? '-') ?></code>
+                    <br>금액: <strong><?= number_format($payment['amount'] ?? 0) ?>원</strong>
+                    <?php endif; ?>
+                </p>
+                <div class="d-flex gap-2">
+                    <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/return-approve"
+                          onsubmit="return confirm('반품을 승인하시겠습니까?\n재고가 복구되고 환불 완료 처리됩니다.')"
+                          class="flex-fill">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-check-circle me-1"></i>반품 승인
+                        </button>
+                    </form>
+                    <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/return-reject"
+                          onsubmit="return confirm('반품을 거부하시겠습니까?\n주문이 배송 완료 상태로 복원됩니다.')"
+                          class="flex-fill">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-x-circle me-1"></i>반품 거부
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- 강제 취소 -->
         <?php if ($canCancel): ?>
         <div class="card mb-3 border-danger">
@@ -319,6 +363,7 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     'expired'           => '만료',
                     'refund_requested'  => '환불 요청',
                     'refunded'          => '환불 완료',
+                    'return_requested'  => '반품 요청',
                 ];
                 $actorBadge = [
                     'admin'  => ['bg-primary',   '관리자'],

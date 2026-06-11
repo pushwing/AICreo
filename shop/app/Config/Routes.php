@@ -149,6 +149,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('orders/(:num)/cancel',          'Admin\OrderController::cancel/$1');
     $routes->post('orders/(:num)/refund',          'Admin\OrderController::refund/$1');
     $routes->post('orders/(:num)/bank_confirm',    'Admin\OrderController::confirmBankTransfer/$1');
+    $routes->post('orders/(:num)/return-approve',  'Admin\OrderController::approveReturn/$1');
+    $routes->post('orders/(:num)/return-reject',   'Admin\OrderController::rejectReturn/$1');
 
     // 배너 관리
     $routes->get( 'banners',              'Admin\BannerController::index');
@@ -200,6 +202,7 @@ $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
     $routes->get( 'orders/(:segment)',       'Front\MyPageController::orderDetail/$1');
     $routes->post('orders/cancel',           'Front\MyPageController::cancel');
     $routes->post('orders/confirm-delivery', 'Front\MyPageController::confirmDelivery');
+    $routes->post('orders/return-request',   'Front\MyPageController::requestReturn');
     // 배송지 관리
     $routes->get( 'addresses',                      'Front\MyPageController::addresses');
     $routes->post('addresses',                      'Front\MyPageController::addressStore');
