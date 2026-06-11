@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Libraries\Mailer;
 use App\Models\ShippingAddressModel;
 use App\Models\UserModel;
 
@@ -122,7 +123,7 @@ class AuthController extends BaseController
 
         $token = $this->userModel->generateVerifyToken((int) $userId);
         $user  = $this->userModel->find((int) $userId);
-        $this->sendVerifyMail($user, $token);
+        (new Mailer($this->viewData['settings'] ?? []))->sendVerify($user, $token);
 
         return redirect()->to('/auth/verify-pending')
             ->with('verify_email', $this->request->getPost('email'));
@@ -176,7 +177,7 @@ class AuthController extends BaseController
         }
 
         $token = $this->userModel->generateVerifyToken($user['id']);
-        $this->sendVerifyMail($user, $token);
+        (new Mailer($this->viewData['settings'] ?? []))->sendVerify($user, $token);
 
         return redirect()->to('/auth/verify-pending')
             ->with('verify_email', $email)
@@ -253,54 +254,5 @@ class AuthController extends BaseController
 
     // ─── 이메일 발송 (private) ────────────────────────────────────────────────────
 
-    private function sendVerifyMail(array $user, string $token): void
-    {
-        $settings = $this->viewData['settings'] ?? [];
-        $siteName = $settings['site_name'] ?? '쇼핑몰';
-        $siteUrl  = rtrim(base_url(), '/');
-
-        $verifyUrl = $siteUrl . '/auth/verify/' . $token;
-
-        $emailConfig = [
-            'protocol'   => 'smtp',
-            'SMTPHost'   => env('EMAIL_SMTP_HOST', ''),
-            'SMTPUser'   => env('EMAIL_SMTP_USER', ''),
-            'SMTPPass'   => env('EMAIL_SMTP_PASS', ''),
-            'SMTPPort'   => (int) env('EMAIL_SMTP_PORT', 587),
-            'SMTPCrypto' => env('EMAIL_SMTP_CRYPTO', 'tls'),
-            'mailType'   => 'html',
-            'charset'    => 'utf-8',
-        ];
-
-        $email = \Config\Services::email();
-        $email->initialize($emailConfig);
-        $email->setFrom(
-            env('EMAIL_FROM_ADDRESS', env('EMAIL_SMTP_USER', 'noreply@example.com')),
-            $siteName
-        );
-        $email->setTo($user['email']);
-        $email->setSubject("[{$siteName}] 이메일 주소를 인증해주세요");
-        $email->setMessage(
-            "<p>안녕하세요, <strong>{$siteName}</strong>입니다.</p>" .
-            "<p>아래 버튼을 클릭하면 이메일 인증이 완료됩니다. (24시간 이내 인증)</p>" .
-            "<p><a href='{$verifyUrl}' style='display:inline-block;padding:12px 24px;" .
-            "background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;'>" .
-            "이메일 인증하기</a></p>" .
-            "<p style='color:#888;font-size:.85em;'>링크: {$verifyUrl}</p>"
-        );
-
-        // SMTP 미설정 시 로그로 대체 (개발 환경)
-        if (! env('EMAIL_SMTP_HOST')) {
-            log_message('info', "VERIFY_EMAIL | to={$user['email']} | url={$verifyUrl}");
-            return;
-        }
-
-        try {
-            if (! $email->send()) {
-                log_message('error', "VERIFY_EMAIL_FAIL | to={$user['email']} | " . $email->printDebugger(['headers']));
-            }
-        } catch (\Throwable $e) {
-            log_message('error', "VERIFY_EMAIL_EXCEPTION | to={$user['email']} | " . $e->getMessage());
-        }
-    }
 }
+
