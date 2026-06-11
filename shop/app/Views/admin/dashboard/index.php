@@ -29,6 +29,49 @@
     <?php endforeach; ?>
 </div>
 
+<!-- 오늘 접속 현황 -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <a href="/admin/stats" class="card border-0 shadow-sm text-decoration-none">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-primary bg-opacity-10 rounded p-3">
+                    <i class="bi bi-eye fs-4 text-primary"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">오늘 PV</div>
+                    <div class="fs-4 fw-bold text-dark"><?= number_format($accessStats['today_pv'] ?? 0) ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-4">
+        <a href="/admin/stats" class="card border-0 shadow-sm text-decoration-none">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-success bg-opacity-10 rounded p-3">
+                    <i class="bi bi-person fs-4 text-success"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">오늘 UV</div>
+                    <div class="fs-4 fw-bold text-dark"><?= number_format($accessStats['today_uv'] ?? 0) ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-4">
+        <a href="/admin/stats?from=<?= date('Y-m-01') ?>&to=<?= date('Y-m-d') ?>" class="card border-0 shadow-sm text-decoration-none">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-info bg-opacity-10 rounded p-3">
+                    <i class="bi bi-bar-chart fs-4 text-info"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">이번달 PV</div>
+                    <div class="fs-4 fw-bold text-dark"><?= number_format($accessStats['month_pv'] ?? 0) ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
 <!-- 최근 주문 + 재고 부족 -->
 <div class="row g-3 mb-3">
     <!-- 최근 주문 -->
