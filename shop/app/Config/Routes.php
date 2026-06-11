@@ -158,6 +158,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('orders/(:num)/exchange-approve',  'Admin\OrderController::approveExchange/$1');
     $routes->post('orders/(:num)/exchange-reject',   'Admin\OrderController::rejectExchange/$1');
     $routes->post('orders/(:num)/exchange-complete', 'Admin\OrderController::completeExchange/$1');
+    $routes->post('orders/(:num)/memos',                        'Admin\OrderController::memoStore/$1');
+    $routes->post('orders/(:num)/memos/(:num)/delete',          'Admin\OrderController::memoDelete/$1/$2');
 
     // 배너 관리
     $routes->get( 'banners',              'Admin\BannerController::index');

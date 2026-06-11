@@ -837,7 +837,8 @@ class OrderModel extends Model
 
         $builder = $this->db->table('orders o')
             ->select('o.*, u.email AS user_email, u.nickname AS user_nickname,
-                lp.pg_provider, lp.method AS payment_method')
+                lp.pg_provider, lp.method AS payment_method,
+                (SELECT COUNT(*) FROM order_memos WHERE order_id = o.id) AS memo_count')
             ->join('users u', 'u.id = o.user_id', 'left')
             ->join('payments lp', 'lp.id = (SELECT MAX(id) FROM payments WHERE order_id = o.id)', 'left');
 

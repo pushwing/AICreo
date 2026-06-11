@@ -3,11 +3,13 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\OrderMemoModel;
 use App\Models\OrderModel;
 
 class OrderController extends BaseController
 {
-    private OrderModel $orderModel;
+    private OrderModel     $orderModel;
+    private OrderMemoModel $memoModel;
 
     private const STATUS_LABELS = [
         'pending'           => '결제 대기',
@@ -37,6 +39,7 @@ class OrderController extends BaseController
     public function __construct()
     {
         $this->orderModel = new OrderModel();
+        $this->memoModel  = new OrderMemoModel();
     }
 
     /** GET /admin/orders */
@@ -185,6 +188,7 @@ class OrderController extends BaseController
             'order'        => $order,
             'statusLabels' => self::STATUS_LABELS,
             'nextStatus'   => self::NEXT_STATUS,
+            'memos'        => $this->memoModel->getByOrder($id),
         ]);
     }
 
@@ -305,5 +309,49 @@ class OrderController extends BaseController
 
         return redirect()->to("/admin/orders/{$id}")
             ->with($ok ? 'success' : 'error', $ok ? '교환 완료 처리되었습니다.' : '교환 완료 처리에 실패했습니다.');
+    }
+
+    /** POST /admin/orders/:id/memos — 내부 메모 추가 */
+    public function memoStore(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        if (! $this->orderModel->find($id)) {
+            return $this->response->setJSON(['success' => false, 'message' => '주문을 찾을 수 없습니다.']);
+        }
+
+        $content = trim($this->request->getPost('content') ?? '');
+        if ($content === '') {
+            return $this->response->setJSON(['success' => false, 'message' => '메모 내용을 입력해주세요.']);
+        }
+        if (mb_strlen($content) > 1000) {
+            return $this->response->setJSON(['success' => false, 'message' => '메모는 1,000자 이내로 입력해주세요.']);
+        }
+
+        $adminId  = (int) session()->get('user_id');
+        $memoId   = $this->memoModel->insert([
+            'order_id' => $id,
+            'admin_id' => $adminId,
+            'content'  => $content,
+        ]);
+
+        $memo = $this->memoModel->db
+            ->table('order_memos om')
+            ->select('om.*, u.nickname AS admin_name')
+            ->join('users u', 'u.id = om.admin_id', 'left')
+            ->where('om.id', $memoId)
+            ->get()->getRowArray();
+
+        return $this->response->setJSON(['success' => true, 'memo' => $memo]);
+    }
+
+    /** POST /admin/orders/:id/memos/:memoId/delete — 내부 메모 삭제 */
+    public function memoDelete(int $id, int $memoId): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $memo = $this->memoModel->where('id', $memoId)->where('order_id', $id)->first();
+        if (! $memo) {
+            return $this->response->setJSON(['success' => false, 'message' => '메모를 찾을 수 없습니다.']);
+        }
+
+        $this->memoModel->delete($memoId);
+        return $this->response->setJSON(['success' => true]);
     }
 }
