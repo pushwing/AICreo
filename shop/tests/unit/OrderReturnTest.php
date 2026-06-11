@@ -101,7 +101,7 @@ final class OrderReturnTest extends CIUnitTestCase
     private function insertOrder(int $userId, string $status, array $extra = []): int
     {
         $db = db_connect();
-        $db->table('orders')->insert(array_merge([
+        $defaults = [
             'user_id'                => $userId,
             'order_number'           => 'RET-' . uniqid(),
             'status'                 => $status,
@@ -120,7 +120,12 @@ final class OrderReturnTest extends CIUnitTestCase
             'address2'               => '',
             'created_at'             => date('Y-m-d H:i:s'),
             'updated_at'             => date('Y-m-d H:i:s'),
-        ], $extra));
+        ];
+        // delivered 상태 기본값: 1일 전 배송 완료 (7일 이내)
+        if ($status === 'delivered' && ! isset($extra['delivered_at'])) {
+            $defaults['delivered_at'] = date('Y-m-d H:i:s', strtotime('-1 day'));
+        }
+        $db->table('orders')->insert(array_merge($defaults, $extra));
         $id = (int) $db->insertID();
         $this->cleanup['orders'][] = $id;
         return $id;
@@ -239,6 +244,29 @@ final class OrderReturnTest extends CIUnitTestCase
         $this->assertFalse($this->model->requestReturn($orderId, $otherId, '변심'));
     }
 
+    public function testRequestReturnFailsAfter7Days(): void
+    {
+        $userId  = $this->insertUser();
+        $orderId = $this->insertOrder($userId, 'delivered', [
+            'delivered_at' => date('Y-m-d H:i:s', strtotime('-8 days')),
+        ]);
+
+        $this->assertFalse($this->model->requestReturn($orderId, $userId, '변심'));
+        $this->assertSame('delivered',
+            db_connect()->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
+        );
+    }
+
+    public function testRequestReturnSucceedsWithin7Days(): void
+    {
+        $userId  = $this->insertUser();
+        $orderId = $this->insertOrder($userId, 'delivered', [
+            'delivered_at' => date('Y-m-d H:i:s', strtotime('-6 days')),
+        ]);
+
+        $this->assertTrue($this->model->requestReturn($orderId, $userId, '단순 변심'));
+    }
+
     // ── approveReturn ─────────────────────────────────────────────────────────
 
     public function testApproveReturnRestoresStock(): void
@@ -255,7 +283,7 @@ final class OrderReturnTest extends CIUnitTestCase
         $stock = (int) $db->table('products')->where('id', $productId)->get()->getRowArray()['stock'];
         $this->assertSame(13, $stock);
 
-        $this->assertSame('refunded',
+        $this->assertSame('return_approved',
             $db->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
         );
     }
@@ -325,7 +353,7 @@ final class OrderReturnTest extends CIUnitTestCase
         $this->assertNull($uc['order_id']);
     }
 
-    public function testApproveReturnMarksPaymentRefunded(): void
+    public function testApproveReturnDoesNotChangePaymentStatus(): void
     {
         $userId    = $this->insertUser();
         $productId = $this->insertProduct(5);
@@ -336,9 +364,36 @@ final class OrderReturnTest extends CIUnitTestCase
 
         $this->model->approveReturn($orderId);
 
+        // 결제 상태는 confirmReturnRefund 호출 전까지 그대로 유지
+        $payment = $db->table('payments')->where('order_id', $orderId)->get()->getRowArray();
+        $this->assertSame('paid', $payment['status']);
+    }
+
+    public function testConfirmReturnRefundSetsRefunded(): void
+    {
+        $userId    = $this->insertUser();
+        $productId = $this->insertProduct(5);
+        $orderId   = $this->insertOrder($userId, 'return_approved');
+        $this->insertOrderItem($orderId, $productId, 1);
+        $this->insertPayment($orderId, 'paid');
+        $db = db_connect();
+
+        $this->assertTrue($this->model->confirmReturnRefund($orderId));
+
+        $this->assertSame('refunded',
+            $db->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
+        );
         $payment = $db->table('payments')->where('order_id', $orderId)->get()->getRowArray();
         $this->assertSame('refunded', $payment['status']);
         $this->assertNotNull($payment['cancelled_at']);
+    }
+
+    public function testConfirmReturnRefundFailsForNonApprovedOrder(): void
+    {
+        $userId  = $this->insertUser();
+        $orderId = $this->insertOrder($userId, 'return_requested');
+
+        $this->assertFalse($this->model->confirmReturnRefund($orderId));
     }
 
     public function testApproveReturnFailsForNonReturnRequestedOrder(): void

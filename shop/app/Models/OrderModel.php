@@ -16,7 +16,7 @@ class OrderModel extends Model
         'coupon_id', 'coupon_discount_amount', 'point_used_amount', 'point_earned_amount', 'payable_amount',
         'receiver_name', 'receiver_phone', 'zipcode', 'address1', 'address2', 'delivery_memo',
         'tracking_company', 'tracking_number',
-        'paid_at', 'cancelled_at', 'expired_at',
+        'paid_at', 'cancelled_at', 'expired_at', 'delivered_at',
     ];
 
     public const STATUS_LABELS = [
@@ -31,6 +31,7 @@ class OrderModel extends Model
         'refund_requested'  => '환불 요청',
         'refunded'          => '환불 완료',
         'return_requested'  => '반품 요청',
+        'return_approved'   => '반품 승인',
     ];
 
     /**
@@ -405,7 +406,9 @@ class OrderModel extends Model
         }
 
         if ($newStatus !== 'delivered' || (int) $order['point_earned_amount'] === 0) {
-            $ok = (bool) $this->update($orderId, ['status' => $newStatus]);
+            $fields = ['status' => $newStatus];
+            if ($newStatus === 'delivered') $fields['delivered_at'] = date('Y-m-d H:i:s');
+            $ok = (bool) $this->update($orderId, $fields);
             if ($ok) $this->writeStatusLog($orderId, $order['status'], $newStatus);
             return $ok;
         }
@@ -413,7 +416,7 @@ class OrderModel extends Model
         // delivered 전환 + 포인트 적립 확정
         $this->db->transStart();
 
-        $this->update($orderId, ['status' => 'delivered']);
+        $this->update($orderId, ['status' => 'delivered', 'delivered_at' => date('Y-m-d H:i:s')]);
 
         $this->db->query(
             'UPDATE users SET point_balance = point_balance + ? WHERE id = ?',
@@ -549,7 +552,7 @@ class OrderModel extends Model
         return $this->db->transStatus();
     }
 
-    /** 반품 요청 — delivered 상태에서만 가능 */
+    /** 반품 요청 — delivered 상태 + 7일 이내에서만 가능 */
     public function requestReturn(int $orderId, int $userId, string $reason): bool
     {
         $order = $this->db->table('orders')
@@ -560,6 +563,15 @@ class OrderModel extends Model
 
         if (! $order) return false;
 
+        // delivered_at 기준 7일 초과 시 거부 (컬럼이 없는 구 주문은 허용)
+        if (! empty($order['delivered_at'])) {
+            if (time() > strtotime($order['delivered_at']) + 7 * 24 * 3600) {
+                return false;
+            }
+        }
+
+        $this->db->transStart();
+
         $this->db->table('orders')->where('id', $orderId)->update([
             'status'        => 'return_requested',
             'return_reason' => $reason,
@@ -567,10 +579,11 @@ class OrderModel extends Model
 
         $this->writeStatusLog($orderId, 'delivered', 'return_requested', '회원 반품 요청: ' . mb_substr($reason, 0, 100));
 
-        return true;
+        $this->db->transComplete();
+        return $this->db->transStatus();
     }
 
-    /** 반품 승인 — 재고·쿠폰·포인트 복구 후 refunded 처리 */
+    /** 반품 승인 — 재고·쿠폰·포인트 복구 후 return_approved 처리 (환불은 confirmReturnRefund에서) */
     public function approveReturn(int $orderId): bool
     {
         $order = $this->where('id', $orderId)->where('status', 'return_requested')->first();
@@ -580,16 +593,8 @@ class OrderModel extends Model
 
         $items = $this->db->table('order_items')->where('order_id', $orderId)->get()->getResultArray();
         foreach ($items as $item) {
-            $this->db->query(
-                'UPDATE products SET stock = stock + ?, status = IF(status = "sold_out" AND stock + ? > 0, "on_sale", status) WHERE id = ?',
-                [$item['qty'], $item['qty'], $item['product_id']]
-            );
+            $this->restoreItemStock($item);
         }
-
-        $this->db->table('payments')
-            ->where('order_id', $orderId)
-            ->where('status', 'paid')
-            ->update(['status' => 'refunded', 'cancelled_at' => date('Y-m-d H:i:s')]);
 
         $this->restoreCoupon($order);
         $this->restorePoints($order, 'refund');
@@ -617,9 +622,9 @@ class OrderModel extends Model
             }
         }
 
-        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'refunded']);
+        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'return_approved']);
 
-        $this->writeStatusLog($orderId, 'return_requested', 'refunded', '관리자 반품 승인');
+        $this->writeStatusLog($orderId, 'return_requested', 'return_approved', '관리자 반품 승인');
 
         $this->db->transComplete();
         return $this->db->transStatus();
@@ -631,11 +636,35 @@ class OrderModel extends Model
         $order = $this->where('id', $orderId)->where('status', 'return_requested')->first();
         if (! $order) return false;
 
+        $this->db->transStart();
+
         $this->db->table('orders')->where('id', $orderId)->update(['status' => 'delivered']);
 
         $this->writeStatusLog($orderId, 'return_requested', 'delivered', '관리자 반품 거부');
 
-        return true;
+        $this->db->transComplete();
+        return $this->db->transStatus();
+    }
+
+    /** 환불 완료 확인 — PG 콘솔에서 환불 후 호출 (return_approved → refunded) */
+    public function confirmReturnRefund(int $orderId): bool
+    {
+        $order = $this->where('id', $orderId)->where('status', 'return_approved')->first();
+        if (! $order) return false;
+
+        $this->db->transStart();
+
+        $this->db->table('payments')
+            ->where('order_id', $orderId)
+            ->where('status', 'paid')
+            ->update(['status' => 'refunded', 'cancelled_at' => date('Y-m-d H:i:s')]);
+
+        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'refunded']);
+
+        $this->writeStatusLog($orderId, 'return_approved', 'refunded', '반품 환불 완료');
+
+        $this->db->transComplete();
+        return $this->db->transStatus();
     }
 
     /** 주문 상세 */

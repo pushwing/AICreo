@@ -255,11 +255,15 @@ class MyPageController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => '반품 사유를 입력해주세요.']);
         }
 
+        if (mb_strlen($reason) > 500) {
+            return $this->response->setJSON(['success' => false, 'message' => '반품 사유는 500자 이내로 입력해주세요.']);
+        }
+
         $success = $this->orderModel->requestReturn($orderId, $userId, $reason);
 
         return $this->response->setJSON([
             'success' => $success,
-            'message' => $success ? '반품 신청이 완료되었습니다.' : '반품 신청할 수 없는 주문입니다.',
+            'message' => $success ? '반품 신청이 완료되었습니다.' : '반품 신청 기간이 지났거나 신청할 수 없는 주문입니다.',
         ]);
     }
 

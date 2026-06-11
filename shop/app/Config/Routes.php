@@ -151,6 +151,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('orders/(:num)/bank_confirm',    'Admin\OrderController::confirmBankTransfer/$1');
     $routes->post('orders/(:num)/return-approve',  'Admin\OrderController::approveReturn/$1');
     $routes->post('orders/(:num)/return-reject',   'Admin\OrderController::rejectReturn/$1');
+    $routes->post('orders/(:num)/return-refund',   'Admin\OrderController::confirmReturnRefund/$1');
 
     // 배너 관리
     $routes->get( 'banners',              'Admin\BannerController::index');

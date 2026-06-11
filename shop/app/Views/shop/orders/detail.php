@@ -18,6 +18,7 @@ $statusBadge = [
     'refund_requested'  => ['warning',   '환불 요청'],
     'refunded'          => ['dark',      '환불 완료'],
     'return_requested'  => ['warning',   '반품 요청'],
+    'return_approved'   => ['info',      '반품 승인'],
 ];
 $pgLabels = [
     'bank_transfer' => '무통장입금',
@@ -42,7 +43,9 @@ $methodLabels = [
 [$badgeColor, $badgeLabel] = $statusBadge[$order['status']] ?? ['secondary', $order['status']];
 $canCancel          = in_array($order['status'], ['pending', 'awaiting_payment', 'paid'], true);
 $canConfirmDelivery = $order['status'] === 'shipped';
-$canReturn          = $order['status'] === 'delivered';
+$deliveredAt        = $order['delivered_at'] ?? null;
+$returnDeadline     = $deliveredAt ? strtotime($deliveredAt) + 7 * 24 * 3600 : null;
+$canReturn          = $order['status'] === 'delivered' && ($returnDeadline === null || time() <= $returnDeadline);
 $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 ?>
 
@@ -233,15 +236,22 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
         </div>
     </div>
 
-    <!-- 반품 사유 표시 -->
-    <?php if ($order['status'] === 'return_requested' && ! empty($order['return_reason'])): ?>
-    <div class="alert alert-warning d-flex gap-2 mb-3">
+    <!-- 반품 사유 / 상태 안내 -->
+    <?php if (in_array($order['status'], ['return_requested', 'return_approved', 'refunded'], true) && ! empty($order['return_reason'])): ?>
+    <div class="alert alert-<?= $order['status'] === 'return_approved' ? 'info' : 'warning' ?> d-flex gap-2 mb-3">
         <i class="bi bi-arrow-return-left fs-5 flex-shrink-0"></i>
         <div>
-            <div class="fw-semibold small">반품 신청 사유</div>
+            <div class="fw-semibold small">
+                <?= $order['status'] === 'return_approved' ? '반품 승인 — 환불 처리 중' : '반품 신청 사유' ?>
+            </div>
             <div class="small mt-1"><?= esc($order['return_reason']) ?></div>
         </div>
     </div>
+    <?php endif; ?>
+
+    <!-- 반품 신청 기간 만료 안내 -->
+    <?php if ($order['status'] === 'delivered' && $returnDeadline !== null && time() > $returnDeadline): ?>
+    <div class="alert alert-secondary small mb-3">반품 신청 기간(7일)이 지났습니다.</div>
     <?php endif; ?>
 
     <!-- 버튼 -->
