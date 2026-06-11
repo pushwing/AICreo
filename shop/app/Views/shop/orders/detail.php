@@ -17,6 +17,7 @@ $statusBadge = [
     'expired'           => ['secondary', '만료'],
     'refund_requested'  => ['warning',   '환불 요청'],
     'refunded'          => ['dark',      '환불 완료'],
+    'return_requested'  => ['warning',   '반품 요청'],
 ];
 $pgLabels = [
     'bank_transfer' => '무통장입금',
@@ -39,9 +40,10 @@ $methodLabels = [
 ];
 
 [$badgeColor, $badgeLabel] = $statusBadge[$order['status']] ?? ['secondary', $order['status']];
-$canCancel       = in_array($order['status'], ['pending', 'awaiting_payment', 'paid'], true);
+$canCancel          = in_array($order['status'], ['pending', 'awaiting_payment', 'paid'], true);
 $canConfirmDelivery = $order['status'] === 'shipped';
-$isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
+$canReturn          = $order['status'] === 'delivered';
+$isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 ?>
 
 <div class="container py-4" style="max-width:680px">
@@ -226,6 +228,17 @@ $isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
         </div>
     </div>
 
+    <!-- 반품 사유 표시 -->
+    <?php if ($order['status'] === 'return_requested' && ! empty($order['return_reason'])): ?>
+    <div class="alert alert-warning d-flex gap-2 mb-3">
+        <i class="bi bi-arrow-return-left fs-5 flex-shrink-0"></i>
+        <div>
+            <div class="fw-semibold small">반품 신청 사유</div>
+            <div class="small mt-1"><?= esc($order['return_reason']) ?></div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- 버튼 -->
     <div class="d-flex gap-2">
         <a href="/mypage/orders" class="btn btn-outline-secondary flex-fill">목록으로</a>
@@ -243,10 +256,44 @@ $isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                 data-csrf-val="<?= csrf_hash() ?>">
             주문 취소
         </button>
+        <?php elseif ($canReturn): ?>
+        <button type="button" class="btn btn-warning flex-fill" data-bs-toggle="modal" data-bs-target="#returnModal">
+            <i class="bi bi-arrow-return-left me-1"></i>반품 신청
+        </button>
         <?php else: ?>
         <a href="/shop" class="btn btn-primary flex-fill">쇼핑 계속하기</a>
         <?php endif; ?>
     </div>
+
+    <!-- 반품 신청 모달 -->
+    <?php if ($canReturn): ?>
+    <div class="modal fade" id="returnModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold">반품 신청</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">반품 사유를 상세히 입력해주세요. 관리자 확인 후 처리됩니다.</p>
+                    <textarea id="returnReason" class="form-control" rows="4"
+                              placeholder="반품 사유를 입력해주세요 (예: 상품 불량, 오배송, 단순 변심 등)"
+                              maxlength="500"></textarea>
+                    <div class="text-end text-muted small mt-1"><span id="reasonLen">0</span>/500</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" id="btnReturnSubmit" class="btn btn-warning"
+                            data-order-id="<?= (int) $order['id'] ?>"
+                            data-csrf="<?= csrf_token() ?>"
+                            data-csrf-val="<?= csrf_hash() ?>">
+                        반품 신청하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
 </div>
 
@@ -298,6 +345,42 @@ $isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                 alert('오류가 발생했습니다. 다시 시도해주세요.');
                 btn.disabled    = false;
                 btn.innerHTML   = '<i class="bi bi-check2-circle me-1"></i>배송 완료 확인';
+            });
+    });
+
+    // 반품 신청
+    document.getElementById('returnReason')?.addEventListener('input', function () {
+        document.getElementById('reasonLen').textContent = this.value.length;
+    });
+
+    document.getElementById('btnReturnSubmit')?.addEventListener('click', function () {
+        const reason = document.getElementById('returnReason').value.trim();
+        if (! reason) { alert('반품 사유를 입력해주세요.'); return; }
+
+        const btn  = this;
+        const body = new FormData();
+        body.append(btn.dataset.csrf, btn.dataset.csrfVal);
+        body.append('order_id', btn.dataset.orderId);
+        body.append('reason', reason);
+
+        btn.disabled    = true;
+        btn.textContent = '처리 중...';
+
+        fetch('/mypage/orders/return-request', { method: 'POST', body })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || '처리에 실패했습니다.');
+                    btn.disabled    = false;
+                    btn.textContent = '반품 신청하기';
+                }
+            })
+            .catch(() => {
+                alert('오류가 발생했습니다. 다시 시도해주세요.');
+                btn.disabled    = false;
+                btn.textContent = '반품 신청하기';
             });
     });
 

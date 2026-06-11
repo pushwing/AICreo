@@ -20,6 +20,7 @@ class OrderController extends BaseController
         'expired'           => '만료',
         'refund_requested'  => '환불 요청',
         'refunded'          => '환불 완료',
+        'return_requested'  => '반품 요청',
     ];
 
     private const NEXT_STATUS = [
@@ -132,5 +133,23 @@ class OrderController extends BaseController
 
         return redirect()->to("/admin/orders/{$id}")
             ->with($ok ? 'success' : 'error', $ok ? '환불 완료 처리되었습니다.' : '환불 처리에 실패했습니다. (PG 콘솔에서 취소 후 다시 시도하세요)');
+    }
+
+    /** POST /admin/orders/:id/return-approve — 반품 승인 */
+    public function approveReturn(int $id): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $ok = $this->orderModel->approveReturn($id);
+
+        return redirect()->to("/admin/orders/{$id}")
+            ->with($ok ? 'success' : 'error', $ok ? '반품이 승인되었습니다. PG 콘솔에서 환불을 진행해주세요.' : '반품 승인에 실패했습니다.');
+    }
+
+    /** POST /admin/orders/:id/return-reject — 반품 거부 */
+    public function rejectReturn(int $id): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $ok = $this->orderModel->rejectReturn($id);
+
+        return redirect()->to("/admin/orders/{$id}")
+            ->with($ok ? 'success' : 'error', $ok ? '반품이 거부되었습니다.' : '반품 거부에 실패했습니다.');
     }
 }

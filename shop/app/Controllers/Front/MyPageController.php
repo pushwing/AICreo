@@ -244,6 +244,25 @@ class MyPageController extends BaseController
         return $this->render('shop/mypage/points', array_merge($result, compact('pointBalance')));
     }
 
+    /** POST /mypage/orders/return-request — 반품 신청 (배송 완료 후) */
+    public function requestReturn(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $userId  = (int) session()->get('user_id');
+        $orderId = (int) $this->request->getPost('order_id');
+        $reason  = trim($this->request->getPost('reason') ?? '');
+
+        if (! $orderId || $reason === '') {
+            return $this->response->setJSON(['success' => false, 'message' => '반품 사유를 입력해주세요.']);
+        }
+
+        $success = $this->orderModel->requestReturn($orderId, $userId, $reason);
+
+        return $this->response->setJSON([
+            'success' => $success,
+            'message' => $success ? '반품 신청이 완료되었습니다.' : '반품 신청할 수 없는 주문입니다.',
+        ]);
+    }
+
     /** POST /mypage/orders/cancel — 즉시 취소 */
     public function cancel(): \CodeIgniter\HTTP\ResponseInterface
     {
