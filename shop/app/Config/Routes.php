@@ -176,6 +176,9 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 리뷰 관리
     $routes->get( 'reviews',              'Admin\ReviewController::index');
     $routes->post('reviews/(:num)/delete','Admin\ReviewController::delete/$1');
+
+    // 접속 통계
+    $routes->get('stats', 'Admin\StatsController::index');
 });
 
 // ─── 쇼핑 ────────────────────────────────────────────────────────────────────
