@@ -67,6 +67,15 @@ body {
     --bs-card-inner-border-radius: calc(.75rem - 1px);
 }
 
+/* ─── 상품 카드 ──────────────────────────────────── */
+.product-card {
+    overflow: hidden;
+    transition: box-shadow .15s;
+}
+.product-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+
 /* ─── 푸터 ───────────────────────────────────────── */
 footer a {
     color: #adb5bd;

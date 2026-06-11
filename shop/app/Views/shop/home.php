@@ -112,8 +112,4 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<style>
-.product-card { transition: box-shadow .15s; }
-.product-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-</style>
 <?= $this->endSection() ?>
