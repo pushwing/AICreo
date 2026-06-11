@@ -165,3 +165,7 @@ footer a:hover {
     cursor: pointer;
     user-select: none;
 }
+
+/* ─── 회원 등급 배지 ─────────────────────────────── */
+.badge-bronze { background-color: #a0522d; color: #fff; }
+.badge-silver { background-color: #888f94; color: #fff; }

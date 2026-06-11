@@ -2,16 +2,23 @@
 <?= $this->section('content') ?>
 
 <?php
+use App\Libraries\GradeService;
 $providerLabel = match($user['social_provider'] ?? null) {
     'google' => '구글',
     'kakao'  => '카카오',
     'naver'  => '네이버',
     default  => null,
 };
+$grade = $user['grade'] ?? 'bronze';
 ?>
 
 <div class="container py-4" style="max-width:640px">
-    <h5 class="mb-4 fw-bold"><i class="bi bi-person-circle me-2"></i>내 정보 수정</h5>
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h5 class="fw-bold mb-0"><i class="bi bi-person-circle me-2"></i>내 정보 수정</h5>
+        <span class="badge <?= GradeService::BADGE_CLASSES[$grade] ?> fs-6">
+            <i class="bi <?= GradeService::ICONS[$grade] ?> me-1"></i><?= GradeService::LABELS[$grade] ?>
+        </span>
+    </div>
 
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item">

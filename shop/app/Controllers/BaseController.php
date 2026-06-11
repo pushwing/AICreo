@@ -29,10 +29,11 @@ class BaseController extends Controller
         // 로그인 정보
         $userId   = (int) session()->get('user_id');
         $authUser = [
-            'id'       => $userId,
-            'nickname' => (string) (session()->get('user_nickname') ?? ''),
-            'role'     => (string) (session()->get('user_role') ?? 'guest'),
-            'loggedIn' => $userId > 0,
+            'id'       => session()->get('user_id'),
+            'nickname' => session()->get('user_nickname'),
+            'role'     => session()->get('user_role') ?? 'guest',
+            'grade'    => session()->get('user_grade') ?? 'bronze',
+            'loggedIn' => (bool) session()->get('user_id'),
         ];
 
         // 관리자용: 미읽음 문의 수

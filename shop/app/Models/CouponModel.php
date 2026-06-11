@@ -10,14 +10,15 @@ class CouponModel extends Model
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $allowedFields = [
-        'code', 'name', 'type', 'discount_value', 'min_order_amount',
+        'code', 'name', 'type', 'target_grade', 'discount_value', 'min_order_amount',
         'max_discount_amount', 'total_qty', 'used_count', 'per_user_limit',
         'starts_at', 'expires_at', 'is_active',
     ];
 
     public const TYPES = [
-        'fixed'   => '정액 할인',
-        'percent' => '정률 할인',
+        'fixed'        => '정액 할인',
+        'percent'      => '정률 할인',
+        'free_shipping' => '무료배송',
     ];
 
     public function findByCode(string $code): ?array
