@@ -13,8 +13,11 @@ $routes->post('auth/login',    'Front\AuthController::loginProcess');
 $routes->get( 'auth/logout',   'Front\AuthController::logout');
 $routes->get( 'auth/register', 'Front\AuthController::register');
 $routes->post('auth/register', 'Front\AuthController::registerProcess');
-$routes->get( 'auth/profile',  'Front\AuthController::profile');
-$routes->post('auth/profile',  'Front\AuthController::profileUpdate');
+$routes->get( 'auth/verify-pending',     'Front\AuthController::verifyPending');
+$routes->get( 'auth/verify/(:segment)',  'Front\AuthController::verifyEmail/$1');
+$routes->post('auth/resend',             'Front\AuthController::resendVerification');
+$routes->get( 'auth/profile',  'Front\AuthController::profile',       ['filter' => 'auth:member']);
+$routes->post('auth/profile',  'Front\AuthController::profileUpdate', ['filter' => 'auth:member']);
 
 // ─── 소셜 로그인 ──────────────────────────────────────────────────────────────
 $routes->get('auth/social/(:segment)',          'Front\SocialAuthController::redirect/$1');

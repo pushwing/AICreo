@@ -7,6 +7,21 @@
             <div class="card-body p-4">
                 <h5 class="mb-4 fw-bold">로그인</h5>
 
+                <?php if (session()->has('error')): ?>
+                <div class="alert alert-danger py-2 small">
+                    <?= esc(session('error')) ?>
+                    <?php if (session()->has('unverified_email')): ?>
+                    <form method="post" action="/auth/resend" class="mt-2">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="email" value="<?= esc(session('unverified_email')) ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-arrow-repeat me-1"></i>인증 메일 재발송
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
                 <!-- 일반 로그인 -->
                 <form method="post" action="/auth/login">
                     <?= csrf_field() ?>
