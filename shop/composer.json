@@ -1,5 +1,8 @@
 {
     "require-dev": {
         "phpstan/phpstan": "^2.2"
+    },
+    "require": {
+        "phpoffice/phpspreadsheet": "^5.8"
     }
 }

@@ -59,6 +59,89 @@ class OrderController extends BaseController
         ]));
     }
 
+    /** GET /admin/orders/export — 엑셀 다운로드 */
+    public function exportExcel(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $keyword = trim($this->request->getGet('q') ?? '');
+        $status  = $this->request->getGet('status') ?? '';
+
+        if (! array_key_exists($status, self::STATUS_LABELS) && $status !== '') {
+            $status = '';
+        }
+
+        $orders   = $this->orderModel->adminGetAll([
+            'keyword' => $keyword,
+            'status'  => $status,
+            'page'    => 1,
+            'perPage' => 5000,
+        ])['items'];
+
+        $orderIds = array_column($orders, 'id');
+        $nameMap  = [];
+        if ($orderIds) {
+            $rows = \Config\Database::connect()->table('order_items')
+                ->select('order_id, product_name, quantity')
+                ->whereIn('order_id', $orderIds)
+                ->orderBy('order_id')->orderBy('id')
+                ->get()->getResultArray();
+            foreach ($rows as $row) {
+                $nameMap[(int) $row['order_id']][] = $row['product_name'] . ' x' . $row['quantity'];
+            }
+        }
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+
+        $headers = ['주문번호', '주문일시', '수취인', '연락처', '우편번호', '주소', '상세주소', '상품명', '결제금액', '상태'];
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
+        }
+
+        // 헤더 스타일
+        $headerStyle = [
+            'font'      => ['bold' => true],
+            'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                            'startColor' => ['argb' => 'FFE9ECEF']],
+            'borders'   => ['bottom' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+
+        foreach ($orders as $i => $order) {
+            $names          = $nameMap[$order['id']] ?? [];
+            $extra          = count($names) - 1;
+            $productSummary = ($names[0] ?? '') . ($extra > 0 ? ' 외 ' . $extra . '건' : '');
+            $rowNum         = $i + 2;
+
+            $sheet->setCellValueByColumnAndRow(1,  $rowNum, $order['order_number']);
+            $sheet->setCellValueByColumnAndRow(2,  $rowNum, $order['created_at']);
+            $sheet->setCellValueByColumnAndRow(3,  $rowNum, $order['receiver_name']);
+            $sheet->setCellValueByColumnAndRow(4,  $rowNum, $order['receiver_phone']);
+            $sheet->setCellValueByColumnAndRow(5,  $rowNum, $order['zipcode'] ?? '');
+            $sheet->setCellValueByColumnAndRow(6,  $rowNum, $order['address1'] ?? '');
+            $sheet->setCellValueByColumnAndRow(7,  $rowNum, $order['address2'] ?? '');
+            $sheet->setCellValueByColumnAndRow(8,  $rowNum, $productSummary);
+            $sheet->setCellValueByColumnAndRow(9,  $rowNum, (int) $order['total_amount']);
+            $sheet->setCellValueByColumnAndRow(10, $rowNum, self::STATUS_LABELS[$order['status']] ?? $order['status']);
+        }
+
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = '주문목록_' . date('Ymd_His') . '.xlsx';
+
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . rawurlencode($filename) . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
+            ->setBody($content);
+    }
+
     /** GET /admin/orders/:id */
     public function detail(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {

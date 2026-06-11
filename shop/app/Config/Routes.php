@@ -143,6 +143,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 주문 관리
     $routes->get( 'orders',                        'Admin\OrderController::index');
+    $routes->get( 'orders/export',                 'Admin\OrderController::exportExcel');
     $routes->get( 'orders/(:num)',                 'Admin\OrderController::detail/$1');
     $routes->post('orders/(:num)/status',          'Admin\OrderController::updateStatus/$1');
     $routes->post('orders/(:num)/tracking',        'Admin\OrderController::updateTracking/$1');
