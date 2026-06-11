@@ -862,9 +862,9 @@ class OrderModel extends Model
     {
         // 조건부 무료 기준 충족 시 전체 주문 무료배송
         foreach ($items as $item) {
-            if ($item['shipping_type'] === 'conditional'
-                && (int) $item['free_threshold'] > 0
-                && $totalProduct >= (int) $item['free_threshold']) {
+            if (($item['shipping_type'] ?? '') === 'conditional'
+                && (int) ($item['free_threshold'] ?? 0) > 0
+                && $totalProduct >= (int) ($item['free_threshold'] ?? 0)) {
                 return 0;
             }
         }
@@ -872,10 +872,10 @@ class OrderModel extends Model
         // 충족되지 않은 경우 개별 배송비 중 최댓값
         $fee = 0;
         foreach ($items as $item) {
-            $itemFee = match ($item['shipping_type']) {
+            $itemFee = match ($item['shipping_type'] ?? 'free') {
                 'free'    => 0,
-                'fixed'   => (int) $item['shipping_fee'],
-                default   => (int) $item['shipping_fee'],
+                'fixed'   => (int) ($item['shipping_fee'] ?? 0),
+                default   => (int) ($item['shipping_fee'] ?? 0),
             };
             $fee = max($fee, $itemFee);
         }
