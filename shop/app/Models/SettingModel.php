@@ -15,7 +15,7 @@ class SettingModel extends Model
      */
     public function getAllAsMap(): array
     {
-        return cache()->remember('site_settings', 3600, function () {
+        return (array) cache()->remember('site_settings', 3600, function () {
             $rows = $this->findAll();
             $map  = [];
             foreach ($rows as $row) {

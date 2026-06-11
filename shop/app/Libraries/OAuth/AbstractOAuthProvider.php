@@ -14,7 +14,7 @@ abstract class AbstractOAuthProvider
     public function __construct(string $providerName)
     {
         $this->providerName = $providerName;
-        $cfg = config('OAuth')->{$providerName};
+        $cfg = config(\Config\OAuth::class)->{$providerName};
 
         // .env 우선 적용
         $cfg['client_id']     = env("oauth.{$providerName}.client_id",     $cfg['client_id']);

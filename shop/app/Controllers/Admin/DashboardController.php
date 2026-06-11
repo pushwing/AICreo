@@ -11,7 +11,7 @@ use App\Models\UserModel;
 
 class DashboardController extends BaseController
 {
-    public function index()
+    public function index(): string
     {
         $postModel    = new PostModel();
         $userModel    = new UserModel();

@@ -21,7 +21,7 @@ class ProductController extends BaseController
         $this->imageModel    = new ProductImageModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $params  = ['keyword' => $this->request->getGet('keyword'), 'status' => $this->request->getGet('status'), 'page' => $this->request->getGet('page')];
         $result  = $this->productModel->getAdminList($params);
@@ -35,7 +35,7 @@ class ProductController extends BaseController
         ]));
     }
 
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/products/form', [
             'product'   => null,
@@ -46,7 +46,7 @@ class ProductController extends BaseController
         ]);
     }
 
-    public function store()
+    public function store(): \CodeIgniter\HTTP\RedirectResponse
     {
         if (! $this->validate($this->validationRules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -60,7 +60,7 @@ class ProductController extends BaseController
         return redirect()->to('/admin/products')->with('success', '상품이 등록되었습니다.');
     }
 
-    public function edit(int $id)
+    public function edit(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $product = $this->productModel->find($id);
         if (! $product) return redirect()->to('/admin/products')->with('error', '상품을 찾을 수 없습니다.');
@@ -74,7 +74,7 @@ class ProductController extends BaseController
         ]);
     }
 
-    public function update(int $id)
+    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $product = $this->productModel->find($id);
         if (! $product) return redirect()->to('/admin/products')->with('error', '상품을 찾을 수 없습니다.');
@@ -89,7 +89,7 @@ class ProductController extends BaseController
         return redirect()->to('/admin/products')->with('success', '저장되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $product = $this->productModel->find($id);
         if (! $product) return redirect()->to('/admin/products')->with('error', '상품을 찾을 수 없습니다.');
@@ -100,14 +100,14 @@ class ProductController extends BaseController
 
     // ── 카테고리 CRUD ─────────────────────────────────────────────────────────
 
-    public function categories()
+    public function categories(): string
     {
         return $this->render('admin/products/categories', [
             'tree' => $this->categoryModel->getTree(),
         ]);
     }
 
-    public function categoryStore()
+    public function categoryStore(): \CodeIgniter\HTTP\RedirectResponse
     {
         $rules = ['name' => 'required|max_length[100]'];
         if (! $this->validate($rules)) {
@@ -128,7 +128,7 @@ class ProductController extends BaseController
         return redirect()->to('/admin/products/categories')->with('success', '카테고리가 추가되었습니다.');
     }
 
-    public function categoryUpdate(int $id)
+    public function categoryUpdate(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $category = $this->categoryModel->find($id);
         if (! $category) return redirect()->to('/admin/products/categories')->with('error', '카테고리를 찾을 수 없습니다.');
@@ -148,7 +148,7 @@ class ProductController extends BaseController
         return redirect()->to('/admin/products/categories')->with('success', '저장되었습니다.');
     }
 
-    public function categoryDelete(int $id)
+    public function categoryDelete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $hasProducts = $this->productModel->withDeleted()->where('category_id', $id)->countAllResults();
         if ($hasProducts) {
@@ -165,7 +165,7 @@ class ProductController extends BaseController
 
     // ── 이미지 삭제 (Ajax) ────────────────────────────────────────────────────
 
-    public function imageDelete(int $imageId)
+    public function imageDelete(int $imageId): \CodeIgniter\HTTP\ResponseInterface
     {
         $image = $this->imageModel->find($imageId);
         if (! $image) {

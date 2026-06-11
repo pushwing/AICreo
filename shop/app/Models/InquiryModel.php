@@ -16,7 +16,7 @@ class InquiryModel extends Model
 
     public function getUnreadCount(): int
     {
-        return $this->where('is_read', 0)->countAllResults();
+        return (int) $this->db->table($this->table)->where('is_read', 0)->countAllResults();
     }
 
     public function markRead(int $id): void

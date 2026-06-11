@@ -4,28 +4,23 @@ namespace App\Libraries\PG;
 
 class PGFactory
 {
-    private static array $map = [
-        'bank_transfer' => BankTransferAdapter::class,
-        'toss'          => TossPaymentsAdapter::class,
-        'inicis'        => InicisAdapter::class,
-        'nicepay'       => NicePayAdapter::class,
-        'kakaopay'      => KakaoPayAdapter::class,
-        'naverpay'      => NaverPayAdapter::class,
-        'payco'         => PaycoAdapter::class,
-    ];
-
     public static function make(string $provider): PGInterface
     {
-        $class = self::$map[$provider] ?? null;
-        if (! $class) {
-            throw new \InvalidArgumentException("지원하지 않는 PG: {$provider}");
-        }
-        return new $class();
+        return match ($provider) {
+            'bank_transfer' => new BankTransferAdapter(),
+            'toss'          => new TossPaymentsAdapter(),
+            'inicis'        => new InicisAdapter(),
+            'nicepay'       => new NicePayAdapter(),
+            'kakaopay'      => new KakaoPayAdapter(),
+            'naverpay'      => new NaverPayAdapter(),
+            'payco'         => new PaycoAdapter(),
+            default         => throw new \InvalidArgumentException("지원하지 않는 PG: {$provider}"),
+        };
     }
 
     public static function providers(): array
     {
-        return array_keys(self::$map);
+        return ['bank_transfer', 'toss', 'inicis', 'nicepay', 'kakaopay', 'naverpay', 'payco'];
     }
 
     public static function labels(): array

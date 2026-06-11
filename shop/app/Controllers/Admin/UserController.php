@@ -14,7 +14,7 @@ class UserController extends BaseController
         $this->userModel = new UserModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $keyword = $this->request->getGet('q') ?? '';
         $role    = $this->request->getGet('role') ?? '';
@@ -54,7 +54,7 @@ class UserController extends BaseController
         ]);
     }
 
-    public function edit(int $id)
+    public function edit(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $user = $this->userModel->find($id);
         if (! $user) {
@@ -64,7 +64,7 @@ class UserController extends BaseController
         return $this->render('admin/users/edit', ['member' => $user]);
     }
 
-    public function update(int $id)
+    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $user = $this->userModel->find($id);
         if (! $user) {
@@ -85,7 +85,7 @@ class UserController extends BaseController
         return redirect()->to('/admin/users')->with('success', '회원 정보가 수정되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         if ((int) $id === (int) session()->get('user_id')) {
             return redirect()->back()->with('error', '본인 계정은 삭제할 수 없습니다.');

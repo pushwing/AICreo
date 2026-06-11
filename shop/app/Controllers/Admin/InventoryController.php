@@ -20,7 +20,7 @@ class InventoryController extends BaseController
         $this->logModel     = new StockLogModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $keyword  = $this->request->getGet('keyword') ?? '';
         $filter   = $this->request->getGet('filter')  ?? '';
@@ -71,7 +71,7 @@ class InventoryController extends BaseController
         ]);
     }
 
-    public function adjust(int $productId)
+    public function adjust(int $productId): \CodeIgniter\HTTP\ResponseInterface
     {
         $product = $this->productModel->find($productId);
         if (! $product) {
@@ -105,7 +105,7 @@ class InventoryController extends BaseController
         ]);
     }
 
-    public function logs(int $productId)
+    public function logs(int $productId): \CodeIgniter\HTTP\ResponseInterface
     {
         $product = $this->productModel->find($productId);
         if (! $product) {

@@ -21,7 +21,7 @@ class CartController extends BaseController
      * GET /cart — 장바구니 목록 (auth:member 필터로 보호)
      * 세션 장바구니가 있으면 DB에 병합
      */
-    public function index()
+    public function index(): string
     {
         $userId = (int) session()->get('user_id');
 
@@ -43,7 +43,7 @@ class CartController extends BaseController
      * POST /cart/add — 장바구니 담기 (로그인·비로그인 모두 허용)
      * 로그인: DB, 비로그인: 세션
      */
-    public function add()
+    public function add(): \CodeIgniter\HTTP\ResponseInterface
     {
         $productId = (int) $this->request->getPost('product_id');
         $qty       = max(1, (int) $this->request->getPost('qty'));
@@ -89,7 +89,7 @@ class CartController extends BaseController
     /**
      * POST /cart/update — 수량 수정 (Ajax, auth:member)
      */
-    public function update()
+    public function update(): \CodeIgniter\HTTP\ResponseInterface
     {
         $userId    = (int) session()->get('user_id');
         $productId = (int) $this->request->getPost('product_id');
@@ -116,7 +116,7 @@ class CartController extends BaseController
     /**
      * POST /cart/delete — 개별 삭제 (auth:member)
      */
-    public function delete()
+    public function delete(): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId    = (int) session()->get('user_id');
         $productId = (int) $this->request->getPost('product_id');
@@ -129,7 +129,7 @@ class CartController extends BaseController
     /**
      * POST /cart/clear — 전체 비우기 (auth:member)
      */
-    public function clear()
+    public function clear(): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId = (int) session()->get('user_id');
         $this->cartModel->clear($userId);
