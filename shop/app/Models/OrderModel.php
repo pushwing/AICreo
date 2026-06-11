@@ -1035,7 +1035,8 @@ class OrderModel extends Model
         $qty = (int) $item['qty'];
 
         if (! empty($item['sku_id'])) {
-            $skuId = (int) $item['sku_id'];
+            $skuId     = (int) $item['sku_id'];
+            $productId = (int) $item['product_id'];
 
             $row = $this->db->query(
                 'SELECT stock FROM product_skus WHERE id = ? FOR UPDATE',
@@ -1049,7 +1050,23 @@ class OrderModel extends Model
                 [$qty, $skuId, $qty]
             );
 
-            return $this->db->affectedRows() > 0;
+            if ($this->db->affectedRows() === 0) return false;
+
+            // products.stock도 SKU 재고 차감분만큼 동기화
+            $this->db->query(
+                'SELECT stock FROM products WHERE id = ? FOR UPDATE',
+                [$productId]
+            );
+            $this->db->query(
+                'UPDATE products SET stock = GREATEST(0, stock - ?) WHERE id = ?',
+                [$qty, $productId]
+            );
+            $this->db->query(
+                'UPDATE products SET status = "sold_out" WHERE id = ? AND stock = 0 AND status = "on_sale"',
+                [$productId]
+            );
+
+            return true;
         }
 
         $productId = (int) $item['product_id'];
@@ -1087,6 +1104,15 @@ class OrderModel extends Model
             $this->db->query(
                 'UPDATE product_skus SET stock = stock + ? WHERE id = ?',
                 [$qty, (int) $item['sku_id']]
+            );
+
+            // products.stock도 SKU 복구분만큼 동기화
+            $productId = (int) $item['product_id'];
+            $this->db->query(
+                'UPDATE products SET stock = stock + ?,
+                    status = IF(status = "sold_out" AND stock + ? > 0, "on_sale", status)
+                 WHERE id = ?',
+                [$qty, $qty, $productId]
             );
             return;
         }

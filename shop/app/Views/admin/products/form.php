@@ -489,6 +489,12 @@ document.getElementById('productForm').addEventListener('submit', function () {
         }),
     };
     document.getElementById('optionsJson').value = optionGroups.length > 0 ? JSON.stringify(data) : '';
+
+    // 옵션이 있으면 products.stock을 SKU 합계로 동기화 (서버 검증 통과 + DB 일관성)
+    if (optionGroups.length > 0) {
+        const totalStock = skuList.reduce(function (sum, s) { return sum + (parseInt(s.stock) || 0); }, 0);
+        document.querySelector('input[name="stock"]').value = totalStock;
+    }
 });
 </script>
 <?= $this->endSection() ?>

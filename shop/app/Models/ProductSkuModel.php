@@ -119,11 +119,15 @@ class ProductSkuModel extends Model
         }
 
         // SKU 저장
+        $totalStock = 0;
         foreach ($skus as $sku) {
+            $skuStock = max(0, (int) ($sku['stock'] ?? 0));
+            $totalStock += $skuStock;
+
             $this->db->table('product_skus')->insert([
                 'product_id' => $productId,
                 'price_diff' => (int) ($sku['price_diff'] ?? 0),
-                'stock'      => max(0, (int) ($sku['stock'] ?? 0)),
+                'stock'      => $skuStock,
                 'sku_code'   => $sku['sku_code'] ?? null,
             ]);
             $skuId = (int) $this->db->insertID();
@@ -136,6 +140,9 @@ class ProductSkuModel extends Model
                 ]);
             }
         }
+
+        // products.stock을 SKU 재고 합계로 동기화
+        $this->db->table('products')->where('id', $productId)->update(['stock' => $totalStock]);
     }
 
     public function deleteByProduct(int $productId): void

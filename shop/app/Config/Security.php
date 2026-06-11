@@ -6,7 +6,7 @@ use CodeIgniter\Config\BaseConfig;
 
 class Security extends BaseConfig
 {
-    public string $csrfProtection = 'cookie';
+    public string $csrfProtection = 'session';
     public bool   $tokenRandomize = false;
     public string $tokenName      = 'csrf_test_name';
     public string $headerName     = 'X-CSRF-TOKEN';
