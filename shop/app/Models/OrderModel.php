@@ -95,8 +95,8 @@ class OrderModel extends Model
         }
         $this->db->table('order_items')->insertBatch($items);
 
-        // 쿠폰 확정
-        if ($couponId && $couponDiscountAmount > 0) {
+        // 쿠폰 확정 (free_shipping은 couponDiscountAmount=배송비이므로 couponId 존재 여부로만 판단)
+        if ($couponId) {
             $this->db->query('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?', [$couponId]);
 
             if ($userCouponId) {
@@ -444,7 +444,19 @@ class OrderModel extends Model
             '배송 완료 확인 · 포인트 ' . number_format((int) $order['point_earned_amount']) . '원 적립');
 
         $this->db->transComplete();
-        return $this->db->transStatus();
+        $ok = $this->db->transStatus();
+
+        // 배송완료 후 등급 승급 체크 (트랜잭션 외부)
+        if ($ok) {
+            try {
+                $settings = cache()->get('site_settings') ?? [];
+                (new GradeService())->checkAndUpgrade((int) $order['user_id'], $settings);
+            } catch (\Throwable $e) {
+                log_message('error', 'GradeService::checkAndUpgrade failed: ' . $e->getMessage());
+            }
+        }
+
+        return $ok;
     }
 
     /** 관리자 강제 취소 */
@@ -547,16 +559,6 @@ class OrderModel extends Model
         }
 
         $this->writeStatusLog($orderId, 'refund_requested', 'refunded', '환불 처리 완료');
-
-        // 배송완료 후 등급 승급 체크 (트랜잭션 외부 — 승급 실패가 배송완료를 롤백하지 않도록)
-        if ($newStatus === 'delivered') {
-            try {
-                $settings = cache()->get('site_settings') ?? [];
-                (new GradeService())->checkAndUpgrade((int) $order['user_id'], $settings);
-            } catch (\Throwable $e) {
-                log_message('error', 'GradeService::checkAndUpgrade failed: ' . $e->getMessage());
-            }
-        }
 
         return $this->db->transStatus();
     }

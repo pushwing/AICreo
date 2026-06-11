@@ -152,6 +152,10 @@ class SocialAuthController extends BaseController
             'is_active'       => 1,
         ]);
 
+        if (! $id) {
+            return null;
+        }
+
         // 소셜 로그인 신규 가입 즉시 보너스 지급
         try {
             $settings = cache()->get('site_settings') ?? [];

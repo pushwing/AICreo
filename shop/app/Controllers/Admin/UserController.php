@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\GradeService;
 use App\Libraries\Mailer;
 use App\Models\UserModel;
 
@@ -127,7 +128,15 @@ class UserController extends BaseController
             return redirect()->to('/admin/users')->with('error', '회원을 찾을 수 없습니다.');
         }
 
+        // 미인증 상태일 때만 보너스 지급 (이미 인증된 경우 중복 지급 방지)
+        $wasUnverified = ! $user['is_active'] && ! empty($user['email_verify_token']);
+
         $this->userModel->clearVerifyToken($id);
+
+        if ($wasUnverified) {
+            $settings = $this->viewData['settings'] ?? [];
+            (new GradeService())->awardSignupBonus($id, $settings);
+        }
 
         return redirect()->back()->with('success', '이메일 인증이 완료 처리되었습니다.');
     }

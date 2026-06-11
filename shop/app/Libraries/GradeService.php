@@ -123,6 +123,8 @@ class GradeService
         $bonus = $this->getGradeBonus($newGrade, $settings);
         $now   = date('Y-m-d H:i:s');
 
+        $this->db->transStart();
+
         $this->db->table('users')->where('id', $userId)->update([
             'grade'      => $newGrade,
             'updated_at' => $now,
@@ -142,6 +144,8 @@ class GradeService
                 'created_at' => $now,
             ]);
         }
+
+        $this->db->transComplete();
     }
 
     /**
