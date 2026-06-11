@@ -749,9 +749,9 @@ class OrderModel extends Model
 
         $builder = $this->db->table('orders o')
             ->select('o.*, u.email AS user_email, u.nickname AS user_nickname,
-                (SELECT pg_provider FROM payments WHERE order_id = o.id ORDER BY id DESC LIMIT 1) AS pg_provider,
-                (SELECT method FROM payments WHERE order_id = o.id ORDER BY id DESC LIMIT 1) AS payment_method')
-            ->join('users u', 'u.id = o.user_id', 'left');
+                lp.pg_provider, lp.method AS payment_method')
+            ->join('users u', 'u.id = o.user_id', 'left')
+            ->join('payments lp', 'lp.id = (SELECT MAX(id) FROM payments WHERE order_id = o.id)', 'left');
 
         if ($keyword !== '') {
             $builder->groupStart()

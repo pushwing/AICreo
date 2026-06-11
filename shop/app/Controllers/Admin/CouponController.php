@@ -114,23 +114,21 @@ class CouponController extends BaseController
             return redirect()->back()->with('error', '발급할 회원 ID를 입력해주세요.');
         }
 
-        $now     = date('Y-m-d H:i:s');
-        $issued  = 0;
-        $skipped = 0;
+        $now = date('Y-m-d H:i:s');
+        $db  = \Config\Database::connect();
 
+        $existingRows = $db->table('user_coupons')
+            ->select('user_id')
+            ->whereIn('user_id', array_values($userIds))
+            ->where('coupon_id', $id)
+            ->get()->getResultArray();
+        $alreadyHas = array_map('intval', array_column($existingRows, 'user_id'));
+        $skipped    = count($alreadyHas);
+
+        $toInsert = [];
         foreach ($userIds as $userId) {
-            $existing = \Config\Database::connect()
-                ->table('user_coupons')
-                ->where('user_id', $userId)
-                ->where('coupon_id', $id)
-                ->get()->getRowArray();
-
-            if ($existing) {
-                $skipped++;
-                continue;
-            }
-
-            \Config\Database::connect()->table('user_coupons')->insert([
+            if (in_array($userId, $alreadyHas, true)) continue;
+            $toInsert[] = [
                 'user_id'    => $userId,
                 'coupon_id'  => $id,
                 'source'     => 'admin',
@@ -138,8 +136,11 @@ class CouponController extends BaseController
                 'issued_at'  => $now,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ]);
-            $issued++;
+            ];
+        }
+        $issued = count($toInsert);
+        if ($toInsert) {
+            $db->table('user_coupons')->insertBatch($toInsert);
         }
 
         $msg = "발급 완료: {$issued}명";
@@ -169,18 +170,21 @@ class CouponController extends BaseController
             return redirect()->back()->with('error', '해당 등급의 회원이 없습니다.');
         }
 
-        $now     = date('Y-m-d H:i:s');
-        $issued  = 0;
-        $skipped = 0;
+        $now       = date('Y-m-d H:i:s');
+        $memberIds = array_map(fn(array $m) => (int) $m['id'], $members);
 
-        foreach ($members as $member) {
-            $userId = (int) $member['id'];
-            $existing = $db->table('user_coupons')
-                ->where('user_id', $userId)->where('coupon_id', $id)->get()->getRowArray();
+        $existingRows = $db->table('user_coupons')
+            ->select('user_id')
+            ->whereIn('user_id', $memberIds)
+            ->where('coupon_id', $id)
+            ->get()->getResultArray();
+        $alreadyHas = array_map('intval', array_column($existingRows, 'user_id'));
+        $skipped    = count($alreadyHas);
 
-            if ($existing) { $skipped++; continue; }
-
-            $db->table('user_coupons')->insert([
+        $toInsert = [];
+        foreach ($memberIds as $userId) {
+            if (in_array($userId, $alreadyHas, true)) continue;
+            $toInsert[] = [
                 'user_id'    => $userId,
                 'coupon_id'  => $id,
                 'source'     => 'grade_bulk',
@@ -188,8 +192,11 @@ class CouponController extends BaseController
                 'issued_at'  => $now,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ]);
-            $issued++;
+            ];
+        }
+        $issued = count($toInsert);
+        if ($toInsert) {
+            $db->table('user_coupons')->insertBatch($toInsert);
         }
 
         $msg = "등급별 발급 완료: {$issued}명";
