@@ -112,7 +112,7 @@ class PromotionController extends BaseController
         $q     = trim($this->request->getGet('q') ?? '');
         $catId = $this->request->getGet('category_id');
 
-        $builder = (new ProductModel())
+        $builder = db_connect()->table('products')
             ->select('products.id, products.name, products.price, products.discount_price, products.stock, products.status, media.file_path AS primary_image')
             ->join('product_images', 'product_images.product_id = products.id AND product_images.is_primary = 1', 'left')
             ->join('media', 'media.id = product_images.media_id', 'left')
@@ -126,7 +126,7 @@ class PromotionController extends BaseController
         }
         if ($catId) $builder->where('products.category_id', (int) $catId);
 
-        $products = $builder->orderBy('products.id', 'DESC')->findAll(30);
+        $products = $builder->orderBy('products.id', 'DESC')->limit(30)->get()->getResultArray();
 
         foreach ($products as &$p) {
             $p['primary_image'] = $p['primary_image'] ? base_url($p['primary_image']) : null;

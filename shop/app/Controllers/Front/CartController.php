@@ -157,7 +157,7 @@ class CartController extends BaseController
 
         // 재고 상한 클리핑
         if ($skuId !== null) {
-            $skuRow = $this->skuModel->find($skuId);
+            $skuRow = $this->skuModel->db->table('product_skus')->where('id', $skuId)->get()->getRowArray();
             if ($skuRow) $qty = min($qty, (int) $skuRow['stock']);
         } else {
             $stockRow = $this->productModel->db->table('products')->select('stock')->where('id', $productId)->get()->getRow();
