@@ -303,7 +303,7 @@ class OrderModel extends Model
             'paid_at' => $now,
         ]);
 
-        $this->db->table('payments')->insert([
+        $paymentOk = $this->db->table('payments')->insert([
             'order_id'     => $orderId,
             'pg_provider'  => $pgProvider,
             'pg_tid'       => $pgTid,
@@ -315,6 +315,13 @@ class OrderModel extends Model
             'created_at'   => $now,
             'updated_at'   => $now,
         ]);
+
+        // pg_tid UNIQUE 위반 등 INSERT 실패 시 명시적 롤백
+        if (! $paymentOk || $this->db->affectedRows() === 0) {
+            $this->db->transRollback();
+            $this->db->resetTransStatus();
+            return false;
+        }
 
         // 장바구니 비우기
         $productIds = array_column($items, 'product_id');
@@ -574,6 +581,7 @@ class OrderModel extends Model
 
         $this->writeStatusLog($orderId, 'refund_requested', 'refunded', '환불 처리 완료');
 
+        $this->db->transComplete();
         return $this->db->transStatus();
     }
 
