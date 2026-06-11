@@ -274,6 +274,30 @@ class MyPageController extends BaseController
         ]);
     }
 
+    /** POST /mypage/orders/exchange-request */
+    public function requestExchange(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $userId  = (int) session()->get('user_id');
+        $orderId = (int) $this->request->getPost('order_id');
+        $reason  = trim($this->request->getPost('reason') ?? '');
+        $note    = trim($this->request->getPost('note')   ?? '');
+
+        if (! $orderId || $reason === '') {
+            return $this->response->setJSON(['success' => false, 'message' => '교환 사유를 입력해주세요.']);
+        }
+
+        if (mb_strlen($reason) > 500) {
+            return $this->response->setJSON(['success' => false, 'message' => '교환 사유는 500자 이내로 입력해주세요.']);
+        }
+
+        $success = $this->orderModel->requestExchange($orderId, $userId, $reason, $note);
+
+        return $this->response->setJSON([
+            'success' => $success,
+            'message' => $success ? '교환 신청이 완료되었습니다.' : '교환 신청 기간이 지났거나 신청할 수 없는 주문입니다.',
+        ]);
+    }
+
     /** POST /mypage/orders/cancel — 즉시 취소 */
     public function cancel(): \CodeIgniter\HTTP\ResponseInterface
     {

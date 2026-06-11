@@ -17,8 +17,11 @@ $statusBadge = [
     'expired'           => ['secondary', '만료'],
     'refund_requested'  => ['warning',   '환불 요청'],
     'refunded'          => ['dark',      '환불 완료'],
-    'return_requested'  => ['warning',   '반품 요청'],
-    'return_approved'   => ['info',      '반품 승인'],
+    'return_requested'   => ['warning',   '반품 요청'],
+    'return_approved'    => ['info',      '반품 승인'],
+    'exchange_requested' => ['warning',   '교환 요청'],
+    'exchange_approved'  => ['info',      '교환 승인'],
+    'exchange_completed' => ['success',   '교환 완료'],
 ];
 $pgLabels = [
     'bank_transfer' => '무통장입금',
@@ -46,6 +49,7 @@ $canConfirmDelivery = $order['status'] === 'shipped';
 $deliveredAt        = $order['delivered_at'] ?? null;
 $returnDeadline     = $deliveredAt ? strtotime($deliveredAt) + 7 * 24 * 3600 : null;
 $canReturn          = $order['status'] === 'delivered' && ($returnDeadline === null || time() <= $returnDeadline);
+$canExchange        = $order['status'] === 'delivered' && ($returnDeadline === null || time() <= $returnDeadline);
 $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 ?>
 
@@ -249,9 +253,28 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
     </div>
     <?php endif; ?>
 
+    <!-- 교환 상태 안내 -->
+    <?php if (in_array($order['status'], ['exchange_requested', 'exchange_approved', 'exchange_completed'], true) && ! empty($order['exchange_reason'])): ?>
+    <div class="alert alert-<?= $order['status'] === 'exchange_completed' ? 'success' : ($order['status'] === 'exchange_approved' ? 'info' : 'warning') ?> d-flex gap-2 mb-3">
+        <i class="bi bi-arrow-left-right fs-5 flex-shrink-0"></i>
+        <div>
+            <div class="fw-semibold small">
+                <?php if ($order['status'] === 'exchange_requested'): ?>교환 신청 사유
+                <?php elseif ($order['status'] === 'exchange_approved'): ?>교환 승인 — 대체품 발송 준비 중
+                <?php else: ?>교환 완료
+                <?php endif; ?>
+            </div>
+            <div class="small mt-1"><?= esc($order['exchange_reason']) ?></div>
+            <?php if (! empty($order['exchange_request_note'])): ?>
+            <div class="small text-muted mt-1">요청 내용: <?= esc($order['exchange_request_note']) ?></div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- 반품 신청 기간 만료 안내 -->
     <?php if ($order['status'] === 'delivered' && $returnDeadline !== null && time() > $returnDeadline): ?>
-    <div class="alert alert-secondary small mb-3">반품 신청 기간(7일)이 지났습니다.</div>
+    <div class="alert alert-secondary small mb-3">반품·교환 신청 기간(7일)이 지났습니다.</div>
     <?php endif; ?>
 
     <!-- 버튼 -->
@@ -274,6 +297,9 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
         <?php elseif ($canReturn): ?>
         <button type="button" class="btn btn-warning flex-fill" data-bs-toggle="modal" data-bs-target="#returnModal">
             <i class="bi bi-arrow-return-left me-1"></i>반품 신청
+        </button>
+        <button type="button" class="btn btn-outline-warning flex-fill" data-bs-toggle="modal" data-bs-target="#exchangeModal">
+            <i class="bi bi-arrow-left-right me-1"></i>교환 신청
         </button>
         <?php else: ?>
         <a href="/shop" class="btn btn-primary flex-fill">쇼핑 계속하기</a>
@@ -303,6 +329,39 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                             data-csrf="<?= csrf_token() ?>"
                             data-csrf-val="<?= csrf_hash() ?>">
                         반품 신청하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- 교환 신청 모달 -->
+    <?php if ($canExchange): ?>
+    <div class="modal fade" id="exchangeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold">교환 신청</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">교환 사유를 입력해주세요. 관리자 확인 후 처리됩니다.</p>
+                    <textarea id="exchangeReason" class="form-control mb-2" rows="3"
+                              placeholder="교환 사유를 입력해주세요 (예: 사이즈 불일치, 색상 변경 등)"
+                              maxlength="500"></textarea>
+                    <div class="text-end text-muted small mb-3"><span id="exchangeReasonLen">0</span>/500</div>
+                    <textarea id="exchangeNote" class="form-control" rows="2"
+                              placeholder="원하는 교환 내용 (예: L→M 사이즈, 파랑→검정 색상) — 선택 사항"
+                              maxlength="1000"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" id="btnExchangeSubmit" class="btn btn-warning"
+                            data-order-id="<?= (int) $order['id'] ?>"
+                            data-csrf="<?= csrf_token() ?>"
+                            data-csrf-val="<?= csrf_hash() ?>">
+                        교환 신청하기
                     </button>
                 </div>
             </div>
@@ -396,6 +455,43 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                 alert('오류가 발생했습니다. 다시 시도해주세요.');
                 btn.disabled    = false;
                 btn.textContent = '반품 신청하기';
+            });
+    });
+
+    // 교환 신청
+    document.getElementById('exchangeReason')?.addEventListener('input', function () {
+        document.getElementById('exchangeReasonLen').textContent = this.value.length;
+    });
+
+    document.getElementById('btnExchangeSubmit')?.addEventListener('click', function () {
+        const reason = document.getElementById('exchangeReason').value.trim();
+        if (! reason) { alert('교환 사유를 입력해주세요.'); return; }
+
+        const btn  = this;
+        const body = new FormData();
+        body.append(btn.dataset.csrf, btn.dataset.csrfVal);
+        body.append('order_id', btn.dataset.orderId);
+        body.append('reason', reason);
+        body.append('note', document.getElementById('exchangeNote').value.trim());
+
+        btn.disabled    = true;
+        btn.textContent = '처리 중...';
+
+        fetch('/mypage/orders/exchange-request', { method: 'POST', body })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || '처리에 실패했습니다.');
+                    btn.disabled    = false;
+                    btn.textContent = '교환 신청하기';
+                }
+            })
+            .catch(() => {
+                alert('오류가 발생했습니다. 다시 시도해주세요.');
+                btn.disabled    = false;
+                btn.textContent = '교환 신청하기';
             });
     });
 

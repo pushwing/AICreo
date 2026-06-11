@@ -18,8 +18,11 @@ $statusBadge = [
     'expired'           => 'secondary',
     'refund_requested'  => 'warning',
     'refunded'          => 'dark',
-    'return_requested'  => 'warning',
-    'return_approved'   => 'info',
+    'return_requested'   => 'warning',
+    'return_approved'    => 'info',
+    'exchange_requested' => 'warning',
+    'exchange_approved'  => 'info',
+    'exchange_completed' => 'success',
 ];
 
 $pgLabels = [
@@ -38,6 +41,8 @@ $canCancel              = in_array($currentStatus, ['pending', 'awaiting_payment
 $canRefund              = $currentStatus === 'refund_requested';
 $canApproveReturn       = $currentStatus === 'return_requested';
 $canConfirmReturnRefund = $currentStatus === 'return_approved';
+$canApproveExchange     = $currentStatus === 'exchange_requested';
+$canCompleteExchange    = $currentStatus === 'exchange_approved';
 $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
 ?>
@@ -354,6 +359,75 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
         </div>
         <?php endif; ?>
 
+        <!-- 교환 요청 처리 -->
+        <?php if ($canApproveExchange): ?>
+        <div class="card mb-3 border-warning">
+            <div class="card-header fw-semibold bg-warning bg-opacity-10">
+                <i class="bi bi-arrow-left-right me-1"></i>교환 요청 처리
+            </div>
+            <div class="card-body">
+                <?php if (! empty($order['exchange_reason'])): ?>
+                <p class="text-muted small mb-2">
+                    <strong>교환 사유:</strong><br><?= esc($order['exchange_reason']) ?>
+                </p>
+                <?php endif; ?>
+                <?php if (! empty($order['exchange_request_note'])): ?>
+                <p class="text-muted small mb-3">
+                    <strong>요청 내용:</strong><br><?= esc($order['exchange_request_note']) ?>
+                </p>
+                <?php endif; ?>
+                <p class="text-muted small mb-3">
+                    승인 시 기존 상품 재고가 복구됩니다.<br>
+                    대체품은 승인 후 직접 발송하세요.
+                </p>
+                <div class="d-flex gap-2">
+                    <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/exchange-approve"
+                          onsubmit="return confirm('교환을 승인하시겠습니까?\n기존 상품 재고가 복구됩니다.')"
+                          class="flex-fill">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-check-circle me-1"></i>교환 승인
+                        </button>
+                    </form>
+                    <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/exchange-reject"
+                          onsubmit="return confirm('교환을 거부하시겠습니까?\n주문이 배송 완료 상태로 복원됩니다.')"
+                          class="flex-fill">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-x-circle me-1"></i>교환 거부
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- 교환 승인 → 완료 -->
+        <?php if ($canCompleteExchange): ?>
+        <div class="card mb-3 border-info">
+            <div class="card-header fw-semibold bg-info bg-opacity-10">
+                <i class="bi bi-box-seam me-1"></i>교환 완료 처리
+            </div>
+            <div class="card-body">
+                <?php if (! empty($order['exchange_request_note'])): ?>
+                <p class="text-muted small mb-2">
+                    <strong>교환 요청 내용:</strong><br><?= esc($order['exchange_request_note']) ?>
+                </p>
+                <?php endif; ?>
+                <p class="text-muted small mb-3">
+                    대체품 발송을 완료한 후 아래 버튼을 눌러주세요.
+                </p>
+                <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/exchange-complete"
+                      onsubmit="return confirm('대체품 발송을 완료하셨습니까?')">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-info w-100">
+                        <i class="bi bi-check2-all me-1"></i>교환 완료 처리
+                    </button>
+                </form>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- 강제 취소 -->
         <?php if ($canCancel): ?>
         <div class="card mb-3 border-danger">
@@ -391,8 +465,11 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     'expired'           => '만료',
                     'refund_requested'  => '환불 요청',
                     'refunded'          => '환불 완료',
-                    'return_requested'  => '반품 요청',
-                    'return_approved'   => '반품 승인',
+                    'return_requested'   => '반품 요청',
+                    'return_approved'    => '반품 승인',
+                    'exchange_requested' => '교환 요청',
+                    'exchange_approved'  => '교환 승인',
+                    'exchange_completed' => '교환 완료',
                 ];
                 $actorBadge = [
                     'admin'  => ['bg-primary',   '관리자'],

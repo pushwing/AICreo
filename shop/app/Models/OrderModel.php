@@ -17,6 +17,7 @@ class OrderModel extends Model
         'receiver_name', 'receiver_phone', 'zipcode', 'address1', 'address2', 'delivery_memo',
         'tracking_company', 'tracking_number',
         'paid_at', 'cancelled_at', 'expired_at', 'delivered_at',
+        'return_reason', 'exchange_reason', 'exchange_request_note',
     ];
 
     public const STATUS_LABELS = [
@@ -30,8 +31,11 @@ class OrderModel extends Model
         'expired'           => '만료',
         'refund_requested'  => '환불 요청',
         'refunded'          => '환불 완료',
-        'return_requested'  => '반품 요청',
-        'return_approved'   => '반품 승인',
+        'return_requested'   => '반품 요청',
+        'return_approved'    => '반품 승인',
+        'exchange_requested' => '교환 요청',
+        'exchange_approved'  => '교환 승인',
+        'exchange_completed' => '교환 완료',
     ];
 
     /**
@@ -662,6 +666,90 @@ class OrderModel extends Model
         $this->db->table('orders')->where('id', $orderId)->update(['status' => 'refunded']);
 
         $this->writeStatusLog($orderId, 'return_approved', 'refunded', '반품 환불 완료');
+
+        $this->db->transComplete();
+        return $this->db->transStatus();
+    }
+
+    /** 교환 요청 — delivered + 7일 이내, 쿠폰·포인트 미변경 */
+    public function requestExchange(int $orderId, int $userId, string $reason, string $note = ''): bool
+    {
+        $order = $this->db->table('orders')
+            ->where('id', $orderId)
+            ->where('user_id', $userId)
+            ->where('status', 'delivered')
+            ->get()->getRowArray();
+
+        if (! $order) return false;
+
+        if (! empty($order['delivered_at'])) {
+            if (time() > strtotime($order['delivered_at']) + 7 * 24 * 3600) {
+                return false;
+            }
+        }
+
+        $this->db->transStart();
+
+        $this->db->table('orders')->where('id', $orderId)->update([
+            'status'                => 'exchange_requested',
+            'exchange_reason'       => $reason,
+            'exchange_request_note' => $note ?: null,
+        ]);
+
+        $this->writeStatusLog($orderId, 'delivered', 'exchange_requested', '회원 교환 요청: ' . mb_substr($reason, 0, 100));
+
+        $this->db->transComplete();
+        return $this->db->transStatus();
+    }
+
+    /** 교환 승인 — 원상품 재고 복구 (쿠폰·포인트는 유지) */
+    public function approveExchange(int $orderId): bool
+    {
+        $order = $this->where('id', $orderId)->where('status', 'exchange_requested')->first();
+        if (! $order) return false;
+
+        $this->db->transStart();
+
+        $items = $this->db->table('order_items')->where('order_id', $orderId)->get()->getResultArray();
+        foreach ($items as $item) {
+            $this->restoreItemStock($item);
+        }
+
+        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'exchange_approved']);
+
+        $this->writeStatusLog($orderId, 'exchange_requested', 'exchange_approved', '관리자 교환 승인');
+
+        $this->db->transComplete();
+        return $this->db->transStatus();
+    }
+
+    /** 교환 거부 — delivered 복원 */
+    public function rejectExchange(int $orderId): bool
+    {
+        $order = $this->where('id', $orderId)->where('status', 'exchange_requested')->first();
+        if (! $order) return false;
+
+        $this->db->transStart();
+
+        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'delivered']);
+
+        $this->writeStatusLog($orderId, 'exchange_requested', 'delivered', '관리자 교환 거부');
+
+        $this->db->transComplete();
+        return $this->db->transStatus();
+    }
+
+    /** 교환 완료 — 대체품 발송 확인 */
+    public function completeExchange(int $orderId): bool
+    {
+        $order = $this->where('id', $orderId)->where('status', 'exchange_approved')->first();
+        if (! $order) return false;
+
+        $this->db->transStart();
+
+        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'exchange_completed']);
+
+        $this->writeStatusLog($orderId, 'exchange_approved', 'exchange_completed', '교환 완료 (대체품 발송 확인)');
 
         $this->db->transComplete();
         return $this->db->transStatus();
