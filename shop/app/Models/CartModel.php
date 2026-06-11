@@ -146,7 +146,7 @@ class CartModel extends Model
             ->findAll();
         $dbQtyMap = [];
         foreach ($existing as $row) {
-            $k = $row['product_id'] . '_' . (int) ($row['sku_id'] ?? 0);
+            $k = $row['product_id'] . '_' . (int) $row['sku_id'];
             $dbQtyMap[$k] = (int) $row['qty'];
         }
 

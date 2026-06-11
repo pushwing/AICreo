@@ -53,7 +53,7 @@ class ProductSkuModel extends Model
         }
         unset($opt);
 
-        $skus = $this->where('product_id', $productId)->findAll();
+        $skus = $this->db->table('product_skus')->where('product_id', $productId)->get()->getResultArray();
 
         if ($skus) {
             $skuIds = array_column($skus, 'id');
