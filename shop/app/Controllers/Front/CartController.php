@@ -5,16 +5,19 @@ namespace App\Controllers\Front;
 use App\Controllers\BaseController;
 use App\Models\CartModel;
 use App\Models\ProductModel;
+use App\Models\ProductSkuModel;
 
 class CartController extends BaseController
 {
-    private CartModel    $cartModel;
-    private ProductModel $productModel;
+    private CartModel       $cartModel;
+    private ProductModel    $productModel;
+    private ProductSkuModel $skuModel;
 
     public function __construct()
     {
         $this->cartModel    = new CartModel();
         $this->productModel = new ProductModel();
+        $this->skuModel     = new ProductSkuModel();
     }
 
     /**
@@ -27,9 +30,7 @@ class CartController extends BaseController
 
         $sessionCart = session()->get('cart') ?? [];
         if ($sessionCart) {
-            $ids      = array_map('intval', array_keys($sessionCart));
-            $products = $this->productModel->whereIn('id', $ids)->findAll();
-            $stockMap = array_column($products, 'stock', 'id');
+            $stockMap = $this->buildSessionStockMap($sessionCart);
             $this->cartModel->mergeSession($userId, $sessionCart, $stockMap);
             session()->remove('cart');
         }
@@ -40,6 +41,42 @@ class CartController extends BaseController
     }
 
     /**
+     * 세션 장바구니의 재고 맵 구성 (SKU/상품 구분)
+     * 반환: ['productId_skuId' => stock, ...]
+     */
+    private function buildSessionStockMap(array $sessionCart): array
+    {
+        $productIds = [];
+        $skuIds     = [];
+        foreach ($sessionCart as $key => $_) {
+            [$pid, $sid] = CartModel::parseSessionKey((string) $key);
+            $productIds[] = $pid;
+            if ($sid) $skuIds[] = $sid;
+        }
+        $productIds = array_unique($productIds);
+        $skuIds     = array_unique($skuIds);
+
+        $productStocks = [];
+        if ($productIds) {
+            $rows = $this->productModel->whereIn('id', $productIds)->findAll();
+            $productStocks = array_column($rows, 'stock', 'id');
+        }
+
+        $skuStocks = [];
+        if ($skuIds) {
+            $rows = $this->skuModel->whereIn('id', $skuIds)->findAll();
+            $skuStocks = array_column($rows, 'stock', 'id');
+        }
+
+        $stockMap = [];
+        foreach ($sessionCart as $key => $_) {
+            [$pid, $sid] = CartModel::parseSessionKey((string) $key);
+            $stockMap[$key] = $sid ? (int) ($skuStocks[$sid] ?? 0) : (int) ($productStocks[$pid] ?? 0);
+        }
+        return $stockMap;
+    }
+
+    /**
      * POST /cart/add — 장바구니 담기 (로그인·비로그인 모두 허용)
      * 로그인: DB, 비로그인: 세션
      */
@@ -47,8 +84,9 @@ class CartController extends BaseController
     {
         $productId = (int) $this->request->getPost('product_id');
         $qty       = max(1, (int) $this->request->getPost('qty'));
+        $skuId     = $this->request->getPost('sku_id') ? (int) $this->request->getPost('sku_id') : null;
 
-        // 재고 DB 직접 조회 (캐시 우회)
+        // 상품 유효성 확인
         $row = $this->productModel->db
             ->table('products')
             ->select('id, stock, status, deleted_at')
@@ -61,7 +99,17 @@ class CartController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => '구매할 수 없는 상품입니다.']);
         }
 
-        $stock = (int) $row['stock'];
+        // SKU 재고 / 상품 재고 분기
+        if ($skuId !== null) {
+            $sku = $this->skuModel->findForProduct($skuId, $productId);
+            if (! $sku) {
+                return $this->response->setJSON(['success' => false, 'message' => '존재하지 않는 옵션입니다.']);
+            }
+            $stock = (int) $sku['stock'];
+        } else {
+            $stock = (int) $row['stock'];
+        }
+
         if ($stock < 1) {
             return $this->response->setJSON(['success' => false, 'message' => '재고가 없습니다.']);
         }
@@ -70,11 +118,12 @@ class CartController extends BaseController
         $userId = session()->get('user_id');
 
         if ($userId) {
-            $this->cartModel->upsert((int) $userId, $productId, $qty);
+            $this->cartModel->upsert((int) $userId, $productId, $qty, $skuId);
             $count = $this->cartModel->getCount((int) $userId);
         } else {
-            $cart             = session()->get('cart') ?? [];
-            $cart[$productId] = min(($cart[$productId] ?? 0) + $qty, $stock);
+            $cart    = session()->get('cart') ?? [];
+            $sessKey = CartModel::sessionKey($productId, $skuId);
+            $cart[$sessKey] = min(($cart[$sessKey] ?? 0) + $qty, $stock);
             session()->set('cart', $cart);
             $count = count($cart);
         }
@@ -94,21 +143,30 @@ class CartController extends BaseController
         $userId    = (int) session()->get('user_id');
         $productId = (int) $this->request->getPost('product_id');
         $qty       = max(1, (int) $this->request->getPost('qty'));
+        $skuId     = $this->request->getPost('sku_id') ? (int) $this->request->getPost('sku_id') : null;
 
-        // 해당 사용자 장바구니에 상품이 존재하는지 확인
-        $existing = $this->cartModel->where('user_id', $userId)->where('product_id', $productId)->first();
-        if (! $existing) {
+        $builder = $this->cartModel->where('user_id', $userId)->where('product_id', $productId);
+        if ($skuId !== null) {
+            $builder->where('sku_id', $skuId);
+        } else {
+            $builder->where('sku_id IS NULL', null, false);
+        }
+        if (! $builder->first()) {
             return $this->response->setJSON(['success' => false, 'message' => '장바구니에 없는 상품입니다.']);
         }
 
-        // 재고 상한 클리핑 (DB 직접 조회, 캐시 우회)
-        $stockRow = $this->productModel->db
-            ->table('products')->select('stock')->where('id', $productId)->get()->getRow();
-        if ($stockRow && (int) $stockRow->stock > 0) {
-            $qty = min($qty, (int) $stockRow->stock);
+        // 재고 상한 클리핑
+        if ($skuId !== null) {
+            $skuRow = $this->skuModel->find($skuId);
+            if ($skuRow) $qty = min($qty, (int) $skuRow['stock']);
+        } else {
+            $stockRow = $this->productModel->db->table('products')->select('stock')->where('id', $productId)->get()->getRow();
+            if ($stockRow && (int) $stockRow->stock > 0) {
+                $qty = min($qty, (int) $stockRow->stock);
+            }
         }
 
-        $this->cartModel->updateQty($userId, $productId, $qty);
+        $this->cartModel->updateQty($userId, $productId, $qty, $skuId);
 
         return $this->response->setJSON(['success' => true, 'qty' => $qty]);
     }
@@ -120,8 +178,9 @@ class CartController extends BaseController
     {
         $userId    = (int) session()->get('user_id');
         $productId = (int) $this->request->getPost('product_id');
+        $skuId     = $this->request->getPost('sku_id') ? (int) $this->request->getPost('sku_id') : null;
 
-        $this->cartModel->removeItem($userId, $productId);
+        $this->cartModel->removeItem($userId, $productId, $skuId);
 
         return redirect()->to('/cart')->with('success', '상품이 삭제되었습니다.');
     }

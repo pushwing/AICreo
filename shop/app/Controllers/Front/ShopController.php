@@ -9,6 +9,7 @@ use App\Models\ProductImageModel;
 use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
 use App\Models\ProductReviewModel;
+use App\Models\ProductSkuModel;
 
 class ShopController extends BaseController
 {
@@ -17,6 +18,7 @@ class ShopController extends BaseController
     private ProductImageModel  $imageModel;
     private ProductQnaModel    $qnaModel;
     private ProductReviewModel $reviewModel;
+    private ProductSkuModel    $skuModel;
 
     public function __construct()
     {
@@ -25,6 +27,7 @@ class ShopController extends BaseController
         $this->imageModel    = new ProductImageModel();
         $this->qnaModel      = new ProductQnaModel();
         $this->reviewModel   = new ProductReviewModel();
+        $this->skuModel      = new ProductSkuModel();
     }
 
     public function home(): string
@@ -83,10 +86,15 @@ class ShopController extends BaseController
             $canWriteReview = $reviewOrderId !== null;
         }
 
+        $optionsAndSkus = $this->skuModel->getOptionsAndSkus($product['id']);
+
         return $this->render('shop/detail', [
             'product'         => $product,
             'images'          => $images,
             'shipping_policy' => $this->viewData['settings']['shipping_policy'] ?? '',
+            // 옵션 / SKU
+            'options'         => $optionsAndSkus['options'],
+            'skus'            => $optionsAndSkus['skus'],
             // QnA
             'qnaItems'        => $qnaData['items'],
             'qnaTotal'        => $qnaData['total'],

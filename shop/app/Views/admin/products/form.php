@@ -156,6 +156,48 @@
                 </div>
             </div>
 
+            <!-- 상품 옵션 / SKU -->
+            <div class="card mb-3" id="optionCard">
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>상품 옵션 (SKU)</span>
+                    <span class="text-muted small fw-normal">옵션을 추가하면 조합별 재고·가격을 관리할 수 있습니다.</span>
+                </div>
+                <div class="card-body">
+                    <input type="hidden" name="options_json" id="optionsJson">
+
+                    <!-- 옵션 그룹 목록 -->
+                    <div id="optionGroupList" class="mb-3"></div>
+
+                    <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addOptionGroup()">
+                        <i class="bi bi-plus-circle me-1"></i>옵션 그룹 추가
+                    </button>
+
+                    <!-- SKU 테이블 -->
+                    <div id="skuSection" style="display:none">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-semibold small">SKU (옵션 조합별 재고·가격)</span>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="generateSkus()">
+                                <i class="bi bi-arrow-repeat me-1"></i>조합 자동 생성
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>옵션 조합</th>
+                                        <th style="width:130px">가격 차이 (±원)</th>
+                                        <th style="width:100px">재고</th>
+                                        <th style="width:120px">관리코드</th>
+                                        <th style="width:40px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="skuTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary"><?= $product ? '저장' : '등록' ?></button>
                 <a href="/admin/products" class="btn btn-outline-secondary">취소</a>
@@ -261,5 +303,194 @@ function deleteImage(imageId, mediaId) {
 }
 
 toggleShippingFields();
+
+// ── 옵션 / SKU 관리 ──────────────────────────────────────────────────────────
+// 기존 데이터 (수정 시 서버에서 전달)
+let optionGroups = <?= json_encode($optionsAndSkus['options'] ?? [], JSON_UNESCAPED_UNICODE) ?>;
+let skuList      = <?= json_encode($optionsAndSkus['skus']    ?? [], JSON_UNESCAPED_UNICODE) ?>;
+
+// 임시 ID 카운터 (클라이언트 전용)
+let tmpIdCounter = 1000;
+
+function nextTmpId() { return 't' + (tmpIdCounter++); }
+
+// 초기 렌더링
+(function () {
+    // 기존 options에 tmp_id 부여
+    optionGroups.forEach(function (g) {
+        g.tmp_id = nextTmpId();
+        g.values.forEach(function (v) { v.tmp_id = nextTmpId(); });
+    });
+    // 기존 SKU의 value_tmp_ids를 option_value_ids 기반으로 매핑
+    const dbIdToTmpId = {};
+    optionGroups.forEach(function (g) {
+        g.values.forEach(function (v) { dbIdToTmpId[v.id] = v.tmp_id; });
+    });
+    skuList.forEach(function (sku) {
+        sku.value_tmp_ids = (sku.option_value_ids || []).map(function (id) { return dbIdToTmpId[id] || id; });
+    });
+
+    renderOptionGroups();
+    renderSkuSection();
+})();
+
+function renderOptionGroups() {
+    const el = document.getElementById('optionGroupList');
+    if (optionGroups.length === 0) {
+        el.innerHTML = '<p class="text-muted small mb-0">옵션 없음 (옵션 없는 상품은 위의 재고 수량을 사용합니다.)</p>';
+        return;
+    }
+    el.innerHTML = optionGroups.map(function (g, gi) {
+        return `
+        <div class="border rounded p-2 mb-2 bg-light">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <input type="text" class="form-control form-control-sm" placeholder="그룹명 (예: 색상)"
+                       style="max-width:180px" value="${esc(g.name)}"
+                       oninput="optionGroups[${gi}].name = this.value">
+                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" onclick="removeOptionGroup(${gi})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center" id="valueList_${gi}">
+                ${g.values.map(function (v, vi) { return renderValueChip(gi, vi, v); }).join('')}
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="addOptionValue(${gi})">+ 값 추가</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderValueChip(gi, vi, v) {
+    return `<div class="input-group input-group-sm" style="width:auto">
+        <input type="text" class="form-control form-control-sm" placeholder="값 (예: 빨강)"
+               style="width:100px" value="${esc(v.value)}"
+               oninput="optionGroups[${gi}].values[${vi}].value = this.value">
+        <button class="btn btn-outline-danger" type="button"
+                onclick="removeOptionValue(${gi}, ${vi})"><i class="bi bi-x"></i></button>
+    </div>`;
+}
+
+function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addOptionGroup() {
+    optionGroups.push({ tmp_id: nextTmpId(), name: '', values: [] });
+    renderOptionGroups();
+    renderSkuSection();
+}
+
+function removeOptionGroup(gi) {
+    optionGroups.splice(gi, 1);
+    renderOptionGroups();
+    skuList = [];
+    renderSkuSection();
+}
+
+function addOptionValue(gi) {
+    optionGroups[gi].values.push({ tmp_id: nextTmpId(), value: '' });
+    renderOptionGroups();
+}
+
+function removeOptionValue(gi, vi) {
+    optionGroups[gi].values.splice(vi, 1);
+    renderOptionGroups();
+    skuList = [];
+    renderSkuSection();
+}
+
+function renderSkuSection() {
+    const section = document.getElementById('skuSection');
+    const hasGroups = optionGroups.length > 0 && optionGroups.some(function (g) { return g.values.length > 0; });
+    section.style.display = hasGroups ? '' : 'none';
+    if (! hasGroups) return;
+
+    const tbody = document.getElementById('skuTableBody');
+    tbody.innerHTML = skuList.map(function (sku, si) {
+        const label = buildSkuLabel(sku.value_tmp_ids);
+        return `<tr>
+            <td class="small">${esc(label)}</td>
+            <td><input type="number" class="form-control form-control-sm" value="${sku.price_diff || 0}"
+                       oninput="skuList[${si}].price_diff = parseInt(this.value)||0"></td>
+            <td><input type="number" class="form-control form-control-sm" value="${sku.stock || 0}" min="0"
+                       oninput="skuList[${si}].stock = parseInt(this.value)||0"></td>
+            <td><input type="text" class="form-control form-control-sm" value="${esc(sku.sku_code||'')}"
+                       oninput="skuList[${si}].sku_code = this.value"></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger"
+                onclick="skuList.splice(${si},1); renderSkuSection()"><i class="bi bi-x"></i></button></td>
+        </tr>`;
+    }).join('');
+}
+
+function buildSkuLabel(valueTmpIds) {
+    if (! valueTmpIds || valueTmpIds.length === 0) return '-';
+    const parts = [];
+    optionGroups.forEach(function (g) {
+        g.values.forEach(function (v) {
+            if (valueTmpIds.includes(v.tmp_id)) {
+                parts.push(g.name + ':' + v.value);
+            }
+        });
+    });
+    return parts.join('/');
+}
+
+function generateSkus() {
+    // Cartesian product of all option values
+    let combos = [[]];
+    optionGroups.forEach(function (g) {
+        if (g.values.length === 0) return;
+        const newCombos = [];
+        combos.forEach(function (combo) {
+            g.values.forEach(function (v) {
+                newCombos.push(combo.concat([v.tmp_id]));
+            });
+        });
+        combos = newCombos;
+    });
+
+    // 기존 재고·가격 차이 보존 (라벨 기반 매칭)
+    const prevMap = {};
+    skuList.forEach(function (sku) {
+        const key = (sku.value_tmp_ids || []).slice().sort().join(',');
+        prevMap[key] = sku;
+    });
+
+    skuList = combos.map(function (ids) {
+        const key  = ids.slice().sort().join(',');
+        const prev = prevMap[key];
+        return {
+            value_tmp_ids: ids,
+            price_diff:    prev ? prev.price_diff : 0,
+            stock:         prev ? prev.stock      : 0,
+            sku_code:      prev ? prev.sku_code   : '',
+        };
+    });
+
+    renderSkuSection();
+}
+
+// 폼 제출 전 options_json 직렬화
+document.getElementById('productForm').addEventListener('submit', function () {
+    const data = {
+        options: optionGroups.map(function (g) {
+            return {
+                name:   g.name,
+                values: g.values.map(function (v) {
+                    return { tmp_id: v.tmp_id, value: v.value };
+                }),
+            };
+        }),
+        skus: skuList.map(function (s) {
+            return {
+                value_tmp_ids: s.value_tmp_ids,
+                price_diff:    s.price_diff || 0,
+                stock:         s.stock      || 0,
+                sku_code:      s.sku_code   || null,
+            };
+        }),
+    };
+    document.getElementById('optionsJson').value = optionGroups.length > 0 ? JSON.stringify(data) : '';
+});
 </script>
 <?= $this->endSection() ?>

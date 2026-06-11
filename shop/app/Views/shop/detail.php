@@ -119,12 +119,32 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                 </div>
             </div>
 
+            <?php if (! empty($options)): ?>
+            <!-- 옵션 선택 -->
+            <div class="mb-4 pb-4 border-bottom" id="optionArea">
+                <?php foreach ($options as $optGroup): ?>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                    <span class="text-muted small" style="min-width:70px"><?= esc($optGroup['name']) ?></span>
+                    <select class="form-select form-select-sm option-select"
+                            data-option-id="<?= (int) $optGroup['id'] ?>"
+                            onchange="onOptionChange()">
+                        <option value="">선택하세요</option>
+                        <?php foreach ($optGroup['values'] as $val): ?>
+                        <option value="<?= (int) $val['id'] ?>"><?= esc($val['value']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endforeach; ?>
+                <div id="skuInfoMsg" class="text-muted small mt-1" style="min-height:1.2em"></div>
+            </div>
+            <?php endif; ?>
+
             <!-- 재고 / 품절 표시 -->
-            <?php if ($isSoldOut): ?>
+            <?php if ($isSoldOut && empty($options)): ?>
             <div class="alert alert-secondary py-2 mb-4">
                 <i class="bi bi-exclamation-circle me-1"></i>현재 품절된 상품입니다.
             </div>
-            <?php else: ?>
+            <?php elseif (empty($options)): ?>
             <div class="text-muted small mb-4">재고 <strong class="text-dark"><?= number_format($product['stock']) ?></strong>개</div>
             <?php endif; ?>
 
@@ -424,17 +444,98 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
 .product-desc img { max-width: 100%; height: auto; }
 </style>
 <script>
+// SKU 데이터 (서버에서 주입)
+const skuData = <?= json_encode(array_map(function ($s) {
+    return [
+        'id'               => (int) $s['id'],
+        'price_diff'       => (int) $s['price_diff'],
+        'stock'            => (int) $s['stock'],
+        'option_value_ids' => array_map('intval', $s['option_value_ids'] ?? []),
+    ];
+}, $skus ?? []), JSON_UNESCAPED_UNICODE) ?>;
+
+let basePrice   = <?= (int) $displayPrice ?>;
+let currentSkuId = null;
+
+function onOptionChange() {
+    const selects = document.querySelectorAll('.option-select');
+    const selected = Array.from(selects).map(function (s) { return parseInt(s.value) || 0; });
+    const allPicked = selected.every(function (v) { return v > 0; });
+
+    currentSkuId = null;
+    const msg = document.getElementById('skuInfoMsg');
+
+    if (! allPicked) {
+        if (msg) msg.textContent = '';
+        updatePriceDisplay(basePrice, <?= (int) $product['stock'] ?>);
+        return;
+    }
+
+    // 선택한 옵션값 조합에 맞는 SKU 탐색
+    const sku = skuData.find(function (s) {
+        return selected.every(function (vid) { return s.option_value_ids.includes(vid); })
+            && s.option_value_ids.length === selected.length;
+    });
+
+    if (! sku) {
+        if (msg) msg.textContent = '해당 조합은 준비 중입니다.';
+        updatePriceDisplay(basePrice, 0);
+        return;
+    }
+
+    currentSkuId = sku.id;
+    const finalPrice = basePrice + sku.price_diff;
+    if (msg) {
+        msg.textContent = sku.stock > 0
+            ? '재고 ' + sku.stock + '개'
+            : '품절';
+    }
+    updatePriceDisplay(finalPrice, sku.stock);
+}
+
+function updatePriceDisplay(price, stock) {
+    const qtyInput = document.getElementById('qtyInput');
+    const totalEl  = document.getElementById('totalPrice');
+    const qtyMinus = document.getElementById('qtyMinus');
+    const qtyPlus  = document.getElementById('qtyPlus');
+    const btnCart  = document.getElementById('btnAddCart');
+    const btnBuy   = document.getElementById('btnBuyNow');
+    const soldOutMsg = document.querySelector('.alert.alert-secondary');
+
+    const isSoldOut = stock < 1;
+
+    if (qtyInput) {
+        qtyInput.disabled = isSoldOut;
+        qtyInput.max      = stock;
+        if (parseInt(qtyInput.value) > stock) qtyInput.value = Math.max(1, stock);
+    }
+    if (qtyMinus) qtyMinus.disabled = isSoldOut;
+    if (qtyPlus)  qtyPlus.disabled  = isSoldOut;
+    if (btnCart)  btnCart.disabled   = isSoldOut;
+    if (btnBuy)   btnBuy.disabled    = isSoldOut;
+    if (totalEl) {
+        const qty = parseInt(qtyInput?.value || 1);
+        totalEl.textContent = (price * qty).toLocaleString('ko-KR') + '원';
+    }
+
+    // 현재 unitPrice 업데이트 (수량 변경 핸들러가 참조)
+    window._currentUnitPrice = price;
+    window._currentMaxQty    = stock;
+}
+
 (function () {
-    const unitPrice = <?= (int) $displayPrice ?>;
-    const maxQty    = <?= (int) $product['stock'] ?>;
-    const qtyInput  = document.getElementById('qtyInput');
-    const totalEl   = document.getElementById('totalPrice');
+    window._currentUnitPrice = basePrice;
+    window._currentMaxQty    = <?= (int) $product['stock'] ?>;
+
+    const qtyInput = document.getElementById('qtyInput');
+    const totalEl  = document.getElementById('totalPrice');
 
     function updateTotal() {
         if (! qtyInput || ! totalEl) return;
-        const qty = Math.max(1, Math.min(parseInt(qtyInput.value) || 1, maxQty));
+        const maxQty = window._currentMaxQty || 0;
+        const qty    = Math.max(1, Math.min(parseInt(qtyInput.value) || 1, maxQty || 9999));
         qtyInput.value = qty;
-        totalEl.textContent = (unitPrice * qty).toLocaleString('ko-KR') + '원';
+        totalEl.textContent = ((window._currentUnitPrice || basePrice) * qty).toLocaleString('ko-KR') + '원';
     }
 
     document.getElementById('qtyMinus')?.addEventListener('click', function () {
@@ -442,7 +543,8 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
         updateTotal();
     });
     document.getElementById('qtyPlus')?.addEventListener('click', function () {
-        qtyInput.value = Math.min(maxQty, parseInt(qtyInput.value) + 1);
+        const max = window._currentMaxQty || 9999;
+        qtyInput.value = Math.min(max, parseInt(qtyInput.value) + 1);
         updateTotal();
     });
     qtyInput?.addEventListener('input', updateTotal);
@@ -469,11 +571,24 @@ document.getElementById('productCarousel')?.addEventListener('slide.bs.carousel'
 
 // ─── 장바구니 담기 / 바로구매 ─────────────────────────────────────────────────
 function addToCart(btn, onSuccess) {
+    // 옵션이 있는데 SKU를 선택하지 않았으면 안내
+    const hasOptions = skuData.length > 0;
+    if (hasOptions && currentSkuId === null) {
+        const selects = document.querySelectorAll('.option-select');
+        const unselected = Array.from(selects).find(function (s) { return ! s.value; });
+        if (unselected) {
+            const label = unselected.previousElementSibling?.textContent?.trim() || '옵션';
+            alert(label + '을(를) 선택해주세요.');
+            return;
+        }
+    }
+
     const qty = parseInt(document.getElementById('qtyInput')?.value || 1);
     const body = new FormData();
     body.append(btn.dataset.csrf, btn.dataset.csrfVal);
     body.append('product_id', btn.dataset.productId);
     body.append('qty', qty);
+    if (currentSkuId) body.append('sku_id', currentSkuId);
 
     btn.disabled = true;
     fetch('/cart/add', { method: 'POST', body })
