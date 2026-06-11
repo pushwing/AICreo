@@ -209,6 +209,7 @@ $routes->post('shop/(:segment)/qna',                        'Front\ShopControlle
 $routes->post('shop/(:segment)/qna/(:num)/delete',          'Front\ShopController::qnaDelete/$1/$2',     ['filter' => 'auth:member']);
 $routes->post('shop/(:segment)/review',                     'Front\ShopController::reviewStore/$1',      ['filter' => 'auth:member']);
 $routes->post('shop/(:segment)/review/(:num)/delete',       'Front\ShopController::reviewDelete/$1/$2',  ['filter' => 'auth:member']);
+$routes->post('shop/(:segment)/wish',                       'Front\ShopController::wishToggle/$1',       ['filter' => 'auth:member']);
 
 // ─── 장바구니 ──────────────────────────────────────────────────────────────────
 // add: 비로그인도 허용 (세션 저장), 나머지: 로그인 필요
@@ -246,9 +247,10 @@ $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
     $routes->post('addresses',                      'Front\MyPageController::addressStore');
     $routes->post('addresses/(:num)/default',       'Front\MyPageController::addressSetDefault/$1');
     $routes->post('addresses/(:num)/delete',        'Front\MyPageController::addressDelete/$1');
-    // 쿠폰 · 포인트
-    $routes->get('coupons', 'Front\MyPageController::coupons');
-    $routes->get('points',  'Front\MyPageController::points');
+    // 쿠폰 · 포인트 · 찜
+    $routes->get('coupons',  'Front\MyPageController::coupons');
+    $routes->get('points',   'Front\MyPageController::points');
+    $routes->get('wishlist', 'Front\MyPageController::wishlist');
 });
 
 // ─── PG 콜백 (PG 서버에서 직접 호출 — CSRF 예외 필요) ────────────────────────
