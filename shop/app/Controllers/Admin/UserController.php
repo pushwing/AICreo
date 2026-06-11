@@ -85,12 +85,15 @@ class UserController extends BaseController
             return redirect()->back()->with('error', '본인 계정은 수정할 수 없습니다.');
         }
 
+        $grade = $this->request->getPost('grade');
+        $validGrades = ['bronze', 'silver', 'gold', 'platinum'];
         $data = [
             'nickname'  => $this->request->getPost('nickname'),
             'phone'     => $this->request->getPost('phone') ?: null,
             'gender'    => $this->request->getPost('gender') ?: null,
             'birthday'  => $this->request->getPost('birthday') ?: null,
             'role'      => $this->request->getPost('role'),
+            'grade'     => in_array($grade, $validGrades, true) ? $grade : 'bronze',
             'is_active' => (int) $this->request->getPost('is_active'),
         ];
 

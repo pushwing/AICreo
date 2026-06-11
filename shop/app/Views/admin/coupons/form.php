@@ -46,11 +46,25 @@
                 </div>
 
                 <div class="col-md-4">
+                    <label class="form-label small fw-semibold">대상 등급 <small class="text-muted">(미선택=전체)</small></label>
+                    <?php
+                        $gradeLabels = \App\Libraries\GradeService::LABELS;
+                        $selGrade    = old('target_grade', $coupon['target_grade'] ?? '');
+                    ?>
+                    <select name="target_grade" class="form-select">
+                        <option value="">전체 회원</option>
+                        <?php foreach ($gradeLabels as $gk => $gl): ?>
+                        <option value="<?= $gk ?>" <?= $selGrade === $gk ? 'selected' : '' ?>><?= esc($gl) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-4" id="discountValueWrap">
                     <label class="form-label small fw-semibold">할인값 <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="number" name="discount_value" class="form-control"
                                value="<?= (int) old('discount_value', $coupon['discount_value'] ?? 0) ?>"
-                               min="1" required>
+                               min="1">
                         <span class="input-group-text" id="discountUnit">원</span>
                     </div>
                 </div>
@@ -120,14 +134,18 @@
 <?= $this->section('scripts') ?>
 <script>
 (function () {
-    const typeSelect  = document.getElementById('couponType');
-    const unitEl      = document.getElementById('discountUnit');
-    const maxWrap     = document.getElementById('maxDiscountWrap');
+    const typeSelect   = document.getElementById('couponType');
+    const unitEl       = document.getElementById('discountUnit');
+    const maxWrap      = document.getElementById('maxDiscountWrap');
+    const discountWrap = document.getElementById('discountValueWrap');
 
     function toggleType() {
-        const isPercent = typeSelect.value === 'percent';
-        unitEl.textContent  = isPercent ? '%' : '원';
-        maxWrap.style.display = isPercent ? '' : 'none';
+        const v         = typeSelect.value;
+        const isFree    = v === 'free_shipping';
+        const isPercent = v === 'percent';
+        unitEl.textContent        = isPercent ? '%' : '원';
+        maxWrap.style.display     = isPercent ? '' : 'none';
+        discountWrap.style.display = isFree ? 'none' : '';
     }
 
     typeSelect.addEventListener('change', toggleType);

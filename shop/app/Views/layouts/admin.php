@@ -76,6 +76,9 @@
         <a href="/admin/points" class="nav-link <?= str_starts_with(uri_string(), 'admin/points') ? 'active' : '' ?>">
             <i class="bi bi-star me-2"></i>포인트 관리
         </a>
+        <a href="/admin/grade/platinum" class="nav-link <?= str_starts_with(uri_string(), 'admin/grade') ? 'active' : '' ?>">
+            <i class="bi bi-trophy-fill me-2"></i>회원 등급
+        </a>
 
         <div class="nav-section">운영</div>
         <a href="/admin/users" class="nav-link <?= str_starts_with(uri_string(), 'admin/users') ? 'active' : '' ?>">

@@ -1,5 +1,6 @@
 <?= $this->extend('layouts/admin') ?>
 <?php $pageTitle = '회원 수정' ?>
+<?php use App\Libraries\GradeService; ?>
 
 <?= $this->section('content') ?>
 
@@ -92,6 +93,23 @@
                     <option value="member" <?= $member['role'] === 'member' ? 'selected' : '' ?>>일반회원</option>
                     <option value="admin"  <?= $member['role'] === 'admin'  ? 'selected' : '' ?>>관리자</option>
                 </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small">회원 등급</label>
+                <?php $curGrade = $member['grade'] ?? 'bronze'; ?>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge <?= GradeService::BADGE_CLASSES[$curGrade] ?>">
+                        <i class="bi <?= GradeService::ICONS[$curGrade] ?> me-1"></i><?= GradeService::LABELS[$curGrade] ?>
+                    </span>
+                    <span class="text-muted small">현재 등급</span>
+                </div>
+                <select name="grade" class="form-select form-select-sm">
+                    <?php foreach (GradeService::LABELS as $gk => $gl): ?>
+                    <option value="<?= $gk ?>" <?= $curGrade === $gk ? 'selected' : '' ?>><?= esc($gl) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text">플래티넘은 <a href="/admin/grade/platinum">플래티넘 승급 관리</a> 화면에서도 처리할 수 있습니다.</div>
             </div>
 
             <div class="mb-4">

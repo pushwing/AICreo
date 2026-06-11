@@ -128,8 +128,13 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'coupons/(:num)/edit',       'Admin\CouponController::edit/$1');
     $routes->post('coupons/(:num)/edit',       'Admin\CouponController::update/$1');
     $routes->post('coupons/(:num)/delete',     'Admin\CouponController::delete/$1');
-    $routes->get( 'coupons/(:num)/issue',      'Admin\CouponController::issueForm/$1');
-    $routes->post('coupons/(:num)/issue',      'Admin\CouponController::issue/$1');
+    $routes->get( 'coupons/(:num)/issue',            'Admin\CouponController::issueForm/$1');
+    $routes->post('coupons/(:num)/issue',            'Admin\CouponController::issue/$1');
+    $routes->post('coupons/(:num)/issue-grade',      'Admin\CouponController::issueGrade/$1');
+
+    // 회원 등급 관리
+    $routes->get( 'grade/platinum',                  'Admin\GradeController::platinum');
+    $routes->post('grade/platinum/(:num)/promote',   'Admin\GradeController::promote/$1');
 
     // 포인트 관리
     $routes->get( 'points',                    'Admin\PointController::index');

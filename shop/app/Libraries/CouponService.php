@@ -64,9 +64,16 @@ class CouponService
         return $this->checkCoupon($coupon, $userId, $orderAmount, $userCouponId);
     }
 
-    /** 할인 금액 계산 (orderAmount 초과 불가) */
+    /**
+     * 할인 금액 계산 (orderAmount 초과 불가)
+     * free_shipping은 배송비를 직접 알 수 없으므로 0 반환 — 호출처에서 shippingFee로 오버라이드
+     */
     public function calculateDiscount(array $coupon, int $orderAmount): int
     {
+        if ($coupon['type'] === 'free_shipping') {
+            return 0;
+        }
+
         if ($coupon['type'] === 'fixed') {
             return min((int) $coupon['discount_value'], $orderAmount);
         }
@@ -99,6 +106,18 @@ class CouponService
 
         if ((int) $coupon['min_order_amount'] > 0 && $orderAmount < (int) $coupon['min_order_amount']) {
             return $this->fail('최소 주문 금액(' . number_format($coupon['min_order_amount']) . '원) 이상일 때 사용 가능합니다.');
+        }
+
+        // 등급 제한 쿠폰 검증
+        if (! empty($coupon['target_grade'])) {
+            $userRow = \Config\Database::connect()
+                ->table('users')->select('grade')->where('id', $userId)->get()->getRowArray();
+            $userGrade = $userRow['grade'] ?? 'bronze';
+            if ($userGrade !== $coupon['target_grade']) {
+                $gradeLabels = \App\Libraries\GradeService::LABELS;
+                $label = $gradeLabels[$coupon['target_grade']] ?? $coupon['target_grade'];
+                return $this->fail($label . ' 등급 전용 쿠폰입니다.');
+            }
         }
 
         // user_coupon_id 없이 코드로 접근하는 경우: 이미 사용한 이력 확인

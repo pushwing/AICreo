@@ -4,6 +4,7 @@ namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
 use App\Libraries\CouponService;
+use App\Libraries\GradeService;
 use App\Libraries\PG\PGFactory;
 use App\Models\CartModel;
 use App\Models\OrderModel;
@@ -135,8 +136,11 @@ class OrderController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => $result['message']]);
             }
             $couponId             = $result['coupon']['id'];
-            $couponDiscountAmount = $result['discount'];
             $resolvedUserCouponId = $result['user_coupon_id'];
+            // 무료배송 쿠폰은 배송비 전액을 할인으로 처리
+            $couponDiscountAmount = $result['coupon']['type'] === 'free_shipping'
+                ? $shippingFee
+                : $result['discount'];
         }
 
         // 포인트 검증
@@ -158,8 +162,10 @@ class OrderController extends BaseController
             ]);
         }
 
-        // 포인트 적립 예정액
-        $earnRate    = max(0, (float) ($settings['point_earn_rate'] ?? 1));
+        // 포인트 적립 예정액 (배송완료 시점 등급 기준 — 여기선 현재 등급으로 미리 계산)
+        $userRow     = \Config\Database::connect()->table('users')->select('grade')->where('id', $userId)->get()->getRow();
+        $userGrade   = $userRow->grade ?? 'bronze';
+        $earnRate    = (new GradeService())->getEarnRate($userGrade, $settings);
         $pointEarned = $payableAmount > 0 ? (int) floor($payableAmount * $earnRate / 100) : 0;
 
         $orderId = $this->orderModel->createPending(

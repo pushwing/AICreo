@@ -32,6 +32,7 @@ class BaseController extends Controller
             'id'       => session()->get('user_id'),
             'nickname' => session()->get('user_nickname'),
             'role'     => session()->get('user_role') ?? 'guest',
+            'grade'    => session()->get('user_grade') ?? 'bronze',
             'loggedIn' => (bool) session()->get('user_id'),
         ];
 

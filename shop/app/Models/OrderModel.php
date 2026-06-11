@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Libraries\GradeService;
 use CodeIgniter\Model;
 
 class OrderModel extends Model
@@ -547,7 +548,16 @@ class OrderModel extends Model
 
         $this->writeStatusLog($orderId, 'refund_requested', 'refunded', '환불 처리 완료');
 
-        $this->db->transComplete();
+        // 배송완료 후 등급 승급 체크 (트랜잭션 외부 — 승급 실패가 배송완료를 롤백하지 않도록)
+        if ($newStatus === 'delivered') {
+            try {
+                $settings = cache()->get('site_settings') ?? [];
+                (new GradeService())->checkAndUpgrade((int) $order['user_id'], $settings);
+            } catch (\Throwable $e) {
+                log_message('error', 'GradeService::checkAndUpgrade failed: ' . $e->getMessage());
+            }
+        }
+
         return $this->db->transStatus();
     }
 

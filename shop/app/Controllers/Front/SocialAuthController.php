@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Libraries\GradeService;
 use App\Libraries\OAuth\OAuthFactory;
 use App\Models\UserModel;
 
@@ -92,6 +93,7 @@ class SocialAuthController extends BaseController
             'user_id'       => $user['id'],
             'user_nickname' => $user['nickname'],
             'user_role'     => $user['role'],
+            'user_grade'    => $user['grade'] ?? 'bronze',
         ]);
 
         $this->userModel->updateLastLogin($user['id']);
@@ -149,6 +151,14 @@ class SocialAuthController extends BaseController
             'avatar'          => $profile['avatar'],
             'is_active'       => 1,
         ]);
+
+        // 소셜 로그인 신규 가입 즉시 보너스 지급
+        try {
+            $settings = cache()->get('site_settings') ?? [];
+            (new GradeService())->awardSignupBonus((int) $id, $settings);
+        } catch (\Throwable $e) {
+            log_message('error', 'GradeService::awardSignupBonus (social) failed: ' . $e->getMessage());
+        }
 
         return $this->userModel->find($id);
     }

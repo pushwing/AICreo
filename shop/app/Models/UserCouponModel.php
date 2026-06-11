@@ -43,7 +43,7 @@ class UserCouponModel extends Model
     public function getWithCoupon(int $userCouponId, int $userId): ?array
     {
         return $this->db->table('user_coupons uc')
-            ->select('uc.*, c.code, c.name, c.type, c.discount_value,
+            ->select('uc.*, c.code, c.name, c.type, c.target_grade, c.discount_value,
                       c.min_order_amount, c.max_discount_amount, c.total_qty, c.used_count,
                       c.starts_at, c.expires_at, c.is_active')
             ->join('coupons c', 'c.id = uc.coupon_id')

@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Libraries\GradeService;
 use App\Libraries\Mailer;
 use App\Models\ShippingAddressModel;
 use App\Models\UserModel;
@@ -58,6 +59,7 @@ class AuthController extends BaseController
             'user_id'       => $user['id'],
             'user_nickname' => $user['nickname'],
             'user_role'     => $user['role'],
+            'user_grade'    => $user['grade'] ?? 'bronze',
         ]);
 
         $this->userModel->updateLastLogin($user['id']);
@@ -146,6 +148,10 @@ class AuthController extends BaseController
         }
 
         $this->userModel->clearVerifyToken($user['id']);
+
+        // 가입 보너스 포인트 지급
+        $settings = $this->viewData['settings'] ?? [];
+        (new GradeService())->awardSignupBonus((int) $user['id'], $settings);
 
         return redirect()->to('/auth/login')
             ->with('success', '이메일 인증이 완료되었습니다. 로그인해주세요.');

@@ -14,10 +14,16 @@
 </div>
 
 
+<?php
+    use App\Libraries\GradeService;
+    $gradeLabels = GradeService::LABELS;
+    $gradeBadges = GradeService::BADGE_CLASSES;
+?>
+
 <div class="row g-4">
     <div class="col-md-5">
-        <div class="card">
-            <div class="card-header fw-semibold bg-white">회원에게 발급</div>
+        <div class="card mb-3">
+            <div class="card-header fw-semibold bg-white">회원 ID로 발급</div>
             <div class="card-body">
                 <form method="post" action="/admin/coupons/<?= (int) $coupon['id'] ?>/issue">
                     <?= csrf_field() ?>
@@ -28,6 +34,31 @@
                         <div class="form-text">이미 발급된 회원은 자동으로 건너뜁니다.</div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">발급</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-semibold bg-white">등급별 일괄 발급</div>
+            <div class="card-body">
+                <form method="post" action="/admin/coupons/<?= (int) $coupon['id'] ?>/issue-grade">
+                    <?= csrf_field() ?>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">대상 등급</label>
+                        <select name="grade" class="form-select" required>
+                            <?php foreach ($gradeLabels as $gk => $gl): ?>
+                            <option value="<?= $gk ?>"
+                                <?= (isset($coupon['target_grade']) && $coupon['target_grade'] === $gk) ? 'selected' : '' ?>>
+                                <?= esc($gl) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">해당 등급 회원 전체에게 발급합니다. 이미 보유한 회원은 건너뜁니다.</div>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100"
+                            onclick="return confirm('선택 등급 회원 전체에게 발급하겠습니까?')">
+                        등급 일괄 발급
+                    </button>
                 </form>
             </div>
         </div>
@@ -59,9 +90,11 @@
                             <td class="small"><?= (int) $uc['user_id'] ?></td>
                             <td class="small"><?= esc($uc['nickname'] ?? '—') ?></td>
                             <td class="small">
-                                <span class="badge bg-<?= $uc['source'] === 'admin' ? 'info' : 'secondary' ?> bg-opacity-75">
-                                    <?= $uc['source'] === 'admin' ? '관리자' : '코드입력' ?>
-                                </span>
+                                <?php
+                                    $srcMap = ['admin'=>['info','관리자'], 'grade_bulk'=>['warning','등급발급'], 'code'=>['secondary','코드입력']];
+                                    [$srcColor, $srcLabel] = $srcMap[$uc['source']] ?? ['secondary', $uc['source']];
+                                ?>
+                                <span class="badge bg-<?= $srcColor ?> bg-opacity-75 text-dark"><?= $srcLabel ?></span>
                             </td>
                             <td>
                                 <span class="badge bg-<?= $uc['status'] === 'used' ? 'success' : ($uc['status'] === 'expired' ? 'secondary' : 'primary') ?>">
