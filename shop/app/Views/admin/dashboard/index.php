@@ -2,6 +2,60 @@
 <?php $pageTitle = '대시보드' ?>
 <?= $this->section('content') ?>
 
+<!-- 매출 통계 -->
+<div class="row g-3 mb-4">
+    <?php
+    $salesCards = [
+        ['label' => '오늘 매출',    'value' => $salesStats['today'], 'icon' => 'bi-calendar-day',   'color' => 'primary'],
+        ['label' => '이번 주 매출', 'value' => $salesStats['week'],  'icon' => 'bi-calendar-week',  'color' => 'success'],
+        ['label' => '이번 달 매출', 'value' => $salesStats['month'], 'icon' => 'bi-calendar-month', 'color' => 'info'],
+    ];
+    foreach ($salesCards as $c):
+    ?>
+    <div class="col-sm-4">
+        <a href="/admin/orders" class="card border-0 shadow-sm text-decoration-none">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-<?= $c['color'] ?> bg-opacity-10 rounded p-3">
+                    <i class="bi <?= $c['icon'] ?> fs-4 text-<?= $c['color'] ?>"></i>
+                </div>
+                <div>
+                    <div class="text-muted small"><?= $c['label'] ?></div>
+                    <div class="fs-5 fw-bold text-dark"><?= number_format($c['value']) ?>원</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <?php endforeach; ?>
+</div>
+
+<!-- 운영 현황 -->
+<div class="row g-3 mb-4">
+    <?php
+    $opCards = [
+        ['label' => '오늘 신규 주문',  'value' => $operationStats['today_orders'],   'icon' => 'bi-bag-plus',        'color' => 'primary', 'href' => '/admin/orders'],
+        ['label' => '미처리 주문',     'value' => $operationStats['pending_orders'],  'icon' => 'bi-hourglass-split', 'color' => 'warning', 'href' => '/admin/orders?status=awaiting_payment'],
+        ['label' => '재고 부족 상품',  'value' => $operationStats['low_stock'],       'icon' => 'bi-exclamation-triangle', 'color' => 'danger',  'href' => '/admin/products?stock=low'],
+        ['label' => '오늘 신규 회원',  'value' => $operationStats['today_users'],     'icon' => 'bi-person-plus',     'color' => 'success', 'href' => '/admin/users'],
+        ['label' => '미확인 문의',     'value' => $operationStats['unread_inquiries'],'icon' => 'bi-bell',            'color' => 'info',    'href' => '/admin/inquiries?filter=unread'],
+    ];
+    foreach ($opCards as $c):
+    ?>
+    <div class="col-6 col-sm-4 col-xl">
+        <a href="<?= $c['href'] ?>" class="card border-0 shadow-sm text-decoration-none h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="bg-<?= $c['color'] ?> bg-opacity-10 rounded p-3 flex-shrink-0">
+                    <i class="bi <?= $c['icon'] ?> fs-5 text-<?= $c['color'] ?>"></i>
+                </div>
+                <div>
+                    <div class="text-muted small"><?= $c['label'] ?></div>
+                    <div class="fs-5 fw-bold text-dark"><?= number_format($c['value']) ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <?php endforeach; ?>
+</div>
+
 <!-- 통계 카드 -->
 <div class="row g-3 mb-4">
     <?php

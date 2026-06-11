@@ -40,12 +40,52 @@ class DashboardController extends BaseController
             ->orderBy('stock', 'ASC')
             ->findAll(10);
 
+        // 매출 통계 (취소·환불·만료·대기 제외)
+        $todayStart = date('Y-m-d') . ' 00:00:00';
+        $weekStart  = date('Y-m-d', strtotime('monday this week')) . ' 00:00:00';
+        $monthStart = date('Y-m-01') . ' 00:00:00';
+        $excludedStatuses = ['pending', 'expired', 'cancelled', 'refunded'];
+
+        $salesRow = $db->query("
+            SELECT
+                COALESCE(SUM(CASE WHEN created_at >= ? THEN total_amount ELSE 0 END), 0) AS today_sales,
+                COALESCE(SUM(CASE WHEN created_at >= ? THEN total_amount ELSE 0 END), 0) AS week_sales,
+                COALESCE(SUM(total_amount), 0)                                            AS month_sales
+            FROM orders
+            WHERE status NOT IN ('pending','expired','cancelled','refunded')
+              AND created_at >= ?
+        ", [$todayStart, $weekStart, $monthStart])->getRowArray();
+
+        // 운영 현황 카운트
+        $todayOrderCount   = $db->table('orders')
+            ->where('created_at >=', $todayStart)->countAllResults();
+        $pendingOrderCount = $db->table('orders')
+            ->whereIn('status', ['awaiting_payment', 'preparing'])->countAllResults();
+        $todayUserCount    = $db->table('users')
+            ->where('created_at >=', $todayStart)->countAllResults();
+        $lowStockCount     = $productModel
+            ->where('stock <=', 5)
+            ->where('deleted_at IS NULL', null, false)
+            ->countAllResults();
+
         return $this->render('admin/dashboard/index', [
             'stats' => [
                 'total_posts'     => $postModel->countAll(),
                 'total_users'     => $userModel->countAll(),
                 'total_inquiries' => $inquiryModel->countAll(),
                 'unread_inquiries'=> $inquiryModel->getUnreadCount(),
+            ],
+            'salesStats' => [
+                'today' => (int) ($salesRow['today_sales'] ?? 0),
+                'week'  => (int) ($salesRow['week_sales']  ?? 0),
+                'month' => (int) ($salesRow['month_sales'] ?? 0),
+            ],
+            'operationStats' => [
+                'today_orders'   => $todayOrderCount,
+                'pending_orders' => $pendingOrderCount,
+                'low_stock'      => $lowStockCount,
+                'today_users'    => $todayUserCount,
+                'unread_inquiries' => $inquiryModel->getUnreadCount(),
             ],
             'recentInquiries'  => $inquiryModel->orderBy('id', 'DESC')->findAll(5),
             'recentPosts'      => $postModel
