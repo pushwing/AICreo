@@ -80,10 +80,12 @@ class ProductModel extends Model
      */
     public function getAdminList(array $params = []): array
     {
-        $keyword  = $params['keyword'] ?? '';
-        $status   = $params['status']  ?? '';
-        $perPage  = 20;
-        $page     = max(1, (int) ($params['page'] ?? 1));
+        $keyword   = $params['keyword']        ?? '';
+        $status    = $params['status']         ?? '';
+        $stock     = $params['stock']          ?? '';
+        $threshold = (int) ($params['low_stock_threshold'] ?? 5);
+        $perPage   = 20;
+        $page      = max(1, (int) ($params['page'] ?? 1));
 
         $builder = $this->db->table('products')
             ->select('products.*, categories.name as category_name')
@@ -96,8 +98,11 @@ class ProductModel extends Model
         if ($status) {
             $builder->where('products.status', $status);
         }
+        if ($stock === 'low') {
+            $builder->where('products.stock <=', $threshold);
+        }
 
-        $builder->orderBy('products.id', 'DESC');
+        $builder->orderBy('products.stock', 'ASC')->orderBy('products.id', 'DESC');
 
         return $this->buildPage($builder, $page, $perPage);
     }

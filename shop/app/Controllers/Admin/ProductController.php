@@ -8,6 +8,7 @@ use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
 use App\Models\ProductModel;
 use App\Models\ProductSkuModel;
+use App\Models\StockLogModel;
 use Config\Database;
 
 class ProductController extends BaseController
@@ -27,16 +28,62 @@ class ProductController extends BaseController
 
     public function index(): string
     {
-        $params  = ['keyword' => $this->request->getGet('keyword'), 'status' => $this->request->getGet('status'), 'page' => $this->request->getGet('page')];
-        $result  = $this->productModel->getAdminList($params);
+        $lowStockThreshold = (int) ($this->viewData['settings']['low_stock_threshold'] ?? 5);
+
+        $params = [
+            'keyword'             => $this->request->getGet('keyword'),
+            'status'              => $this->request->getGet('status'),
+            'stock'               => $this->request->getGet('stock'),
+            'page'                => $this->request->getGet('page'),
+            'low_stock_threshold' => $lowStockThreshold,
+        ];
+        $result = $this->productModel->getAdminList($params);
 
         $this->imageModel->attachPrimaryImages($result['items']);
 
+        $lowStockCount = $this->productModel
+            ->where('stock <=', $lowStockThreshold)
+            ->where('deleted_at IS NULL', null, false)
+            ->countAllResults();
+
         return $this->render('admin/products/list', array_merge($result, [
-            'statuses'  => ProductModel::STATUSES,
-            'keyword'   => $params['keyword'],
-            'curStatus' => $params['status'],
+            'statuses'          => ProductModel::STATUSES,
+            'keyword'           => $params['keyword'],
+            'curStatus'         => $params['status'],
+            'curStock'          => $params['stock'],
+            'lowStockThreshold' => $lowStockThreshold,
+            'lowStockCount'     => $lowStockCount,
         ]));
+    }
+
+    /** POST /admin/products/:id/stock — 인라인 재고 수정 */
+    public function updateStock(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $product = $this->productModel->find($id);
+        if (! $product) {
+            return $this->response->setJSON(['success' => false, 'message' => '상품을 찾을 수 없습니다.']);
+        }
+
+        $newStock = $this->request->getPost('stock');
+        if (! is_numeric($newStock) || (int) $newStock < 0) {
+            return $this->response->setJSON(['success' => false, 'message' => '올바른 재고 수량을 입력해주세요.']);
+        }
+
+        $newStock = (int) $newStock;
+        $oldStock = (int) $product['stock'];
+        $adminId  = (int) session()->get('user_id');
+
+        $this->productModel->update($id, ['stock' => $newStock]);
+
+        (new StockLogModel())->record(
+            $id, 'adjust',
+            abs($newStock - $oldStock),
+            $oldStock, $newStock,
+            '관리자 재고 조정',
+            $adminId
+        );
+
+        return $this->response->setJSON(['success' => true, 'stock' => $newStock]);
     }
 
     public function create(): string
