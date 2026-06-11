@@ -36,16 +36,22 @@ class StatsController extends BaseController
         $fromDt = $from . ' 00:00:00';
         $toDt   = $to   . ' 23:59:59';
 
-        // 일별 PV / UV
+        // 일별 PV / UV — 실시간 로그 + 집계 테이블 합산
         $dailyRaw = $db->query(
-            "SELECT DATE(created_at) AS day,
-                    COUNT(*) AS pv,
-                    COUNT(DISTINCT ip) AS uv
-             FROM access_logs
-             WHERE created_at BETWEEN ? AND ?
-             GROUP BY DATE(created_at)
+            "SELECT day, SUM(pv) AS pv, SUM(uv) AS uv FROM (
+                SELECT DATE(created_at) AS day, COUNT(*) AS pv, COUNT(DISTINCT ip) AS uv
+                FROM access_logs
+                WHERE created_at BETWEEN ? AND ?
+                GROUP BY DATE(created_at)
+                UNION ALL
+                SELECT log_date AS day, SUM(pv) AS pv, SUM(uv) AS uv
+                FROM access_log_summaries
+                WHERE log_date BETWEEN ? AND ?
+                GROUP BY log_date
+             ) t
+             GROUP BY day
              ORDER BY day ASC",
-            [$fromDt, $toDt]
+            [$fromDt, $toDt, $from, $to]
         )->getResultArray();
 
         // 날짜 범위 전체 채우기 (데이터 없는 날 = 0)
@@ -63,26 +69,37 @@ class StatsController extends BaseController
             $cursor->modify('+1 day');
         }
 
-        // 페이지별 순위 (상위 20)
+        // 페이지별 순위 (상위 20) — 두 테이블 합산
         $topPages = $db->query(
-            "SELECT page,
-                    COUNT(*) AS hits,
-                    COUNT(DISTINCT ip) AS unique_visitors
-             FROM access_logs
-             WHERE created_at BETWEEN ? AND ?
+            "SELECT page, SUM(hits) AS hits, SUM(unique_visitors) AS unique_visitors FROM (
+                SELECT page, COUNT(*) AS hits, COUNT(DISTINCT ip) AS unique_visitors
+                FROM access_logs
+                WHERE created_at BETWEEN ? AND ?
+                GROUP BY page
+                UNION ALL
+                SELECT page, SUM(pv) AS hits, SUM(uv) AS unique_visitors
+                FROM access_log_summaries
+                WHERE log_date BETWEEN ? AND ?
+                GROUP BY page
+             ) t
              GROUP BY page
              ORDER BY hits DESC
              LIMIT 20",
-            [$fromDt, $toDt]
+            [$fromDt, $toDt, $from, $to]
         )->getResultArray();
 
-        // 기간 요약
+        // 기간 요약 — 두 테이블 합산
         $summary = $db->query(
-            "SELECT COUNT(*) AS total_pv,
-                    COUNT(DISTINCT ip) AS total_uv
-             FROM access_logs
-             WHERE created_at BETWEEN ? AND ?",
-            [$fromDt, $toDt]
+            "SELECT SUM(pv) AS total_pv, SUM(uv) AS total_uv FROM (
+                SELECT COUNT(*) AS pv, COUNT(DISTINCT ip) AS uv
+                FROM access_logs
+                WHERE created_at BETWEEN ? AND ?
+                UNION ALL
+                SELECT SUM(pv) AS pv, SUM(uv) AS uv
+                FROM access_log_summaries
+                WHERE log_date BETWEEN ? AND ?
+             ) t",
+            [$fromDt, $toDt, $from, $to]
         )->getRow();
 
         $todayStats = (new AccessLogModel())->getTodayStats();
