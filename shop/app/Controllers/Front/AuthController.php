@@ -171,7 +171,7 @@ class AuthController extends BaseController
             // 이미 인증됐거나 존재하지 않는 경우도 동일 메시지 (이메일 열거 방지)
             return redirect()->to('/auth/verify-pending')
                 ->with('verify_email', $email)
-                ->with('resend_success', true);
+                ->with('resend_success', '1');
         }
 
         // 1분 이내 재발송 차단
@@ -187,7 +187,7 @@ class AuthController extends BaseController
 
         return redirect()->to('/auth/verify-pending')
             ->with('verify_email', $email)
-            ->with('resend_success', true);
+            ->with('resend_success', '1');
     }
 
     // ─── 내 정보 수정 ────────────────────────────────────────────────────────────

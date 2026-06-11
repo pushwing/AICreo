@@ -9,13 +9,11 @@ namespace App\Libraries;
  */
 class Mailer
 {
-    private array $settings;
     private string $siteName;
     private string $siteUrl;
 
     public function __construct(array $settings = [])
     {
-        $this->settings = $settings;
         $this->siteName = $settings['site_name'] ?? '쇼핑몰';
         $this->siteUrl  = rtrim(base_url(), '/');
     }
