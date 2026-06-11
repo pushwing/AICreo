@@ -228,6 +228,95 @@ final class ProductSkuTest extends CIUnitTestCase
         $this->assertSame('BLK', $sku['sku_code']);
     }
 
+    public function testSaveOptionsAndSkus_stockAsStringInput_savedAsInteger(): void
+    {
+        $productId = $this->insertProduct();
+
+        $this->model->saveOptionsAndSkus($productId, [
+            'options' => [['name' => '색상', 'values' => [['tmp_id' => 'c1', 'value' => '빨강']]]],
+            'skus'    => [['price_diff' => '0', 'stock' => '8', 'sku_code' => null, 'value_tmp_ids' => ['c1']]],
+        ]);
+
+        $sku = db_connect()->table('product_skus')->where('product_id', $productId)->get()->getRowArray();
+        $this->assertSame(8, (int) $sku['stock']);
+    }
+
+    public function testSaveOptionsAndSkus_negativeStock_clampedToZero(): void
+    {
+        $productId = $this->insertProduct();
+
+        $this->model->saveOptionsAndSkus($productId, [
+            'options' => [['name' => '색상', 'values' => [['tmp_id' => 'c1', 'value' => '빨강']]]],
+            'skus'    => [['price_diff' => 0, 'stock' => -10, 'sku_code' => null, 'value_tmp_ids' => ['c1']]],
+        ]);
+
+        $sku = db_connect()->table('product_skus')->where('product_id', $productId)->get()->getRowArray();
+        $this->assertSame(0, (int) $sku['stock']);
+    }
+
+    public function testSaveOptionsAndSkus_afterValueRemoval_remainingStockPreserved(): void
+    {
+        $productId = $this->insertProduct();
+
+        // 1차 저장: 빨강(5), 파랑(3)
+        $this->model->saveOptionsAndSkus($productId, [
+            'options' => [['name' => '색상', 'values' => [
+                ['tmp_id' => 'c1', 'value' => '빨강'],
+                ['tmp_id' => 'c2', 'value' => '파랑'],
+            ]]],
+            'skus' => [
+                ['price_diff' => 0, 'stock' => 5, 'sku_code' => null, 'value_tmp_ids' => ['c1']],
+                ['price_diff' => 0, 'stock' => 3, 'sku_code' => null, 'value_tmp_ids' => ['c2']],
+            ],
+        ]);
+
+        // 2차 저장: 파랑 제거 후 재생성(Fix A) — 빨강 재고 5 유지
+        $this->model->saveOptionsAndSkus($productId, [
+            'options' => [['name' => '색상', 'values' => [
+                ['tmp_id' => 'r1', 'value' => '빨강'],
+            ]]],
+            'skus' => [
+                ['price_diff' => 0, 'stock' => 5, 'sku_code' => null, 'value_tmp_ids' => ['r1']],
+            ],
+        ]);
+
+        $skus = db_connect()->table('product_skus')->where('product_id', $productId)->get()->getResultArray();
+        $this->assertCount(1, $skus);
+        $this->assertSame(5, (int) $skus[0]['stock']);
+    }
+
+    public function testSaveOptionsAndSkus_dimensionExpanded_allStocksSaved(): void
+    {
+        $productId = $this->insertProduct();
+
+        // 1차 저장: 1D (색상만)
+        $this->model->saveOptionsAndSkus($productId, [
+            'options' => [['name' => '색상', 'values' => [['tmp_id' => 'c1', 'value' => '빨강']]]],
+            'skus'    => [['price_diff' => 0, 'stock' => 5, 'sku_code' => null, 'value_tmp_ids' => ['c1']]],
+        ]);
+
+        // 2차 저장: 2D (색상×사이즈) — JS Fix B가 적용되면 빨강/S는 재고 5 상속
+        $this->model->saveOptionsAndSkus($productId, [
+            'options' => [
+                ['name' => '색상', 'values' => [['tmp_id' => 'd1', 'value' => '빨강']]],
+                ['name' => '사이즈', 'values' => [
+                    ['tmp_id' => 'd2', 'value' => 'S'],
+                    ['tmp_id' => 'd3', 'value' => 'M'],
+                ]],
+            ],
+            'skus' => [
+                ['price_diff' => 0, 'stock' => 5, 'sku_code' => null, 'value_tmp_ids' => ['d1', 'd2']],
+                ['price_diff' => 0, 'stock' => 0, 'sku_code' => null, 'value_tmp_ids' => ['d1', 'd3']],
+            ],
+        ]);
+
+        $skus   = db_connect()->table('product_skus')->where('product_id', $productId)->orderBy('id', 'ASC')->get()->getResultArray();
+        $stocks = array_map(fn($s) => (int) $s['stock'], $skus);
+
+        $this->assertCount(2, $skus);
+        $this->assertSame([5, 0], $stocks);
+    }
+
     // ── D: deleteByProduct ────────────────────────────────────────────────────
 
     public function testDeleteByProduct_deletesAllRelatedRows(): void
