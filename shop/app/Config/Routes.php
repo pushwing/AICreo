@@ -179,6 +179,15 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 접속 통계
     $routes->get('stats', 'Admin\StatsController::index');
+
+    // 기획전 관리
+    $routes->get( 'promotions',                          'Admin\PromotionController::index');
+    $routes->get( 'promotions/create',                   'Admin\PromotionController::create');
+    $routes->post('promotions/create',                   'Admin\PromotionController::store');
+    $routes->get( 'promotions/product-search',           'Admin\PromotionController::productSearch');
+    $routes->get( 'promotions/(:num)/edit',              'Admin\PromotionController::edit/$1');
+    $routes->post('promotions/(:num)/edit',              'Admin\PromotionController::update/$1');
+    $routes->post('promotions/(:num)/delete',            'Admin\PromotionController::delete/$1');
 });
 
 // ─── 쇼핑 ────────────────────────────────────────────────────────────────────
@@ -232,6 +241,9 @@ $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
 // ─── PG 콜백 (PG 서버에서 직접 호출 — CSRF 예외 필요) ────────────────────────
 $routes->get( 'payment/callback/(:segment)', 'Front\PaymentController::callback/$1');
 $routes->post('payment/callback/(:segment)', 'Front\PaymentController::callback/$1');
+
+// ─── 기획전 ───────────────────────────────────────────────────────────────────
+$routes->get('promotion/(:segment)', 'Front\PromotionController::detail/$1');
 
 // ─── 동적 페이지 (반드시 마지막에 위치) ──────────────────────────────────────────
 $routes->get('(:segment)', 'Front\PageController::show/$1');
