@@ -13,8 +13,8 @@ class ProductModel extends Model
     protected $useTimestamps  = true;
     protected $useSoftDeletes = true;
     protected $allowedFields  = [
-        'category_id', 'name', 'slug', 'price', 'discount_price', 'stock',
-        'status', 'description', 'shipping_type', 'shipping_fee', 'free_threshold',
+        'category_id', 'supplier_id', 'name', 'slug', 'price', 'cost_price', 'discount_price',
+        'stock', 'status', 'description', 'shipping_type', 'shipping_fee', 'free_threshold',
     ];
 
     public const STATUSES = [

@@ -7,6 +7,7 @@ use App\Libraries\MediaUploader;
 use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
 use App\Models\ProductModel;
+use Config\Database;
 
 class ProductController extends BaseController
 {
@@ -43,6 +44,7 @@ class ProductController extends BaseController
             'tree'      => $this->categoryModel->getTree(),
             'statuses'  => ProductModel::STATUSES,
             'shippings' => ProductModel::SHIPPING_TYPES,
+            'suppliers' => Database::connect()->table('suppliers')->orderBy('name')->get()->getResultArray(),
         ]);
     }
 
@@ -71,6 +73,7 @@ class ProductController extends BaseController
             'tree'      => $this->categoryModel->getTree(),
             'statuses'  => ProductModel::STATUSES,
             'shippings' => ProductModel::SHIPPING_TYPES,
+            'suppliers' => Database::connect()->table('suppliers')->orderBy('name')->get()->getResultArray(),
         ]);
     }
 
@@ -196,9 +199,11 @@ class ProductController extends BaseController
 
         return [
             'category_id'    => $this->request->getPost('category_id') ?: null,
+            'supplier_id'    => $this->request->getPost('supplier_id') ?: null,
             'name'           => $name,
             'slug'           => $slug,
             'price'          => (int) $this->request->getPost('price'),
+            'cost_price'     => (float) $this->request->getPost('cost_price'),
             'discount_price' => $this->request->getPost('discount_price') !== '' ? (int) $this->request->getPost('discount_price') : null,
             'stock'          => (int) $this->request->getPost('stock'),
             'status'         => $this->request->getPost('status'),

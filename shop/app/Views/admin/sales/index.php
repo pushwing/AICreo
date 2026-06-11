@@ -70,40 +70,62 @@
 
 <!-- ─── 요약 카드 ─────────────────────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small mb-1">실 매출 (결제금액 합계)</div>
-                <div class="fs-4 fw-bold text-primary">
+                <div class="text-muted small mb-1">실 매출</div>
+                <div class="fs-5 fw-bold text-primary">
                     <?= number_format((int) ($summary['total_revenue'] ?? 0)) ?>원
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small mb-1">GMV (할인 전 합계)</div>
-                <div class="fs-4 fw-bold">
+                <div class="text-muted small mb-1">GMV (할인 전)</div>
+                <div class="fs-5 fw-bold">
                     <?= number_format((int) ($summary['total_gmv'] ?? 0)) ?>원
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small mb-1">총 할인액 (쿠폰+포인트)</div>
-                <div class="fs-4 fw-bold text-danger">
+                <div class="text-muted small mb-1">총 할인액</div>
+                <div class="fs-5 fw-bold text-danger">
                     <?= number_format((int) ($summary['total_discount'] ?? 0)) ?>원
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small mb-1">총 주문 수 / 평균 결제액</div>
+                <div class="text-muted small mb-1">총 매입원가</div>
+                <div class="fs-5 fw-bold text-warning">
+                    <?= number_format((int) ($summary['total_cost'] ?? 0)) ?>원
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <?php $profit = (int) ($summary['total_profit'] ?? 0); ?>
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small mb-1">영업이익</div>
+                <div class="fs-5 fw-bold <?= $profit >= 0 ? 'text-success' : 'text-danger' ?>">
+                    <?= number_format($profit) ?>원
+                </div>
+                <div class="text-muted" style="font-size:.72rem">매출 - 원가 - 배송비</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small mb-1">주문 수 / 평균</div>
                 <div class="fs-5 fw-bold"><?= number_format((int) ($summary['total_orders'] ?? 0)) ?>건</div>
                 <div class="small text-muted"><?= number_format((int) ($summary['avg_order'] ?? 0)) ?>원/건</div>
             </div>
@@ -131,16 +153,24 @@
                             <th class="text-end">GMV</th>
                             <th class="text-end">할인</th>
                             <th class="text-end">실 매출</th>
+                            <th class="text-end">매입원가</th>
+                            <th class="text-end">영업이익</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($periodRows as $row): ?>
+                        <?php foreach ($periodRows as $row):
+                            $rowProfit = (int) ($row['operating_profit'] ?? 0);
+                        ?>
                         <tr>
                             <td class="small"><?= esc($row['period_key']) ?></td>
                             <td class="text-end small"><?= number_format($row['order_count']) ?>건</td>
                             <td class="text-end small text-muted"><?= number_format($row['gmv']) ?>원</td>
                             <td class="text-end small text-danger"><?= $row['total_discount'] > 0 ? '-' . number_format($row['total_discount']) : '—' ?>원</td>
                             <td class="text-end fw-semibold"><?= number_format($row['revenue']) ?>원</td>
+                            <td class="text-end small text-warning"><?= number_format((int) ($row['total_cost'] ?? 0)) ?>원</td>
+                            <td class="text-end small fw-semibold <?= $rowProfit >= 0 ? 'text-success' : 'text-danger' ?>">
+                                <?= number_format($rowProfit) ?>원
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -215,13 +245,15 @@
                     <th>결제수단</th>
                     <th class="text-end">GMV</th>
                     <th class="text-end">실 매출</th>
-                    <th class="text-end">상품금액<br><span class="fw-normal text-muted" style="font-size:.7rem">(배송비 제외)</span></th>
+                    <th class="text-end">매입원가</th>
+                    <th class="text-end">영업이익</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($orders as $order):
-                    $pgLabel = $pgLabels[$order['pg_provider']] ?? ($order['pg_provider'] ?? '—');
+                    $pgLabel     = $pgLabels[$order['pg_provider']] ?? ($order['pg_provider'] ?? '—');
+                    $orderProfit = (int) ($order['profit'] ?? 0);
                 ?>
                 <tr>
                     <td class="small font-monospace">
@@ -235,7 +267,10 @@
                     <td class="small"><?= esc($pgLabel) ?><?= $order['payment_method'] ? ' · ' . esc($order['payment_method']) : '' ?></td>
                     <td class="text-end small text-muted"><?= number_format($order['total_amount']) ?>원</td>
                     <td class="text-end fw-semibold small"><?= number_format($order['payable_amount']) ?>원</td>
-                    <td class="text-end small text-success"><?= number_format(max(0, (int)$order['payable_amount'] - (int)$order['shipping_fee'])) ?>원</td>
+                    <td class="text-end small text-warning"><?= number_format((int) ($order['cost_total'] ?? 0)) ?>원</td>
+                    <td class="text-end small fw-semibold <?= $orderProfit >= 0 ? 'text-success' : 'text-danger' ?>">
+                        <?= number_format($orderProfit) ?>원
+                    </td>
                     <td class="text-end">
                         <a href="/admin/orders/<?= (int) $order['id'] ?>" class="btn btn-xs btn-outline-secondary"
                            style="font-size:.72rem;padding:.15rem .45rem">상세</a>

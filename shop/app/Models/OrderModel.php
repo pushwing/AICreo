@@ -80,6 +80,18 @@ class OrderModel extends Model
             'delivery_memo'          => $shippingData['delivery_memo'] ?? null,
         ], true);
 
+        $productIds = array_column($cartItems, 'product_id');
+        $costMap    = [];
+        if (! empty($productIds)) {
+            $rows = $this->db->table('products')
+                ->select('id, cost_price')
+                ->whereIn('id', $productIds)
+                ->get()->getResultArray();
+            foreach ($rows as $row) {
+                $costMap[(int) $row['id']] = (float) $row['cost_price'];
+            }
+        }
+
         $items = [];
         foreach ($cartItems as $item) {
             $price   = (int) ($item['discount_price'] ?? $item['price']);
@@ -89,6 +101,7 @@ class OrderModel extends Model
                 'product_id'    => (int) $item['product_id'],
                 'product_name'  => $item['name'],
                 'product_price' => $price,
+                'cost_price'    => $costMap[(int) $item['product_id']] ?? 0,
                 'qty'           => $qty,
                 'subtotal'      => $price * $qty,
                 'created_at'    => $now,
