@@ -182,6 +182,11 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabShipping">배송·교환·반품</button>
                 </li>
                 <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabReviews">
+                        리뷰<?php if (($reviewTotal ?? 0) > 0): ?> <span class="badge bg-secondary ms-1"><?= (int) ($reviewTotal ?? 0) ?></span><?php endif; ?>
+                    </button>
+                </li>
+                <li class="nav-item">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabQna">
                         상품 문의<?php if (($qnaTotal ?? 0) > 0): ?> <span class="badge bg-secondary ms-1"><?= (int) ($qnaTotal ?? 0) ?></span><?php endif; ?>
                     </button>
@@ -204,6 +209,95 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                     <p class="text-muted">배송·교환·반품 안내가 없습니다.</p>
                     <?php endif; ?>
                 </div>
+
+                <!-- 리뷰 탭 -->
+                <div class="tab-pane fade" id="tabReviews">
+
+                    <!-- 작성 폼 -->
+                    <?php if ($canWriteReview ?? false): ?>
+                    <div class="card mb-4 border">
+                        <div class="card-header bg-white fw-semibold small">리뷰 작성</div>
+                        <div class="card-body">
+                            <textarea id="reviewContent" class="form-control form-control-sm mb-2" rows="4"
+                                      placeholder="구매하신 상품 어떠셨나요? 사진 1장 + 30자 이상 작성 시 150 포인트가 지급됩니다."></textarea>
+                            <div class="mb-2">
+                                <label class="form-label small text-muted mb-1">이미지 첨부 (최대 3장)</label>
+                                <input type="file" id="reviewImages" class="form-control form-control-sm"
+                                       accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+                                <div class="form-text small">JPG·PNG·GIF·WEBP, 장당 최대 5MB</div>
+                            </div>
+                            <div class="text-end">
+                                <button class="btn btn-sm btn-primary" id="btnReviewSubmit">리뷰 등록</button>
+                            </div>
+                        </div>
+                    </div>
+                    <?php elseif (session()->get('user_id')): ?>
+                    <div class="alert alert-light text-center small mb-4">
+                        배송 완료된 구매 상품에만 리뷰를 작성할 수 있습니다.
+                    </div>
+                    <?php else: ?>
+                    <div class="alert alert-light text-center small mb-4">
+                        <a href="/auth/login" class="fw-semibold">로그인</a> 후 구매한 상품의 리뷰를 작성할 수 있습니다.
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- 리뷰 목록 -->
+                    <?php if (empty($reviewItems ?? [])): ?>
+                    <p class="text-muted text-center py-4">등록된 리뷰가 없습니다.</p>
+                    <?php else: ?>
+                    <?php $myReviewUserId = (int) (session()->get('user_id') ?? 0); ?>
+                    <div class="d-flex flex-column gap-3">
+                        <?php foreach (($reviewItems ?? []) as $review):
+                            $rName   = $review['nickname'] ?: $review['username'];
+                            $rLen    = mb_strlen($rName);
+                            $rMask   = mb_substr($rName, 0, 1) . str_repeat('*', min($rLen - 1, 2));
+                            $isOwner = $myReviewUserId === (int) $review['user_id'];
+                        ?>
+                        <div class="border rounded p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="fw-semibold small"><?= esc($rMask) ?></span>
+                                    <span class="text-muted small ms-2"><?= date('Y.m.d', strtotime($review['created_at'])) ?></span>
+                                    <?php if ($review['is_rewarded']): ?>
+                                    <span class="badge bg-warning text-dark ms-1 small">포인트 지급</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($isOwner): ?>
+                                <button class="btn btn-sm btn-outline-danger btn-review-delete"
+                                        data-id="<?= $review['id'] ?>">삭제</button>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (! empty($review['images'])): ?>
+                            <div class="d-flex gap-2 flex-wrap mb-2">
+                                <?php foreach ($review['images'] as $img): ?>
+                                <a href="<?= esc($img['image_path']) ?>" target="_blank">
+                                    <img src="<?= esc($img['image_path']) ?>" alt=""
+                                         style="width:80px;height:80px;object-fit:cover;border-radius:4px">
+                                </a>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php endif; ?>
+                            <p class="mb-0 small" style="white-space:pre-line"><?= esc($review['content']) ?></p>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php
+                    $reviewTotalPages = (int) ceil(($reviewTotal ?? 0) / max(1, ($reviewPerPage ?? 10)));
+                    if ($reviewTotalPages > 1): ?>
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center pagination-sm">
+                            <?php for ($p = 1; $p <= $reviewTotalPages; $p++): ?>
+                            <li class="page-item <?= $p === ($reviewPage ?? 1) ? 'active' : '' ?>">
+                                <a class="page-link" href="?review_page=<?= $p ?>#tabReviews"><?= $p ?></a>
+                            </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
+                    <?php endif; ?>
+                    <?php endif; // empty reviewItems ?>
+
+                </div><!-- /tabReviews -->
 
                 <!-- 상품 문의 탭 -->
                 <div class="tab-pane fade" id="tabQna">
@@ -421,6 +515,41 @@ document.getElementById('btnBuyNow')?.addEventListener('click', function () {
     });
 });
 
+// ─── 리뷰 ─────────────────────────────────────────────────────────────────────
+document.getElementById('btnReviewSubmit')?.addEventListener('click', function () {
+    const content = (document.getElementById('reviewContent')?.value ?? '').trim();
+    if (! content) { alert('리뷰 내용을 입력해주세요.'); return; }
+
+    const files = document.getElementById('reviewImages')?.files ?? [];
+    if (files.length > 3) { alert('이미지는 최대 3장까지 첨부할 수 있습니다.'); return; }
+
+    const fd = new FormData();
+    fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+    fd.append('content', content);
+    for (let i = 0; i < files.length; i++) fd.append('images[]', files[i]);
+
+    fetch('/shop/<?= esc($product['slug']) ?>/review', { method: 'POST', body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { alert(data.message); if (data.success) location.reload(); })
+        .catch(function () { alert('오류가 발생했습니다.'); });
+});
+
+document.querySelectorAll('.btn-review-delete').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        if (! confirm('리뷰를 삭제하시겠습니까? 지급된 포인트도 회수됩니다.')) return;
+        const fd = new FormData();
+        fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+        fetch('/shop/<?= esc($product['slug']) ?>/review/' + btn.dataset.id + '/delete',
+              { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) location.reload();
+                else alert(data.message || '삭제에 실패했습니다.');
+            })
+            .catch(function () { alert('오류가 발생했습니다.'); });
+    });
+});
+
 // ─── 상품 문의 ─────────────────────────────────────────────────────────────────
 document.getElementById('btnQnaSubmit')?.addEventListener('click', function () {
     const title   = (document.getElementById('qnaTitle')?.value  ?? '').trim();
@@ -463,10 +592,11 @@ document.querySelectorAll('.btn-qna-delete').forEach(function (btn) {
     });
 });
 
-// hash가 #tabQna인 경우 해당 탭 활성화
+// hash에 따라 해당 탭 활성화
 (function () {
-    if (window.location.hash === '#tabQna') {
-        const trigger = document.querySelector('[data-bs-target="#tabQna"]');
+    const hash = window.location.hash;
+    if (hash === '#tabQna' || hash === '#tabReviews') {
+        const trigger = document.querySelector('[data-bs-target="' + hash + '"]');
         if (trigger) new bootstrap.Tab(trigger).show();
     }
 })();

@@ -8,13 +8,15 @@ use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
 use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
+use App\Models\ProductReviewModel;
 
 class ShopController extends BaseController
 {
-    private ProductModel      $productModel;
-    private CategoryModel     $categoryModel;
-    private ProductImageModel $imageModel;
-    private ProductQnaModel   $qnaModel;
+    private ProductModel       $productModel;
+    private CategoryModel      $categoryModel;
+    private ProductImageModel  $imageModel;
+    private ProductQnaModel    $qnaModel;
+    private ProductReviewModel $reviewModel;
 
     public function __construct()
     {
@@ -22,6 +24,7 @@ class ShopController extends BaseController
         $this->categoryModel = new CategoryModel();
         $this->imageModel    = new ProductImageModel();
         $this->qnaModel      = new ProductQnaModel();
+        $this->reviewModel   = new ProductReviewModel();
     }
 
     public function home(): string
@@ -34,9 +37,9 @@ class ShopController extends BaseController
         $this->imageModel->attachPrimaryImages($discountedProducts);
 
         return $this->render('shop/home', [
-            'mainTopBanners'    => $bannerModel->getActiveByPosition('main_top'),
-            'mainBotBanners'    => $bannerModel->getActiveByPosition('main_bottom'),
-            'newProducts'       => $newProducts,
+            'mainTopBanners'     => $bannerModel->getActiveByPosition('main_top'),
+            'mainBotBanners'     => $bannerModel->getActiveByPosition('main_bottom'),
+            'newProducts'        => $newProducts,
             'discountedProducts' => $discountedProducts,
         ]);
     }
@@ -59,7 +62,7 @@ class ShopController extends BaseController
             ->where('id', $product['id'])
             ->get()->getRow();
 
-        $product['stock'] = $freshStock ? (int) $freshStock->stock : 0;
+        $product['stock']  = $freshStock ? (int) $freshStock->stock : 0;
         $product['status'] = $product['stock'] === 0 ? 'sold_out' : $product['status'];
 
         $images = $this->imageModel->getByProduct($product['id']);
@@ -68,21 +71,41 @@ class ShopController extends BaseController
         $qnaPage    = max(1, (int) ($this->request->getGet('qna_page') ?? 1));
         $qnaData    = $this->qnaModel->getByProduct($product['id'], $qnaPage, $qnaPerPage);
 
+        $reviewPerPage = 10;
+        $reviewPage    = max(1, (int) ($this->request->getGet('review_page') ?? 1));
+        $reviewData    = $this->reviewModel->getByProduct($product['id'], $reviewPage, $reviewPerPage);
+
+        $canWriteReview = false;
+        $reviewOrderId  = null;
+        $userId = (int) session()->get('user_id');
+        if ($userId > 0) {
+            $reviewOrderId  = $this->reviewModel->canWriteReview($userId, $product['id']);
+            $canWriteReview = $reviewOrderId !== null;
+        }
+
         return $this->render('shop/detail', [
             'product'         => $product,
             'images'          => $images,
             'shipping_policy' => $this->viewData['settings']['shipping_policy'] ?? '',
+            // QnA
             'qnaItems'        => $qnaData['items'],
             'qnaTotal'        => $qnaData['total'],
             'qnaPage'         => $qnaPage,
             'qnaPerPage'      => $qnaPerPage,
+            // 리뷰
+            'reviewItems'     => $reviewData['items'],
+            'reviewTotal'     => $reviewData['total'],
+            'reviewPage'      => $reviewPage,
+            'reviewPerPage'   => $reviewPerPage,
+            'canWriteReview'  => $canWriteReview,
+            'reviewOrderId'   => $reviewOrderId,
         ]);
     }
 
     /** POST /shop/:slug/qna */
     public function qnaStore(string $slug): \CodeIgniter\HTTP\ResponseInterface
     {
-        $userId  = (int) session()->get('user_id');
+        $userId = (int) session()->get('user_id');
         if (! $userId) {
             return $this->response->setJSON(['success' => false, 'message' => '로그인이 필요합니다.']);
         }
@@ -126,6 +149,94 @@ class ShopController extends BaseController
         return $this->response->setJSON(['success' => true]);
     }
 
+    /** POST /shop/:slug/review */
+    public function reviewStore(string $slug): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $userId = (int) session()->get('user_id');
+        if (! $userId) {
+            return $this->response->setJSON(['success' => false, 'message' => '로그인이 필요합니다.']);
+        }
+
+        $product = $this->productModel->where('slug', $slug)->whereIn('status', ['on_sale', 'sold_out'])->first();
+        if (! $product) {
+            return $this->response->setJSON(['success' => false, 'message' => '상품을 찾을 수 없습니다.']);
+        }
+
+        $orderId = $this->reviewModel->canWriteReview($userId, $product['id']);
+        if ($orderId === null) {
+            return $this->response->setJSON(['success' => false, 'message' => '구매 확정된 상품에만 리뷰를 작성할 수 있습니다.']);
+        }
+
+        $content = trim($this->request->getPost('content') ?? '');
+        if ($content === '') {
+            return $this->response->setJSON(['success' => false, 'message' => '리뷰 내용을 입력해주세요.']);
+        }
+
+        // 이미지 업로드 (최대 3장)
+        $uploadedImages = [];
+        $uploadFiles    = $this->request->getFiles();
+        if (isset($uploadFiles['images'])) {
+            $fileList = is_array($uploadFiles['images']) ? $uploadFiles['images'] : [$uploadFiles['images']];
+            foreach (array_slice($fileList, 0, 3) as $file) {
+                if (! ($file instanceof \CodeIgniter\HTTP\Files\UploadedFile)) continue;
+                if (! $file->isValid() || $file->hasMoved()) continue;
+                if (! in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true)) continue;
+                if ($file->getSize() > 5 * 1024 * 1024) continue;
+                $name = $file->getRandomName();
+                $dir  = FCPATH . 'uploads/reviews/';
+                if (! is_dir($dir)) mkdir($dir, 0755, true);
+                if ($file->move($dir, $name)) {
+                    $uploadedImages[] = '/uploads/reviews/' . $name;
+                }
+            }
+        }
+
+        $reviewId = $this->reviewModel->insert([
+            'product_id'  => $product['id'],
+            'order_id'    => $orderId,
+            'user_id'     => $userId,
+            'content'     => $content,
+            'is_rewarded' => 0,
+        ]);
+
+        if ($reviewId === false || $reviewId === 0) {
+            return $this->response->setJSON(['success' => false, 'message' => '리뷰 등록에 실패했습니다.']);
+        }
+
+        $reviewId = (int) $reviewId;
+        $sort     = 0;
+        foreach ($uploadedImages as $path) {
+            $this->reviewModel->db->table('product_review_images')->insert([
+                'review_id'  => $reviewId,
+                'image_path' => $path,
+                'sort_order' => $sort++,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        if (mb_strlen($content) >= 30 && count($uploadedImages) >= 1) {
+            $this->reviewModel->grantPoints($reviewId, $userId);
+            return $this->response->setJSON(['success' => true, 'message' => '리뷰가 등록되었습니다. 150 포인트가 적립되었습니다!']);
+        }
+
+        return $this->response->setJSON(['success' => true, 'message' => '리뷰가 등록되었습니다.']);
+    }
+
+    /** POST /shop/:slug/review/:id/delete */
+    public function reviewDelete(string $slug, int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $userId = (int) session()->get('user_id');
+        if (! $userId) {
+            return $this->response->setJSON(['success' => false, 'message' => '로그인이 필요합니다.']);
+        }
+
+        if (! $this->reviewModel->deleteReview($id, $userId)) {
+            return $this->response->setJSON(['success' => false, 'message' => '삭제할 수 없습니다.']);
+        }
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
     public function index(): string
     {
         $params = [
@@ -141,10 +252,10 @@ class ShopController extends BaseController
         $this->imageModel->attachPrimaryImages($result['items']);
 
         return $this->render('shop/list', array_merge($result, [
-            'tree'       => $this->categoryModel->getTree(),
-            'keyword'    => $params['keyword'],
-            'curCat'     => (int) $params['category_id'],
-            'curSort'    => $params['sort'],
+            'tree'    => $this->categoryModel->getTree(),
+            'keyword' => $params['keyword'],
+            'curCat'  => (int) $params['category_id'],
+            'curSort' => $params['sort'],
         ]));
     }
 }
