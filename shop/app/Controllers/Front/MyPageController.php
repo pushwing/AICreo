@@ -56,17 +56,24 @@ class MyPageController extends BaseController
         $result     = $this->orderModel->getByUser($userId, compact('period', 'status', 'keyword', 'page'));
         $statusTabs = self::STATUS_TABS;
 
-        // 목록 카드용 상품명 요약 — 뷰에서 DB 접근 금지
-        $db = \Config\Database::connect();
-        foreach ($result['items'] as &$order) {
-            $orderItems   = $db->table('order_items')
-                ->select('product_name')
-                ->where('order_id', $order['id'])
-                ->orderBy('id', 'ASC')
+        // 목록 카드용 상품명 요약 — 주문 ID 배열로 한 번에 조회 (N+1 제거)
+        $db       = \Config\Database::connect();
+        $orderIds = array_column($result['items'], 'id');
+        $nameMap  = [];
+        if ($orderIds) {
+            $rows = $db->table('order_items')
+                ->select('order_id, product_name')
+                ->whereIn('order_id', $orderIds)
+                ->orderBy('order_id', 'ASC')->orderBy('id', 'ASC')
                 ->get()->getResultArray();
-            $firstName    = $orderItems[0]['product_name'] ?? '';
-            $extra        = count($orderItems) - 1;
-            $order['_name_summary'] = $firstName . ($extra > 0 ? ' 외 ' . $extra . '건' : '');
+            foreach ($rows as $row) {
+                $nameMap[(int) $row['order_id']][] = $row['product_name'];
+            }
+        }
+        foreach ($result['items'] as &$order) {
+            $names = $nameMap[$order['id']] ?? [];
+            $extra = count($names) - 1;
+            $order['_name_summary'] = ($names[0] ?? '') . ($extra > 0 ? ' 외 ' . $extra . '건' : '');
         }
         unset($order);
 
