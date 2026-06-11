@@ -107,6 +107,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'products/(:num)/edit',                    'Admin\ProductController::edit/$1');
     $routes->post('products/(:num)/edit',                    'Admin\ProductController::update/$1');
     $routes->post('products/(:num)/delete',                  'Admin\ProductController::delete/$1');
+    $routes->post('products/(:num)/stock',                   'Admin\ProductController::updateStock/$1');
     $routes->post('products/image/(:num)/delete',            'Admin\ProductController::imageDelete/$1');
     $routes->get( 'products/categories',                     'Admin\ProductController::categories');
     $routes->post('products/categories',                     'Admin\ProductController::categoryStore');

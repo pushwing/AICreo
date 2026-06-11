@@ -4,7 +4,7 @@
 <?= $this->section('content') ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <form method="get" action="/admin/products" class="d-flex gap-2 flex-wrap">
+    <form method="get" action="/admin/products" class="d-flex gap-2 flex-wrap align-items-center">
         <input type="text" name="keyword" class="form-control form-control-sm" style="width:180px"
                placeholder="상품명 검색" value="<?= esc($keyword ?? '') ?>">
         <select name="status" class="form-select form-select-sm" style="width:120px">
@@ -13,8 +13,18 @@
             <option value="<?= esc($val) ?>" <?= ($curStatus ?? '') === $val ? 'selected' : '' ?>><?= esc($label) ?></option>
             <?php endforeach; ?>
         </select>
+        <!-- 재고 부족 필터 탭 -->
+        <?php $isLowStock = ($curStock ?? '') === 'low'; ?>
+        <input type="hidden" name="stock" value="<?= $isLowStock ? 'low' : '' ?>">
+        <a href="/admin/products?stock=<?= $isLowStock ? '' : 'low' ?><?= $keyword ? '&keyword='.urlencode($keyword) : '' ?>"
+           class="btn btn-sm <?= $isLowStock ? 'btn-danger' : 'btn-outline-danger' ?>">
+            <i class="bi bi-exclamation-triangle me-1"></i>재고 부족
+            <?php if (($lowStockCount ?? 0) > 0): ?>
+            <span class="badge bg-white text-danger ms-1"><?= number_format($lowStockCount) ?></span>
+            <?php endif; ?>
+        </a>
         <button type="submit" class="btn btn-sm btn-outline-secondary">검색</button>
-        <?php if ($keyword || $curStatus): ?>
+        <?php if ($keyword || $curStatus || $isLowStock): ?>
         <a href="/admin/products" class="btn btn-sm btn-outline-secondary">초기화</a>
         <?php endif; ?>
     </form>
@@ -72,7 +82,21 @@
                         <?= number_format($p['price']) ?>원
                         <?php endif; ?>
                     </td>
-                    <td class="small <?= $p['stock'] == 0 ? 'text-danger' : '' ?>"><?= number_format($p['stock']) ?></td>
+                    <td>
+                        <span class="stock-display small <?= $p['stock'] <= ($lowStockThreshold ?? 5) ? 'text-danger fw-semibold' : '' ?>"
+                              data-id="<?= $p['id'] ?>"
+                              title="클릭하여 수정"
+                              style="cursor:pointer;border-bottom:1px dashed #aaa">
+                            <?= number_format($p['stock']) ?>
+                        </span>
+                        <input type="number" min="0"
+                               class="stock-input form-control form-control-sm d-none"
+                               data-id="<?= $p['id'] ?>"
+                               data-csrf="<?= csrf_token() ?>"
+                               data-csrf-val="<?= csrf_hash() ?>"
+                               value="<?= $p['stock'] ?>"
+                               style="width:80px;display:inline-block">
+                    </td>
                     <td>
                         <?php $statusClass = ['on_sale' => 'success', 'sold_out' => 'warning', 'hidden' => 'secondary'][$p['status']] ?? 'secondary' ?>
                         <span class="badge bg-<?= $statusClass ?>"><?= esc($statuses[$p['status']] ?? $p['status']) ?></span>
@@ -109,4 +133,63 @@
 
 <div class="text-muted small mt-2">총 <?= number_format($total) ?>개 상품</div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+(function () {
+    var threshold = <?= (int) ($lowStockThreshold ?? 5) ?>;
+
+    document.querySelectorAll('.stock-display').forEach(function (span) {
+        span.addEventListener('click', function () {
+            var input = document.querySelector('.stock-input[data-id="' + span.dataset.id + '"]');
+            span.classList.add('d-none');
+            input.classList.remove('d-none');
+            input.focus();
+            input.select();
+        });
+    });
+
+    function saveStock(input) {
+        var span     = document.querySelector('.stock-display[data-id="' + input.dataset.id + '"]');
+        var newStock = parseInt(input.value, 10);
+
+        if (isNaN(newStock) || newStock < 0) {
+            input.classList.add('d-none');
+            span.classList.remove('d-none');
+            return;
+        }
+
+        fetch('/admin/products/' + input.dataset.id + '/stock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: input.dataset.csrf + '=' + encodeURIComponent(input.dataset.csrfVal) + '&stock=' + newStock
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                span.textContent = data.stock.toLocaleString();
+                span.classList.toggle('text-danger', data.stock <= threshold);
+                span.classList.toggle('fw-semibold', data.stock <= threshold);
+                if (data.csrf_hash) input.dataset.csrfVal = data.csrf_hash;
+            }
+        })
+        .finally(function () {
+            input.classList.add('d-none');
+            span.classList.remove('d-none');
+        });
+    }
+
+    document.querySelectorAll('.stock-input').forEach(function (input) {
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); saveStock(input); }
+            if (e.key === 'Escape') {
+                input.classList.add('d-none');
+                document.querySelector('.stock-display[data-id="' + input.dataset.id + '"]').classList.remove('d-none');
+            }
+        });
+        input.addEventListener('blur', function () { saveStock(input); });
+    });
+}());
+</script>
 <?= $this->endSection() ?>
