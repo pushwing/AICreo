@@ -5,7 +5,7 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // ─── 홈 ──────────────────────────────────────────────────────────────────────
-$routes->get('/', 'Front\ShopController::index');
+$routes->get('/', 'Front\ShopController::home');
 
 // ─── 인증 ────────────────────────────────────────────────────────────────────
 $routes->get( 'auth/login',    'Front\AuthController::login');
