@@ -25,8 +25,14 @@ class SupplierController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $data = $this->collectData();
-        $path = $this->uploadLicense();
+        $data         = $this->collectData();
+        $fileUploaded = $this->hasLicenseFile();
+        $path         = $this->uploadLicense();
+
+        if ($fileUploaded && $path === null) {
+            return redirect()->back()->withInput()
+                ->with('errors', ['business_license' => '허용되지 않는 파일 형식 또는 크기입니다. (PDF, JPG, PNG / 5MB 이하)']);
+        }
         if ($path !== null) {
             $data['business_license_path'] = $path;
         }
@@ -61,8 +67,14 @@ class SupplierController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $data = $this->collectData();
-        $path = $this->uploadLicense();
+        $data         = $this->collectData();
+        $fileUploaded = $this->hasLicenseFile();
+        $path         = $this->uploadLicense();
+
+        if ($fileUploaded && $path === null) {
+            return redirect()->back()->withInput()
+                ->with('errors', ['business_license' => '허용되지 않는 파일 형식 또는 크기입니다. (PDF, JPG, PNG / 5MB 이하)']);
+        }
         if ($path !== null) {
             // 기존 파일 삭제
             if (! empty($supplier['business_license_path'])) {
@@ -114,6 +126,13 @@ class SupplierController extends BaseController
             'email'          => trim($this->request->getPost('email') ?? ''),
             'memo'           => trim($this->request->getPost('memo') ?? '') ?: null,
         ];
+    }
+
+    /** 사업자등록증 파일이 실제로 전송됐는지 여부 */
+    private function hasLicenseFile(): bool
+    {
+        $file = $this->request->getFile('business_license');
+        return $file && $file->isValid() && ! $file->hasMoved();
     }
 
     /** 사업자등록증 파일 업로드. 업로드된 파일이 없으면 null 반환. */

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\OrderModel;
 use App\Models\ProductModel;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
@@ -18,19 +19,29 @@ final class SupplierCostTest extends CIUnitTestCase
     protected $refresh = false;
 
     private array $cleanup = [
+        'users'     => [],
         'suppliers' => [],
         'products'  => [],
+        'orders'    => [],
     ];
 
     protected function tearDown(): void
     {
         $db = db_connect();
 
+        if ($this->cleanup['orders'] !== []) {
+            $db->table('order_status_logs')->whereIn('order_id', $this->cleanup['orders'])->delete();
+            $db->table('order_items')->whereIn('order_id', $this->cleanup['orders'])->delete();
+            $db->table('orders')->whereIn('id', $this->cleanup['orders'])->delete();
+        }
         if ($this->cleanup['products'] !== []) {
             $db->table('products')->whereIn('id', $this->cleanup['products'])->delete();
         }
         if ($this->cleanup['suppliers'] !== []) {
             $db->table('suppliers')->whereIn('id', $this->cleanup['suppliers'])->delete();
+        }
+        if ($this->cleanup['users'] !== []) {
+            $db->table('users')->whereIn('id', $this->cleanup['users'])->delete();
         }
 
         $this->cleanup = array_fill_keys(array_keys($this->cleanup), []);
@@ -151,5 +162,79 @@ final class SupplierCostTest extends CIUnitTestCase
         $columns = $db->getFieldNames('order_items');
 
         $this->assertContains('cost_price', $columns);
+    }
+
+    // ── createPending cost_price 스냅샷 ──────────────────────────────────────
+
+    private function insertUser(): int
+    {
+        $db = db_connect();
+        $db->table('users')->insert([
+            'email'         => 'cost_' . uniqid() . '@test.local',
+            'username'      => 'cost_' . uniqid(),
+            'password'      => password_hash('test1234!', PASSWORD_DEFAULT),
+            'nickname'      => '원가테스터',
+            'role'          => 'member',
+            'is_active'     => 1,
+            'point_balance' => 0,
+            'created_at'    => date('Y-m-d H:i:s'),
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ]);
+        $id = (int) $db->insertID();
+        $this->cleanup['users'][] = $id;
+        return $id;
+    }
+
+    private function shippingData(): array
+    {
+        return [
+            'receiver_name'  => '홍길동',
+            'receiver_phone' => '010-0000-0000',
+            'zipcode'        => '12345',
+            'address1'       => '서울시 테스트로 1',
+            'address2'       => '',
+            'delivery_memo'  => null,
+        ];
+    }
+
+    public function testCreatePending_snapshotsCostPrice(): void
+    {
+        $userId    = $this->insertUser();
+        $productId = $this->insertProduct(['cost_price' => 7500, 'price' => 20000]);
+        $db        = db_connect();
+
+        $cartItems = [[
+            'product_id' => $productId,
+            'name'       => '원가테스트상품',
+            'price'      => 20000,
+            'qty'        => 2,
+        ]];
+
+        $orderId = (new OrderModel())->createPending($userId, $this->shippingData(), $cartItems);
+        $this->cleanup['orders'][] = $orderId;
+
+        $item = $db->table('order_items')->where('order_id', $orderId)->get()->getRowArray();
+        $this->assertSame(7500.0, (float) $item['cost_price']);
+    }
+
+    public function testCreatePending_costPriceDefaultsToZeroWhenMissing(): void
+    {
+        $userId    = $this->insertUser();
+        // cost_price = 0 (기본값)
+        $productId = $this->insertProduct(['cost_price' => 0, 'price' => 15000]);
+        $db        = db_connect();
+
+        $cartItems = [[
+            'product_id' => $productId,
+            'name'       => '원가미입력상품',
+            'price'      => 15000,
+            'qty'        => 1,
+        ]];
+
+        $orderId = (new OrderModel())->createPending($userId, $this->shippingData(), $cartItems);
+        $this->cleanup['orders'][] = $orderId;
+
+        $item = $db->table('order_items')->where('order_id', $orderId)->get()->getRowArray();
+        $this->assertSame(0.0, (float) $item['cost_price']);
     }
 }

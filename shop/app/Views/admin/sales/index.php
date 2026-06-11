@@ -118,7 +118,7 @@
                 <div class="fs-5 fw-bold <?= $profit >= 0 ? 'text-success' : 'text-danger' ?>">
                     <?= number_format($profit) ?>원
                 </div>
-                <div class="text-muted" style="font-size:.72rem">매출 - 원가 - 배송비</div>
+                <div class="text-muted" style="font-size:.72rem">실매출 - 매입원가 - 배송비</div>
             </div>
         </div>
     </div>

@@ -192,10 +192,11 @@ class ProductController extends BaseController
     {
         $slugRule = 'required|max_length[220]|is_unique[products.slug' . ($excludeId ? ",id,{$excludeId}" : '') . ']';
         return [
-            'name'  => 'required|max_length[200]',
-            'slug'  => $slugRule,
-            'price' => 'required|integer|greater_than_equal_to[0]',
-            'stock' => 'required|integer|greater_than_equal_to[0]',
+            'name'       => 'required|max_length[200]',
+            'slug'       => $slugRule,
+            'price'      => 'required|integer|greater_than_equal_to[0]',
+            'stock'      => 'required|integer|greater_than_equal_to[0]',
+            'cost_price' => 'permit_empty|decimal|greater_than_equal_to[0]',
         ];
     }
 

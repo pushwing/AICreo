@@ -25,7 +25,7 @@ class SalesController extends BaseController
             INNER JOIN (
                 SELECT order_id, MAX(id) AS id
                 FROM payments
-                WHERE status IN ('paid', 'refunded')
+                WHERE status = 'paid'
                 GROUP BY order_id
             ) latest_paid ON latest_paid.id = p1.id
         ";
@@ -37,7 +37,7 @@ class SalesController extends BaseController
             ->join('users u',    'u.id = o.user_id', 'left')
             ->join("({$paidPaymentSql}) p", 'p.order_id = o.id', 'inner', false)
             ->join("({$costSubSql}) oc", 'oc.order_id = o.id', 'left', false)
-            ->whereIn('o.status', ['paid', 'preparing', 'shipped', 'delivered', 'refund_requested', 'refunded'])
+            ->whereIn('o.status', ['paid', 'preparing', 'shipped', 'delivered', 'refund_requested', 'return_requested', 'return_approved'])
             ->where('DATE(o.created_at) >=', $from)
             ->where('DATE(o.created_at) <=', $to);
 
