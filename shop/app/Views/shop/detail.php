@@ -181,6 +181,11 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                 <li class="nav-item">
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabShipping">배송·교환·반품</button>
                 </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabQna">
+                        상품 문의<?php if (($qnaTotal ?? 0) > 0): ?> <span class="badge bg-secondary ms-1"><?= (int) ($qnaTotal ?? 0) ?></span><?php endif; ?>
+                    </button>
+                </li>
             </ul>
             <div class="tab-content border border-top-0 rounded-bottom p-4">
                 <div class="tab-pane fade show active" id="tabDesc">
@@ -199,6 +204,117 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                     <p class="text-muted">배송·교환·반품 안내가 없습니다.</p>
                     <?php endif; ?>
                 </div>
+
+                <!-- 상품 문의 탭 -->
+                <div class="tab-pane fade" id="tabQna">
+
+                    <!-- 작성 폼 -->
+                    <?php if (session()->get('user_id')): ?>
+                    <div class="card mb-4 border">
+                        <div class="card-header bg-white fw-semibold small">문의 작성</div>
+                        <div class="card-body">
+                            <input type="text" id="qnaTitle" class="form-control form-control-sm mb-2"
+                                   placeholder="제목을 입력하세요" maxlength="200">
+                            <textarea id="qnaContent" class="form-control form-control-sm mb-2"
+                                      rows="3" placeholder="문의 내용을 입력하세요"></textarea>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="qnaSecret">
+                                    <label class="form-check-label small" for="qnaSecret">비밀글</label>
+                                </div>
+                                <button class="btn btn-sm btn-primary" id="btnQnaSubmit">문의 등록</button>
+                            </div>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <div class="alert alert-light text-center small mb-4">
+                        <a href="/auth/login" class="fw-semibold">로그인</a> 후 문의하실 수 있습니다.
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- 문의 목록 -->
+                    <?php if (empty($qnaItems ?? [])): ?>
+                    <p class="text-muted text-center py-4">등록된 문의가 없습니다.</p>
+                    <?php else: ?>
+                    <?php
+                    $myQnaUserId = (int) (session()->get('user_id') ?? 0);
+                    ?>
+                    <div class="accordion" id="qnaAccordion">
+                        <?php foreach (($qnaItems ?? []) as $qna):
+                            $dName   = $qna['nickname'] ?: $qna['username'];
+                            $dLen    = mb_strlen($dName);
+                            $dMask   = mb_substr($dName, 0, 1) . str_repeat('*', min($dLen - 1, 2));
+                            $isOwner = $myQnaUserId === (int) $qna['user_id'];
+                            $canSee  = ! $qna['is_secret'] || $isOwner;
+                        ?>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2 small"
+                                        type="button"
+                                        <?= $canSee ? 'data-bs-toggle="collapse" data-bs-target="#qnaItem' . $qna['id'] . '"' : 'disabled' ?>>
+                                    <div class="d-flex w-100 justify-content-between align-items-center me-2 gap-2">
+                                        <span class="text-truncate">
+                                            <?php if ($qna['is_secret']): ?>
+                                            <i class="bi bi-lock-fill text-secondary me-1"></i>
+                                            <?php endif; ?>
+                                            <?= $canSee ? esc($qna['title']) : '비밀 문의입니다.' ?>
+                                        </span>
+                                        <span class="text-muted text-nowrap small flex-shrink-0">
+                                            <?= esc($dMask) ?> · <?= date('Y.m.d', strtotime($qna['created_at'])) ?>
+                                        </span>
+                                        <span class="flex-shrink-0">
+                                            <?php if ($qna['is_answered']): ?>
+                                            <span class="badge bg-success">답변완료</span>
+                                            <?php else: ?>
+                                            <span class="badge bg-light text-secondary border">답변대기</span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <?php if ($canSee): ?>
+                            <div id="qnaItem<?= $qna['id'] ?>" class="accordion-collapse collapse"
+                                 data-bs-parent="#qnaAccordion">
+                                <div class="accordion-body small">
+                                    <p style="white-space:pre-line"><?= esc($qna['content']) ?></p>
+                                    <?php if ($qna['is_answered']): ?>
+                                    <div class="border-start border-success border-3 ps-3 mt-3 bg-light rounded-end py-2">
+                                        <div class="fw-semibold text-success mb-1 small">답변</div>
+                                        <p class="mb-1" style="white-space:pre-line"><?= esc($qna['answer'] ?? '') ?></p>
+                                        <small class="text-muted"><?= date('Y.m.d H:i', strtotime((string) $qna['answered_at'])) ?></small>
+                                    </div>
+                                    <?php else: ?>
+                                    <p class="text-muted small mb-0">아직 답변이 등록되지 않았습니다.</p>
+                                    <?php endif; ?>
+                                    <?php if ($isOwner): ?>
+                                    <div class="mt-2 text-end">
+                                        <button class="btn btn-sm btn-outline-danger btn-qna-delete"
+                                                data-id="<?= $qna['id'] ?>">삭제</button>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php
+                    $qnaTotalPages = (int) ceil(($qnaTotal ?? 0) / max(1, ($qnaPerPage ?? 10)));
+                    if ($qnaTotalPages > 1): ?>
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center pagination-sm">
+                            <?php for ($p = 1; $p <= $qnaTotalPages; $p++): ?>
+                            <li class="page-item <?= $p === ($qnaPage ?? 1) ? 'active' : '' ?>">
+                                <a class="page-link" href="?qna_page=<?= $p ?>#tabQna"><?= $p ?></a>
+                            </li>
+                            <?php endfor; ?>
+                        </ul>
+                    </nav>
+                    <?php endif; ?>
+
+                    <?php endif; // empty qnaItems ?>
+                </div><!-- /tabQna -->
             </div>
         </div>
     </div>
@@ -304,5 +420,55 @@ document.getElementById('btnBuyNow')?.addEventListener('click', function () {
         window.location.href = '/cart';
     });
 });
+
+// ─── 상품 문의 ─────────────────────────────────────────────────────────────────
+document.getElementById('btnQnaSubmit')?.addEventListener('click', function () {
+    const title   = (document.getElementById('qnaTitle')?.value  ?? '').trim();
+    const content = (document.getElementById('qnaContent')?.value ?? '').trim();
+    const secret  = document.getElementById('qnaSecret')?.checked ? 1 : 0;
+
+    if (! title || ! content) {
+        alert('제목과 내용을 입력해주세요.');
+        return;
+    }
+
+    const fd = new FormData();
+    fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+    fd.append('title',     title);
+    fd.append('content',   content);
+    fd.append('is_secret', secret);
+
+    fetch('/shop/<?= esc($product['slug']) ?>/qna', { method: 'POST', body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            alert(data.message);
+            if (data.success) location.reload();
+        })
+        .catch(function () { alert('오류가 발생했습니다.'); });
+});
+
+document.querySelectorAll('.btn-qna-delete').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        if (! confirm('문의를 삭제하시겠습니까?')) return;
+        const fd = new FormData();
+        fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+        fetch('/shop/<?= esc($product['slug']) ?>/qna/' + btn.dataset.id + '/delete',
+              { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) location.reload();
+                else alert(data.message || '삭제에 실패했습니다.');
+            })
+            .catch(function () { alert('오류가 발생했습니다.'); });
+    });
+});
+
+// hash가 #tabQna인 경우 해당 탭 활성화
+(function () {
+    if (window.location.hash === '#tabQna') {
+        const trigger = document.querySelector('[data-bs-target="#tabQna"]');
+        if (trigger) new bootstrap.Tab(trigger).show();
+    }
+})();
 </script>
 <?= $this->endSection() ?>
