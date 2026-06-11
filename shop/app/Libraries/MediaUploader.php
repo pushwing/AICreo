@@ -7,8 +7,9 @@ use CodeIgniter\HTTP\Files\UploadedFile;
 
 class MediaUploader
 {
-    private const ALLOWED = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-    private const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    private const ALLOWED       = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    private const MAX_SIZE      = 5 * 1024 * 1024; // 5MB
+    private const MAX_DIMENSION = 1200;             // 리사이즈 기준 (px)
 
     private MediaModel $model;
 
@@ -42,6 +43,9 @@ class MediaUploader
             return ['success' => false, 'error' => '파일 이동에 실패했습니다.'];
         }
 
+        $fullPath = $uploadPath . '/' . $storedName;
+        $this->resizeIfNeeded($fullPath, $ext);
+
         $id = $this->model->insert([
             'original_name' => $file->getName(),
             'stored_name'   => $storedName,
@@ -57,5 +61,22 @@ class MediaUploader
             'path'    => '/' . $relativePath,
             'url'     => base_url($relativePath),
         ];
+    }
+
+    // GIF(애니메이션)·SVG(벡터)를 제외하고 MAX_DIMENSION 초과 시 비율 유지하며 축소
+    private function resizeIfNeeded(string $fullPath, string $ext): void
+    {
+        if (in_array($ext, ['gif', 'svg'])) return;
+
+        [$width, $height] = getimagesize($fullPath) ?: [0, 0];
+
+        if ($width <= self::MAX_DIMENSION && $height <= self::MAX_DIMENSION) return;
+
+        $masterDim = $width >= $height ? 'width' : 'height';
+
+        \Config\Services::image()
+            ->withFile($fullPath)
+            ->resize(self::MAX_DIMENSION, self::MAX_DIMENSION, true, $masterDim)
+            ->save($fullPath);
     }
 }
