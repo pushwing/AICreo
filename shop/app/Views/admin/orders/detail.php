@@ -78,6 +78,11 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                 <div class="d-flex align-items-center gap-3 p-3 border-bottom">
                     <div class="flex-grow-1 small">
                         <div class="fw-semibold mb-1"><?= esc($item['product_name']) ?></div>
+                        <?php if (! empty($item['sku_option_label'])): ?>
+                        <div class="text-muted" style="font-size:.75rem;margin-bottom:.1rem">
+                            <i class="bi bi-tag me-1"></i><?= esc($item['sku_option_label']) ?>
+                        </div>
+                        <?php endif; ?>
                         <div class="text-muted">
                             <?= number_format($item['product_price']) ?>원 × <?= (int) $item['qty'] ?>개
                         </div>
