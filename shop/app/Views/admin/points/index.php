@@ -7,7 +7,7 @@
     <h4 class="fw-bold mb-0">포인트 관리</h4>
 </div>
 
-<div class="card">
+<div class="card overflow-hidden">
     <div class="card-header bg-white">
         <form method="get" class="d-flex gap-2">
             <input type="text" name="keyword" class="form-control form-control-sm"
