@@ -14,14 +14,14 @@ class MenuController extends BaseController
         $this->menuModel = new MenuModel();
     }
 
-    public function index()
+    public function index(): string
     {
         return $this->render('admin/menus/index', [
             'menus' => $this->menuModel->orderBy('sort_order')->findAll(),
         ]);
     }
 
-    public function store()
+    public function store(): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->menuModel->insert([
             'parent_id'  => $this->request->getPost('parent_id') ?: null,
@@ -35,7 +35,7 @@ class MenuController extends BaseController
         return redirect()->to('/admin/menus')->with('success', '메뉴가 추가되었습니다.');
     }
 
-    public function update(int $id)
+    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->menuModel->update($id, [
             'title'      => $this->request->getPost('title'),
@@ -48,7 +48,7 @@ class MenuController extends BaseController
         return redirect()->to('/admin/menus')->with('success', '수정되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->menuModel->delete($id);
         $this->menuModel->clearCache();

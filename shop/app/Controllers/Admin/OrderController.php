@@ -35,7 +35,7 @@ class OrderController extends BaseController
     }
 
     /** GET /admin/orders */
-    public function index()
+    public function index(): string
     {
         $keyword = trim($this->request->getGet('q') ?? '');
         $status  = $this->request->getGet('status') ?? '';
@@ -55,7 +55,7 @@ class OrderController extends BaseController
     }
 
     /** GET /admin/orders/:id */
-    public function detail(int $id)
+    public function detail(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $order = $this->orderModel->adminGetWithItems($id);
         if (! $order) {
@@ -70,7 +70,7 @@ class OrderController extends BaseController
     }
 
     /** POST /admin/orders/:id/status */
-    public function updateStatus(int $id)
+    public function updateStatus(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $newStatus = $this->request->getPost('status');
 
@@ -92,7 +92,7 @@ class OrderController extends BaseController
     }
 
     /** POST /admin/orders/:id/tracking */
-    public function updateTracking(int $id)
+    public function updateTracking(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $company = trim($this->request->getPost('tracking_company') ?? '');
         $number  = trim($this->request->getPost('tracking_number')  ?? '');
@@ -108,7 +108,7 @@ class OrderController extends BaseController
     }
 
     /** POST /admin/orders/:id/cancel */
-    public function cancel(int $id)
+    public function cancel(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $ok = $this->orderModel->adminCancel($id);
 
@@ -117,7 +117,7 @@ class OrderController extends BaseController
     }
 
     /** POST /admin/orders/:id/bank_confirm — 무통장 입금 확인 */
-    public function confirmBankTransfer(int $id)
+    public function confirmBankTransfer(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $ok = $this->orderModel->confirmBankTransfer($id);
 
@@ -126,7 +126,7 @@ class OrderController extends BaseController
     }
 
     /** POST /admin/orders/:id/refund */
-    public function refund(int $id)
+    public function refund(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $ok = $this->orderModel->markRefunded($id);
 

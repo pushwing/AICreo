@@ -19,7 +19,7 @@ class CouponController extends BaseController
     }
 
     /** GET /admin/coupons */
-    public function index()
+    public function index(): string
     {
         $result = $this->couponModel->getAdminList([
             'keyword' => $this->request->getGet('keyword'),
@@ -33,7 +33,7 @@ class CouponController extends BaseController
     }
 
     /** GET /admin/coupons/create */
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/coupons/form', [
             'coupon' => null,
@@ -42,7 +42,7 @@ class CouponController extends BaseController
     }
 
     /** POST /admin/coupons/create */
-    public function store()
+    public function store(): \CodeIgniter\HTTP\RedirectResponse
     {
         if (! $this->validate($this->validationRules())) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -54,7 +54,7 @@ class CouponController extends BaseController
     }
 
     /** GET /admin/coupons/:id/edit */
-    public function edit(int $id)
+    public function edit(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $coupon = $this->couponModel->find($id);
         if (! $coupon) return redirect()->to('/admin/coupons')->with('error', '쿠폰을 찾을 수 없습니다.');
@@ -66,7 +66,7 @@ class CouponController extends BaseController
     }
 
     /** POST /admin/coupons/:id/edit */
-    public function update(int $id)
+    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $coupon = $this->couponModel->find($id);
         if (! $coupon) return redirect()->to('/admin/coupons')->with('error', '쿠폰을 찾을 수 없습니다.');
@@ -81,7 +81,7 @@ class CouponController extends BaseController
     }
 
     /** POST /admin/coupons/:id/delete */
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $coupon = $this->couponModel->find($id);
         if (! $coupon) return redirect()->to('/admin/coupons')->with('error', '쿠폰을 찾을 수 없습니다.');
@@ -92,7 +92,7 @@ class CouponController extends BaseController
     }
 
     /** GET /admin/coupons/:id/issue */
-    public function issueForm(int $id)
+    public function issueForm(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $coupon = $this->couponModel->find($id);
         if (! $coupon) return redirect()->to('/admin/coupons')->with('error', '쿠폰을 찾을 수 없습니다.');
@@ -104,7 +104,7 @@ class CouponController extends BaseController
     }
 
     /** POST /admin/coupons/:id/issue */
-    public function issue(int $id)
+    public function issue(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $coupon = $this->couponModel->find($id);
         if (! $coupon) return redirect()->to('/admin/coupons')->with('error', '쿠폰을 찾을 수 없습니다.');

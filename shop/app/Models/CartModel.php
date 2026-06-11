@@ -16,20 +16,19 @@ class CartModel extends Model
      */
     public function getByUser(int $userId): array
     {
-        $rows = $this->select(
-                'cart_items.id, cart_items.product_id, cart_items.qty,
+        $rows = $this->db->table('cart_items')
+            ->select('cart_items.id, cart_items.product_id, cart_items.qty,
                  products.name, products.slug, products.price, products.discount_price,
                  products.stock, products.status,
                  products.shipping_type, products.shipping_fee, products.free_threshold,
-                 media.file_path'
-            )
+                 media.file_path')
             ->join('products', 'products.id = cart_items.product_id')
             ->join('product_images pi', 'pi.product_id = cart_items.product_id AND pi.is_primary = 1', 'left')
             ->join('media', 'media.id = pi.media_id', 'left')
             ->where('cart_items.user_id', $userId)
             ->where('products.deleted_at IS NULL', null, false)
             ->orderBy('cart_items.id', 'DESC')
-            ->findAll();
+            ->get()->getResultArray();
 
         foreach ($rows as &$row) {
             $row['primary_image'] = $row['file_path'] ? base_url($row['file_path']) : null;
@@ -44,7 +43,7 @@ class CartModel extends Model
      */
     public function getCount(int $userId): int
     {
-        return (int) $this->where('user_id', $userId)->countAllResults();
+        return (int) $this->db->table($this->table)->where('user_id', $userId)->countAllResults();
     }
 
     /**

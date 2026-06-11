@@ -23,8 +23,8 @@ class CategoryModel extends Model
      */
     public function getTree(): array
     {
-        return cache()->remember('category_tree', 3600, function () {
-            $all = $this->where('is_active', 1)->orderBy('sort_order')->findAll();
+        return (array) cache()->remember('category_tree', 3600, function () {
+            $all = $this->db->table($this->table)->where('is_active', 1)->orderBy('sort_order')->get()->getResultArray();
 
             $parents = [];
             $children = [];

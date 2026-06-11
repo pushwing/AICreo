@@ -14,7 +14,7 @@ class SettingController extends BaseController
         $this->settingModel = new SettingModel();
     }
 
-    public function index(string $group = 'general')
+    public function index(string $group = 'general'): string
     {
         if ($group === 'oauth') {
             return $this->render('admin/settings/oauth', [
@@ -61,7 +61,7 @@ class SettingController extends BaseController
         ]);
     }
 
-    public function uploadTheme()
+    public function uploadTheme(): \CodeIgniter\HTTP\RedirectResponse
     {
         $file = $this->request->getFile('theme_zip');
 
@@ -189,7 +189,7 @@ class SettingController extends BaseController
         rmdir($dir);
     }
 
-    public function update(string $group = 'general')
+    public function update(string $group = 'general'): \CodeIgniter\HTTP\RedirectResponse
     {
         $postData = $this->request->getPost();
         unset($postData[csrf_token()]);

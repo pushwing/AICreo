@@ -537,7 +537,7 @@ class OrderModel extends Model
                 $this->db->table('point_logs')->insert([
                     'user_id'    => $order['user_id'],
                     'type'       => 'cancel',
-                    'amount'     => -$order['point_earned_amount'],
+                    'amount'     => -(int)$order['point_earned_amount'],
                     'order_id'   => $orderId,
                     'note'       => '환불로 인한 포인트 회수',
                     'created_at' => date('Y-m-d H:i:s'),

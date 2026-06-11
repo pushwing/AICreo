@@ -19,7 +19,7 @@
 
 <div class="row g-4">
     <div class="col-md-8">
-        <div class="card">
+        <div class="card overflow-hidden">
             <div class="card-header fw-semibold bg-white d-flex justify-content-between">
                 <span>포인트 이력</span>
                 <span class="text-muted small">총 <?= number_format($total) ?>건</span>

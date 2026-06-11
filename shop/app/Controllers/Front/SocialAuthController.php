@@ -19,7 +19,7 @@ class SocialAuthController extends BaseController
      * 소셜 로그인 시작 — 제공자 OAuth 페이지로 리다이렉트
      * GET /auth/social/{provider}
      */
-    public function redirect(string $provider)
+    public function redirect(string $provider): \CodeIgniter\HTTP\RedirectResponse
     {
         if (! in_array($provider, OAuthFactory::supported())) {
             return redirect()->to('/auth/login')->with('error', '지원하지 않는 로그인 방식입니다.');
@@ -40,7 +40,7 @@ class SocialAuthController extends BaseController
      * 소셜 로그인 콜백 처리
      * GET /auth/social/{provider}/callback
      */
-    public function callback(string $provider)
+    public function callback(string $provider): \CodeIgniter\HTTP\RedirectResponse
     {
         $code  = $this->request->getGet('code');
         $state = $this->request->getGet('state');

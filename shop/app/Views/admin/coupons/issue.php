@@ -34,7 +34,7 @@
     </div>
 
     <div class="col-md-7">
-        <div class="card">
+        <div class="card overflow-hidden">
             <div class="card-header fw-semibold bg-white d-flex justify-content-between align-items-center">
                 <span>발급 내역</span>
                 <span class="text-muted small">총 <?= number_format($total) ?>건</span>

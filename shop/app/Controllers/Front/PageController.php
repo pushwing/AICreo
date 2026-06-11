@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Libraries\Mailer;
 use App\Models\InquiryModel;
 use App\Models\PageModel;
 
@@ -19,7 +20,7 @@ class PageController extends BaseController
      * 슬러그 기반 동적 페이지 라우팅
      * layout 값에 따라 다른 뷰 파일 렌더링
      */
-    public function show(string $slug)
+    public function show(string $slug): string
     {
         $page = $this->pageModel->getBySlug($slug);
 
@@ -39,7 +40,7 @@ class PageController extends BaseController
     /**
      * 문의폼 처리
      */
-    public function inquirySubmit()
+    public function inquirySubmit(): \CodeIgniter\HTTP\RedirectResponse
     {
         $rules = [
             'name'    => 'required|max_length[100]',
@@ -60,31 +61,20 @@ class PageController extends BaseController
             'ip_address' => $this->request->getIPAddress(),
         ]);
 
-        // 클라이언트 이메일 발송 (설정에서 수신 이메일 읽기)
-        $this->sendInquiryEmail();
+        // 관리자 이메일 발송 (설정에서 수신 이메일 읽기)
+        $toEmail = $this->viewData['settings']['email'] ?? '';
+        if ($toEmail) {
+            (new Mailer($this->viewData['settings'] ?? []))->sendInquiry($toEmail, [
+                'name'    => $this->request->getPost('name'),
+                'email'   => $this->request->getPost('email'),
+                'phone'   => $this->request->getPost('phone'),
+                'subject' => $this->request->getPost('subject'),
+                'message' => $this->request->getPost('message'),
+            ]);
+        }
 
         return redirect()->back()->with('success', '문의가 접수되었습니다. 빠른 시일 내에 답변드리겠습니다.');
     }
 
-    private function sendInquiryEmail(): void
-    {
-        $toEmail = $this->viewData['settings']['email'] ?? '';
-        if (! $toEmail) return;
-
-        $email = \Config\Services::email();
-        $email->setTo($toEmail);
-        $email->setSubject('[문의] ' . ($this->request->getPost('subject') ?: '새 문의가 도착했습니다'));
-        $email->setMessage(
-            "이름: " . $this->request->getPost('name') . "\n" .
-            "이메일: " . $this->request->getPost('email') . "\n" .
-            "연락처: " . $this->request->getPost('phone') . "\n\n" .
-            $this->request->getPost('message')
-        );
-
-        try {
-            $email->send();
-        } catch (\Throwable) {
-            // 이메일 발송 실패해도 문의 저장은 완료된 상태
-        }
-    }
 }
+

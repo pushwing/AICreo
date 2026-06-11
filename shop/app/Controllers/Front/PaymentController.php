@@ -24,7 +24,7 @@ class PaymentController extends BaseController
      *   3. 재고 차감 + 주문 상태 → paid (트랜잭션)
      *   4. 주문 완료 페이지 리디렉트
      */
-    public function callback(string $pgProvider)
+    public function callback(string $pgProvider): \CodeIgniter\HTTP\RedirectResponse
     {
         if (! in_array($pgProvider, PGFactory::providers(), true)) {
             return redirect()->to('/')->with('error', '잘못된 접근입니다.');

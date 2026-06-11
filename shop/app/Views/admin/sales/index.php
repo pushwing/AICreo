@@ -196,7 +196,7 @@
 </div>
 
 <!-- ─── 주문 목록 ─────────────────────────────────────────────────────────── -->
-<div class="card">
+<div class="card overflow-hidden">
     <div class="card-header bg-white d-flex align-items-center justify-content-between">
         <span class="fw-semibold">결제 완료 주문 목록</span>
         <span class="text-muted small">최대 50건 표시</span>

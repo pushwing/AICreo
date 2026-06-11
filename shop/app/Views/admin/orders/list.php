@@ -44,7 +44,7 @@ $statusBadge = [
 
 
 <!-- 목록 테이블 -->
-<div class="card">
+<div class="card overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <?php

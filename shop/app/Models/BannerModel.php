@@ -30,8 +30,10 @@ class BannerModel extends Model
      */
     public function getActiveByPosition(string $position): array
     {
-        $grouped = cache()->remember('active_banners', 3600, function () {
-            $rows = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
+        $grouped = (array) cache()->remember('active_banners', 3600, function () {
+            $rows = $this->db->table($this->table)
+                ->where('is_active', 1)->orderBy('priority', 'ASC')
+                ->get()->getResultArray();
             $map  = [];
             foreach ($rows as $row) {
                 $map[$row['position']][] = $row;
@@ -42,7 +44,7 @@ class BannerModel extends Model
         $now = date('Y-m-d H:i:s');
 
         return array_values(array_filter(
-            $grouped[$position] ?? [],
+            (array) ($grouped[$position] ?? []),
             fn($b) => ($b['started_at'] === null || $b['started_at'] <= $now)
                    && ($b['ended_at'] === null || $b['ended_at'] >= $now)
         ));
@@ -56,11 +58,11 @@ class BannerModel extends Model
 
     public function deleteWithFile(int $id): bool
     {
-        $banner = $this->find($id);
+        $banner = $this->db->table($this->table)->where('id', $id)->get()->getRowArray();
         if (! $banner) return false;
 
-        $fullPath = FCPATH . $banner['image_path'];
-        if (file_exists($fullPath)) unlink($fullPath);
+        $fullPath = FCPATH . ($banner['image_path'] ?? '');
+        if ($fullPath && file_exists($fullPath)) unlink($fullPath);
 
         return (bool) $this->delete($id);
     }

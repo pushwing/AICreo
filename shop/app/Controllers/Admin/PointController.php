@@ -15,7 +15,7 @@ class PointController extends BaseController
     }
 
     /** GET /admin/points — 회원별 포인트 잔액 목록 */
-    public function index()
+    public function index(): string
     {
         $db      = \Config\Database::connect();
         $keyword = trim($this->request->getGet('keyword') ?? '');
@@ -41,7 +41,7 @@ class PointController extends BaseController
     }
 
     /** GET /admin/points/:userId/history */
-    public function history(int $userId)
+    public function history(int $userId): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $db   = \Config\Database::connect();
         $user = $db->table('users')->select('id, email, nickname, point_balance')
@@ -56,7 +56,7 @@ class PointController extends BaseController
     }
 
     /** POST /admin/points/adjust — 포인트 수동 조정 */
-    public function adjust()
+    public function adjust(): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId = (int) $this->request->getPost('user_id');
         $amount = (int) $this->request->getPost('amount');

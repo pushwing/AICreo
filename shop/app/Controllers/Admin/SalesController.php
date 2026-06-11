@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 
 class SalesController extends BaseController
 {
-    public function index()
+    public function index(): string
     {
         $db = \Config\Database::connect();
 

@@ -18,20 +18,20 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 목록
-    public function index()
+    public function index(): string
     {
         $boards = $this->boardModel->orderBy('sort_order')->findAll();
         return $this->render('admin/board/list', ['boards' => $boards]);
     }
 
     // 게시판 생성 폼
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/board/form', ['board' => null]);
     }
 
     // 게시판 저장
-    public function store()
+    public function store(): \CodeIgniter\HTTP\RedirectResponse
     {
         $rules = [
             'slug' => 'required|alpha_dash|is_unique[boards.slug]',
@@ -57,13 +57,13 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 수정
-    public function edit(int $id)
+    public function edit(int $id): string
     {
         $board = $this->boardModel->find($id);
         return $this->render('admin/board/form', ['board' => $board]);
     }
 
-    public function update(int $id)
+    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->boardModel->update($id, [
             'name'             => $this->request->getPost('name'),
@@ -81,7 +81,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판의 게시글 관리
-    public function posts(int $boardId)
+    public function posts(int $boardId): string
     {
         $board = $this->boardModel->find($boardId);
         $page  = (int) ($this->request->getGet('page') ?? 1);
@@ -98,7 +98,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시글 강제 삭제
-    public function deletePost(int $postId)
+    public function deletePost(int $postId): \CodeIgniter\HTTP\RedirectResponse
     {
         $post = $this->postModel->find($postId);
         if (! $post) {

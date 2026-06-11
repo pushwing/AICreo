@@ -30,7 +30,7 @@ class PopupModel extends Model
      */
     public function getActiveForPage(string $uri): array
     {
-        $cached = cache()->remember('active_popups', 3600, function () {
+        $cached = (array) cache()->remember('active_popups', 3600, function () {
             $popups = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
 
             $pageUrls = [];
@@ -50,14 +50,14 @@ class PopupModel extends Model
         $currentUrl = '/' . ltrim($uri, '/');
 
         $result = [];
-        foreach ($cached['popups'] as $popup) {
+        foreach ((array) ($cached['popups'] ?? []) as $popup) {
             if ($popup['started_at'] !== null && $popup['started_at'] > $now) continue;
             if ($popup['ended_at'] !== null && $popup['ended_at'] < $now) continue;
 
             $show = match ($popup['show_scope']) {
                 'all'       => true,
                 'home_only' => $isHome,
-                'specific'  => in_array($currentUrl, $cached['pageUrls'][$popup['id']] ?? [], true),
+                'specific'  => in_array($currentUrl, (array) ($cached['pageUrls'][$popup['id']] ?? []), true),
                 default     => false,
             };
             if ($show) {
@@ -111,10 +111,10 @@ class PopupModel extends Model
 
     public function deleteWithFile(int $id): bool
     {
-        $popup = $this->find($id);
+        $popup = $this->db->table($this->table)->where('id', $id)->get()->getRowArray();
         if (! $popup) return false;
 
-        if ($popup['image_path']) {
+        if (! empty($popup['image_path'])) {
             $fullPath = FCPATH . $popup['image_path'];
             if (file_exists($fullPath)) unlink($fullPath);
         }

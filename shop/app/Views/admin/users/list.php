@@ -5,7 +5,7 @@
 
 <form method="get" class="row g-2 mb-3">
     <div class="col-auto">
-        <input type="text" name="q" class="form-control form-control-sm" placeholder="닉네임 / 이메일 검색"
+        <input type="text" name="q" class="form-control form-control-sm" placeholder="닉네임 / 이메일 / 휴대폰 검색"
                value="<?= esc($keyword) ?>">
     </div>
     <div class="col-auto">
@@ -18,8 +18,9 @@
     <div class="col-auto">
         <select name="status" class="form-select form-select-sm">
             <option value="">전체 상태</option>
-            <option value="1" <?= $status === '1' ? 'selected' : '' ?>>활성</option>
-            <option value="0" <?= $status === '0' ? 'selected' : '' ?>>비활성</option>
+            <option value="1"          <?= $status === '1'          ? 'selected' : '' ?>>활성</option>
+            <option value="unverified" <?= $status === 'unverified' ? 'selected' : '' ?>>이메일 미인증</option>
+            <option value="0"          <?= $status === '0'          ? 'selected' : '' ?>>비활성 (차단)</option>
         </select>
     </div>
     <div class="col-auto">
@@ -31,7 +32,7 @@
     </div>
 </form>
 
-<div class="card">
+<div class="card overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead class="table-light">
@@ -39,6 +40,7 @@
                     <th>ID</th>
                     <th>닉네임</th>
                     <th>이메일</th>
+                    <th>휴대폰</th>
                     <th>역할</th>
                     <th>상태</th>
                     <th>가입일</th>
@@ -48,13 +50,15 @@
             </thead>
             <tbody>
                 <?php if (empty($users)): ?>
-                <tr><td colspan="8" class="text-center text-muted py-4">회원이 없습니다.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">회원이 없습니다.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($users as $u): ?>
+                <?php $isUnverified = ! $u['is_active'] && ! empty($u['email_verify_token']); ?>
                 <tr>
                     <td class="text-muted small"><?= $u['id'] ?></td>
                     <td><?= esc($u['nickname']) ?></td>
                     <td class="small"><?= esc($u['email']) ?></td>
+                    <td class="small text-muted"><?= $u['phone'] ? esc($u['phone']) : '-' ?></td>
                     <td>
                         <?php if ($u['role'] === 'admin'): ?>
                             <span class="badge bg-danger">관리자</span>
@@ -66,14 +70,24 @@
                         <?php endif; ?>
                     </td>
                     <td>
-                        <?= $u['is_active']
-                            ? '<span class="badge bg-success">활성</span>'
-                            : '<span class="badge bg-secondary">비활성</span>' ?>
+                        <?php if ($u['is_active']): ?>
+                            <span class="badge bg-success">활성</span>
+                        <?php elseif ($isUnverified): ?>
+                            <span class="badge bg-warning text-dark">이메일 미인증</span>
+                        <?php else: ?>
+                            <span class="badge bg-secondary">비활성</span>
+                        <?php endif; ?>
                     </td>
-                    <td class="small text-muted"><?= date('Y년 n월 j일', strtotime($u['created_at'])) ?></td>
-                    <td class="small text-muted"><?= $u['last_login'] ? date('Y년 n월 j일', strtotime($u['last_login'])) : '-' ?></td>
-                    <td>
+                    <td class="small text-muted"><?= date('Y-n-j', strtotime($u['created_at'])) ?></td>
+                    <td class="small text-muted"><?= $u['last_login'] ? date('Y-n-j', strtotime($u['last_login'])) : '-' ?></td>
+                    <td class="text-nowrap">
                         <a href="/admin/users/<?= $u['id'] ?>/edit" class="btn btn-sm btn-outline-secondary">수정</a>
+                        <?php if ($isUnverified): ?>
+                        <form method="post" action="/admin/users/<?= $u['id'] ?>/resend-verify" class="d-inline">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn btn-sm btn-outline-warning" title="인증 메일 재발송">재발송</button>
+                        </form>
+                        <?php endif; ?>
                         <?php if ((int)$u['id'] !== (int)session()->get('user_id')): ?>
                         <form method="post" action="/admin/users/<?= $u['id'] ?>/delete" class="d-inline"
                               onsubmit="return confirm('정말 삭제하시겠습니까?')">
