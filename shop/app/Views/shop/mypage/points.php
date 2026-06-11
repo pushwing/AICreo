@@ -24,7 +24,7 @@
         $typeMap   = ['use'=>'사용','earn'=>'적립','refund'=>'환불','cancel'=>'취소','admin'=>'지급/차감'];
         $typeColor = ['use'=>'warning','earn'=>'success','refund'=>'info','cancel'=>'secondary','admin'=>'dark'];
     ?>
-    <div class="card">
+    <div class="card overflow-hidden">
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
