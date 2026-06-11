@@ -19,10 +19,10 @@ class GradeService
         'platinum' => '플래티넘',
     ];
 
-    // Bootstrap badge 클래스
+    // Badge 클래스 (bronze·silver 는 커스텀, gold·platinum 은 Bootstrap)
     public const BADGE_CLASSES = [
-        'bronze'   => 'bg-secondary',
-        'silver'   => 'bg-info text-dark',
+        'bronze'   => 'badge-bronze',
+        'silver'   => 'badge-silver',
         'gold'     => 'bg-warning text-dark',
         'platinum' => 'bg-primary',
     ];

@@ -23,6 +23,8 @@
         #content { margin-left: var(--sidebar-w); padding: 1.5rem; }
         #topbar  { background: #fff; border-bottom: 1px solid #e9ecef; padding: .6rem 1.5rem; margin-left: var(--sidebar-w); position: sticky; top: 0; z-index: 100; }
         .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #dc3545; display: inline-block; }
+        .badge-bronze { background-color: #a0522d; color: #fff; }
+        .badge-silver { background-color: #888f94; color: #fff; }
     </style>
 </head>
 <body>
