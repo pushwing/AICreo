@@ -142,6 +142,37 @@ class OrderController extends BaseController
             ->setBody($content);
     }
 
+    /** POST /admin/orders/bulk-status — 주문 상태 일괄 변경 */
+    public function bulkUpdateStatus(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $status   = $this->request->getPost('status');
+        $orderIds = $this->request->getPost('order_ids');
+
+        if (! $status || ! array_key_exists($status, self::STATUS_LABELS)) {
+            return $this->response->setJSON(['success' => false, 'message' => '잘못된 상태값입니다.']);
+        }
+
+        if (! is_array($orderIds) || empty($orderIds)) {
+            return $this->response->setJSON(['success' => false, 'message' => '주문을 선택해주세요.']);
+        }
+
+        $orderIds = array_slice(array_map('intval', $orderIds), 0, 100);
+
+        $updated = 0;
+        $failed  = 0;
+        foreach ($orderIds as $id) {
+            if ($id <= 0) { $failed++; continue; }
+            $this->orderModel->updateStatus($id, $status) ? $updated++ : $failed++;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'updated' => $updated,
+            'failed'  => $failed,
+            'message' => "{$updated}건 변경 완료" . ($failed > 0 ? ", {$failed}건 실패 (허용되지 않는 전환)" : ''),
+        ]);
+    }
+
     /** GET /admin/orders/:id */
     public function detail(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {

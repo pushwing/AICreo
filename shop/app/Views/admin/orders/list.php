@@ -47,6 +47,20 @@ $statusBadge = [
 </form>
 
 
+<!-- 일괄 변경 액션 바 (체크박스 선택 시 표시) -->
+<div id="bulkActionBar" class="d-none bg-light border rounded p-2 mb-3 d-flex align-items-center gap-2 flex-wrap">
+    <span class="small fw-semibold" id="selectedCount">0개 선택됨</span>
+    <select id="bulkStatus" class="form-select form-select-sm" style="width:150px">
+        <option value="">→ 상태 선택</option>
+        <?php foreach ($statusLabels as $val => $label): ?>
+        <option value="<?= $val ?>"><?= $label ?></option>
+        <?php endforeach; ?>
+    </select>
+    <button id="btnBulkUpdate" class="btn btn-sm btn-primary">일괄 변경</button>
+    <button id="btnClearSelection" class="btn btn-sm btn-outline-secondary">선택 해제</button>
+    <span class="text-muted small ms-1">※ 허용되지 않는 전환은 자동 건너뜁니다</span>
+</div>
+
 <!-- 목록 테이블 -->
 <div class="card overflow-hidden">
     <div class="table-responsive">
@@ -64,6 +78,7 @@ $statusBadge = [
             ?>
             <thead class="table-light">
                 <tr>
+                    <th style="width:36px"><input type="checkbox" id="checkAll" title="전체 선택"></th>
                     <th>주문번호</th>
                     <th>주문일시</th>
                     <th>회원</th>
@@ -77,11 +92,12 @@ $statusBadge = [
             <tbody>
                 <?php if (empty($items)): ?>
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">주문이 없습니다.</td>
+                    <td colspan="9" class="text-center text-muted py-4">주문이 없습니다.</td>
                 </tr>
                 <?php endif; ?>
                 <?php foreach ($items as $order): ?>
                 <tr>
+                    <td><input type="checkbox" class="order-check" value="<?= (int) $order['id'] ?>"></td>
                     <td class="small fw-semibold"><?= esc($order['order_number']) ?></td>
                     <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></td>
                     <td class="small">
@@ -147,4 +163,71 @@ $statusBadge = [
 </nav>
 <?php endif; ?>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+(function () {
+    var bar          = document.getElementById('bulkActionBar');
+    var checkAll     = document.getElementById('checkAll');
+    var selectedText = document.getElementById('selectedCount');
+
+    function getChecked() {
+        return document.querySelectorAll('.order-check:checked');
+    }
+
+    function updateBar() {
+        var checked = getChecked();
+        if (checked.length > 0) {
+            bar.classList.remove('d-none');
+            selectedText.textContent = checked.length + '개 선택됨';
+        } else {
+            bar.classList.add('d-none');
+        }
+        checkAll.indeterminate = checked.length > 0 && checked.length < document.querySelectorAll('.order-check').length;
+        checkAll.checked = checked.length > 0 && checked.length === document.querySelectorAll('.order-check').length;
+    }
+
+    checkAll.addEventListener('change', function () {
+        document.querySelectorAll('.order-check').forEach(function (cb) { cb.checked = checkAll.checked; });
+        updateBar();
+    });
+
+    document.querySelectorAll('.order-check').forEach(function (cb) {
+        cb.addEventListener('change', updateBar);
+    });
+
+    document.getElementById('btnClearSelection').addEventListener('click', function () {
+        document.querySelectorAll('.order-check').forEach(function (cb) { cb.checked = false; });
+        checkAll.checked = false;
+        bar.classList.add('d-none');
+    });
+
+    document.getElementById('btnBulkUpdate').addEventListener('click', function () {
+        var status = document.getElementById('bulkStatus').value;
+        if (! status) { alert('변경할 상태를 선택해주세요.'); return; }
+
+        var ids = Array.from(getChecked()).map(function (cb) { return cb.value; });
+        if (ids.length === 0) { alert('주문을 선택해주세요.'); return; }
+
+        if (! confirm(ids.length + '개 주문 상태를 변경하시겠습니까?')) return;
+
+        var body = '<?= csrf_token() ?>=' + encodeURIComponent('<?= csrf_hash() ?>')
+                 + '&status=' + encodeURIComponent(status)
+                 + ids.map(function (id) { return '&order_ids[]=' + id; }).join('');
+
+        fetch('/admin/orders/bulk-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: body
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            alert(data.message || (data.success ? '처리 완료' : '처리 실패'));
+            if (data.success) location.reload();
+        })
+        .catch(function () { alert('오류가 발생했습니다.'); });
+    });
+}());
+</script>
 <?= $this->endSection() ?>
