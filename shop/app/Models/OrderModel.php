@@ -556,9 +556,20 @@ class OrderModel extends Model
         return $this->db->transStatus();
     }
 
+    /** 반품 사유 코드 목록 */
+    public const RETURN_REASON_CODES = [
+        'simple_change' => ['label' => '단순 변심',               'payer' => 'buyer'],
+        'wrong_size'    => ['label' => '사이즈/색상 오선택',        'payer' => 'buyer'],
+        'wrong_item'    => ['label' => '오배송 (잘못된 상품 배송)', 'payer' => 'seller'],
+        'damaged'       => ['label' => '상품 파손/불량',            'payer' => 'seller'],
+        'missing_item'  => ['label' => '구성품 누락',               'payer' => 'seller'],
+    ];
+
     /** 반품 요청 — delivered 상태 + 7일 이내에서만 가능 */
-    public function requestReturn(int $orderId, int $userId, string $reason): bool
+    public function requestReturn(int $orderId, int $userId, string $reasonCode, string $note = ''): bool
     {
+        if (! array_key_exists($reasonCode, self::RETURN_REASON_CODES)) return false;
+
         $order = $this->db->table('orders')
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -574,14 +585,19 @@ class OrderModel extends Model
             }
         }
 
+        $label = self::RETURN_REASON_CODES[$reasonCode]['label'];
+
         $this->db->transStart();
 
         $this->db->table('orders')->where('id', $orderId)->update([
-            'status'        => 'return_requested',
-            'return_reason' => $reason,
+            'status'             => 'return_requested',
+            'return_reason'      => $label,
+            'return_reason_code' => $reasonCode,
+            'return_reason_note' => $note !== '' ? $note : null,
         ]);
 
-        $this->writeStatusLog($orderId, 'delivered', 'return_requested', '회원 반품 요청: ' . mb_substr($reason, 0, 100));
+        $logNote = '회원 반품 요청: ' . $label . ($note !== '' ? ' / ' . mb_substr($note, 0, 80) : '');
+        $this->writeStatusLog($orderId, 'delivered', 'return_requested', $logNote);
 
         $this->db->transComplete();
         return $this->db->transStatus();
@@ -739,13 +755,55 @@ class OrderModel extends Model
         return $this->db->transStatus();
     }
 
-    /** 교환 완료 — 대체품 발송 확인 */
-    public function completeExchange(int $orderId): bool
+    /**
+     * 교환 완료 — 대체품 정보 저장 + 재고 차감
+     *
+     * @param array $exchangeItems [['product_id','sku_id','product_name','sku_option_label','product_price','qty'], ...]
+     */
+    public function completeExchange(int $orderId, array $exchangeItems): bool
     {
         $order = $this->where('id', $orderId)->where('status', 'exchange_approved')->first();
         if (! $order) return false;
 
+        if (empty($exchangeItems)) return false;
+
+        // 원주문 금액과 대체품 금액 일치 검증
+        $originalTotal = (int) $this->db->table('order_items')
+            ->selectSum('subtotal')
+            ->where('order_id', $orderId)
+            ->get()->getRow()->subtotal;
+
+        $exchangeTotal = 0;
+        foreach ($exchangeItems as $item) {
+            $exchangeTotal += (int) $item['product_price'] * (int) $item['qty'];
+        }
+
+        if ($originalTotal !== $exchangeTotal) return false;
+
         $this->db->transStart();
+
+        $now = date('Y-m-d H:i:s');
+        foreach ($exchangeItems as $item) {
+            $qty   = (int) $item['qty'];
+            $price = (int) $item['product_price'];
+            $row   = [
+                'order_id'         => $orderId,
+                'product_id'       => (int) $item['product_id'],
+                'sku_id'           => ! empty($item['sku_id']) ? (int) $item['sku_id'] : null,
+                'product_name'     => $item['product_name'],
+                'sku_option_label' => $item['sku_option_label'] ?: null,
+                'product_price'    => $price,
+                'qty'              => $qty,
+                'subtotal'         => $price * $qty,
+                'created_at'       => $now,
+            ];
+            $this->db->table('exchange_items')->insert($row);
+
+            if (! $this->deductItemStock($row)) {
+                $this->db->transRollback();
+                return false;
+            }
+        }
 
         $this->db->table('orders')->where('id', $orderId)->update(['status' => 'exchange_completed']);
 
@@ -878,9 +936,10 @@ class OrderModel extends Model
 
         if (! $order) return null;
 
-        $order['items']      = $this->fetchOrderItems($orderId);
-        $order['payment']    = $this->db->table('payments')->where('order_id', $orderId)->orderBy('id', 'DESC')->get()->getRowArray();
-        $order['statusLogs'] = $this->db->table('order_status_logs')
+        $order['items']         = $this->fetchOrderItems($orderId);
+        $order['exchange_items'] = $this->db->table('exchange_items')->where('order_id', $orderId)->get()->getResultArray();
+        $order['payment']       = $this->db->table('payments')->where('order_id', $orderId)->orderBy('id', 'DESC')->get()->getRowArray();
+        $order['statusLogs']    = $this->db->table('order_status_logs')
             ->where('order_id', $orderId)
             ->orderBy('id', 'ASC')
             ->get()->getResultArray();

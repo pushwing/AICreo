@@ -320,9 +320,25 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
             </div>
             <div class="card-body">
                 <?php if (! empty($order['return_reason'])): ?>
-                <p class="text-muted small mb-3">
-                    <strong>반품 사유:</strong><br><?= esc($order['return_reason']) ?>
+                <?php
+                    use App\Models\OrderModel;
+                    $rCode = $order['return_reason_code'] ?? null;
+                    $rMeta = $rCode ? (OrderModel::RETURN_REASON_CODES[$rCode] ?? null) : null;
+                    $payer = $rMeta['payer'] ?? null;
+                ?>
+                <p class="text-muted small mb-2">
+                    <strong>반품 사유:</strong> <?= esc($order['return_reason']) ?>
+                    <?php if ($payer): ?>
+                    <span class="badge <?= $payer === 'seller' ? 'bg-info' : 'bg-secondary' ?> ms-1">
+                        <?= $payer === 'seller' ? '판매자 택배비 부담' : '구매자 택배비 부담' ?>
+                    </span>
+                    <?php endif; ?>
                 </p>
+                <?php if (! empty($order['return_reason_note'])): ?>
+                <p class="text-muted small mb-2">
+                    <strong>상세 사유:</strong><br><?= esc($order['return_reason_note']) ?>
+                </p>
+                <?php endif; ?>
                 <?php endif; ?>
                 <p class="text-muted small mb-3">
                     승인 시 재고·쿠폰·포인트가 복구됩니다.<br>
@@ -418,11 +434,14 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
         </div>
         <?php endif; ?>
 
-        <!-- 교환 승인 → 완료 -->
+        <!-- 교환 승인 → 완료 (대체품 지정) -->
         <?php if ($canCompleteExchange): ?>
-        <div class="card mb-3 border-info">
+        <?php
+            $originalTotal = array_sum(array_column($items, 'subtotal'));
+        ?>
+        <div class="card mb-3 border-info" id="exchangeCompleteCard">
             <div class="card-header fw-semibold bg-info bg-opacity-10">
-                <i class="bi bi-box-seam me-1"></i>교환 완료 처리
+                <i class="bi bi-box-seam me-1"></i>교환 완료 — 대체품 지정
             </div>
             <div class="card-body">
                 <?php if (! empty($order['exchange_request_note'])): ?>
@@ -430,18 +449,190 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     <strong>교환 요청 내용:</strong><br><?= esc($order['exchange_request_note']) ?>
                 </p>
                 <?php endif; ?>
-                <p class="text-muted small mb-3">
-                    대체품 발송을 완료한 후 아래 버튼을 눌러주세요.
-                </p>
-                <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/exchange-complete"
-                      onsubmit="return confirm('대체품 발송을 완료하셨습니까?')">
+
+                <!-- 원주문 금액 -->
+                <div class="alert alert-secondary py-2 small mb-3">
+                    원주문 금액: <strong id="originalTotal"><?= number_format($originalTotal) ?>원</strong>
+                    &nbsp;|&nbsp; 대체품 합계: <strong id="exchangeTotalDisplay">0원</strong>
+                    <span id="priceMatchBadge" class="badge bg-danger ms-1">금액 불일치</span>
+                </div>
+
+                <!-- 상품 검색 -->
+                <div class="input-group input-group-sm mb-2">
+                    <input type="text" id="exchSearchQ" class="form-control" placeholder="대체품 상품명 검색">
+                    <button type="button" class="btn btn-outline-secondary" id="btnExchSearch">검색</button>
+                </div>
+                <div id="exchSearchResults" style="display:none;max-height:200px;overflow-y:auto" class="border rounded mb-3">
+                    <table class="table table-sm table-hover mb-0 small align-middle" id="exchSearchTable">
+                        <tbody id="exchSearchBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 선택된 대체품 목록 -->
+                <div class="small fw-semibold text-muted mb-1">선택된 대체품</div>
+                <div class="border rounded mb-3" style="min-height:48px">
+                    <table class="table table-sm mb-0 small" id="exchSelectedTable">
+                        <thead class="table-light">
+                            <tr><th>상품</th><th style="width:60px">단가</th><th style="width:55px">수량</th><th style="width:70px">소계</th><th style="width:28px"></th></tr>
+                        </thead>
+                        <tbody id="exchSelectedBody">
+                            <tr id="exchEmptyRow"><td colspan="5" class="text-center text-muted py-2">대체품을 검색해서 추가하세요</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 제출 -->
+                <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/exchange-complete" id="exchCompleteForm">
                     <?= csrf_field() ?>
-                    <button type="submit" class="btn btn-info w-100">
+                    <input type="hidden" name="exchange_items_json" id="exchItemsJson" value="[]">
+                    <button type="submit" class="btn btn-info w-100" id="btnExchComplete" disabled>
                         <i class="bi bi-check2-all me-1"></i>교환 완료 처리
                     </button>
                 </form>
             </div>
         </div>
+
+        <script>
+        (function () {
+            const ORIGINAL_TOTAL = <?= (int) $originalTotal ?>;
+            const selectedMap    = {}; // key: "productId_skuId"
+
+            // ── 검색 ──────────────────────────────────────────────────────
+            document.getElementById('btnExchSearch').addEventListener('click', doSearch);
+            document.getElementById('exchSearchQ').addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+            });
+
+            function doSearch() {
+                const q = document.getElementById('exchSearchQ').value.trim();
+                fetch('/admin/orders/exchange-product-search?q=' + encodeURIComponent(q))
+                    .then(r => r.json())
+                    .then(data => renderSearchResults(data.products || []));
+            }
+
+            function renderSearchResults(products) {
+                const tbody = document.getElementById('exchSearchBody');
+                tbody.innerHTML = '';
+                if (! products.length) {
+                    tbody.innerHTML = '<tr><td class="text-center text-muted py-2">검색 결과 없음</td></tr>';
+                    document.getElementById('exchSearchResults').style.display = '';
+                    return;
+                }
+                products.forEach(p => {
+                    if (p.skus && p.skus.length > 0) {
+                        p.skus.forEach(s => {
+                            const tr = makeSearchRow(p, s);
+                            tbody.appendChild(tr);
+                        });
+                    } else {
+                        const tr = makeSearchRow(p, null);
+                        tbody.appendChild(tr);
+                    }
+                });
+                document.getElementById('exchSearchResults').style.display = '';
+            }
+
+            function makeSearchRow(p, sku) {
+                const tr     = document.createElement('tr');
+                const price  = sku ? sku.sell_price : p.sell_price;
+                const stock  = sku ? sku.sku_stock  : p.stock;
+                const label  = sku ? esc(p.name) + ' <span class="text-muted">/ ' + esc(sku.option_label) + '</span>' : esc(p.name);
+                tr.innerHTML = `<td>${label}</td>
+                    <td class="text-end">${num(price)}원</td>
+                    <td class="text-muted">재고 ${stock}</td>
+                    <td><button type="button" class="btn btn-sm btn-link p-0 text-primary"
+                        data-pid="${p.id}" data-sid="${sku ? sku.sku_id : ''}"
+                        data-name="${esc(p.name)}" data-label="${sku ? esc(sku.option_label) : ''}"
+                        data-price="${price}" data-stock="${stock}">추가</button></td>`;
+                tr.querySelector('button').addEventListener('click', function () {
+                    addItem(this.dataset);
+                });
+                return tr;
+            }
+
+            // ── 추가 ──────────────────────────────────────────────────────
+            function addItem(d) {
+                const key = d.pid + '_' + (d.sid || '0');
+                if (selectedMap[key]) {
+                    selectedMap[key].qty += 1;
+                } else {
+                    selectedMap[key] = {
+                        product_id: d.pid, sku_id: d.sid || null,
+                        product_name: d.name, sku_option_label: d.label || null,
+                        product_price: parseInt(d.price), qty: 1, stock: parseInt(d.stock),
+                    };
+                }
+                renderSelected();
+            }
+
+            // ── 렌더 ──────────────────────────────────────────────────────
+            function renderSelected() {
+                const tbody = document.getElementById('exchSelectedBody');
+                tbody.innerHTML = '';
+                let total = 0;
+
+                Object.entries(selectedMap).forEach(([key, item]) => {
+                    const subtotal = item.product_price * item.qty;
+                    total += subtotal;
+                    const tr = document.createElement('tr');
+                    const nameHtml = item.sku_option_label
+                        ? esc(item.product_name) + ' <span class="text-muted">/ ' + esc(item.sku_option_label) + '</span>'
+                        : esc(item.product_name);
+                    tr.innerHTML = `
+                        <td>${nameHtml}</td>
+                        <td class="text-end">${num(item.product_price)}</td>
+                        <td><input type="number" class="form-control form-control-sm qty-input" value="${item.qty}" min="1" max="${item.stock}" style="width:50px" data-key="${key}"></td>
+                        <td class="text-end subtotal-cell">${num(subtotal)}</td>
+                        <td><button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove" data-key="${key}">✕</button></td>`;
+                    tbody.appendChild(tr);
+                });
+
+                if (Object.keys(selectedMap).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-2">대체품을 검색해서 추가하세요</td></tr>';
+                }
+
+                tbody.querySelectorAll('.qty-input').forEach(inp => {
+                    inp.addEventListener('change', function () {
+                        const k = this.dataset.key;
+                        if (selectedMap[k]) {
+                            selectedMap[k].qty = Math.max(1, Math.min(parseInt(this.value) || 1, selectedMap[k].stock));
+                        }
+                        renderSelected();
+                    });
+                });
+                tbody.querySelectorAll('.btn-remove').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        delete selectedMap[this.dataset.key];
+                        renderSelected();
+                    });
+                });
+
+                // 합계·버튼 상태 갱신
+                document.getElementById('exchangeTotalDisplay').textContent = num(total) + '원';
+                const match = total === ORIGINAL_TOTAL;
+                const badge = document.getElementById('priceMatchBadge');
+                badge.textContent  = match ? '금액 일치' : '금액 불일치';
+                badge.className    = 'badge ms-1 ' + (match ? 'bg-success' : 'bg-danger');
+                document.getElementById('btnExchComplete').disabled = ! match || Object.keys(selectedMap).length === 0;
+
+                // JSON 직렬화
+                const arr = Object.values(selectedMap).map(i => ({
+                    product_id: i.product_id, sku_id: i.sku_id,
+                    product_name: i.product_name, sku_option_label: i.sku_option_label,
+                    product_price: i.product_price, qty: i.qty,
+                }));
+                document.getElementById('exchItemsJson').value = JSON.stringify(arr);
+            }
+
+            // ── 제출 확인 ─────────────────────────────────────────────────
+            document.getElementById('exchCompleteForm').addEventListener('submit', function (e) {
+                if (! confirm('대체품 발송 내역을 저장하고 교환 완료 처리하시겠습니까?')) e.preventDefault();
+            });
+
+            function num(v) { return parseInt(v).toLocaleString('ko-KR'); }
+            function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        })();
+        </script>
         <?php endif; ?>
 
         <!-- 강제 취소 -->
@@ -458,6 +649,43 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-danger w-100">강제 취소</button>
                 </form>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- 대체품 발송 내역 (교환 완료 후) -->
+        <?php if (! empty($order['exchange_items'])): ?>
+        <div class="card mb-3">
+            <div class="card-header fw-semibold bg-white">
+                <i class="bi bi-arrow-left-right me-1"></i>대체품 발송 내역
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 small">
+                    <thead class="table-light">
+                        <tr><th>상품</th><th class="text-end">단가</th><th class="text-end">수량</th><th class="text-end">소계</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($order['exchange_items'] as $ei): ?>
+                        <tr>
+                            <td>
+                                <?= esc($ei['product_name']) ?>
+                                <?php if ($ei['sku_option_label']): ?>
+                                    <span class="text-muted">/ <?= esc($ei['sku_option_label']) ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-end"><?= number_format($ei['product_price']) ?>원</td>
+                            <td class="text-end"><?= (int) $ei['qty'] ?></td>
+                            <td class="text-end"><?= number_format($ei['subtotal']) ?>원</td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-semibold">합계</td>
+                            <td class="text-end fw-semibold"><?= number_format(array_sum(array_column($order['exchange_items'], 'subtotal'))) ?>원</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
         <?php endif; ?>

@@ -257,19 +257,24 @@ class MyPageController extends BaseController
     /** POST /mypage/orders/return-request — 반품 신청 (배송 완료 후) */
     public function requestReturn(): \CodeIgniter\HTTP\ResponseInterface
     {
-        $userId  = (int) session()->get('user_id');
-        $orderId = (int) $this->request->getPost('order_id');
-        $reason  = trim($this->request->getPost('reason') ?? '');
+        $userId     = (int) session()->get('user_id');
+        $orderId    = (int) $this->request->getPost('order_id');
+        $reasonCode = trim($this->request->getPost('reason_code') ?? '');
+        $note       = trim($this->request->getPost('note') ?? '');
 
-        if (! $orderId || $reason === '') {
-            return $this->response->setJSON(['success' => false, 'message' => '반품 사유를 입력해주세요.']);
+        if (! $orderId || $reasonCode === '') {
+            return $this->response->setJSON(['success' => false, 'message' => '반품 사유를 선택해주세요.']);
         }
 
-        if (mb_strlen($reason) > 500) {
-            return $this->response->setJSON(['success' => false, 'message' => '반품 사유는 500자 이내로 입력해주세요.']);
+        if (! array_key_exists($reasonCode, \App\Models\OrderModel::RETURN_REASON_CODES)) {
+            return $this->response->setJSON(['success' => false, 'message' => '올바르지 않은 반품 사유입니다.']);
         }
 
-        $success = $this->orderModel->requestReturn($orderId, $userId, $reason);
+        if ($note !== '' && mb_strlen($note) > 500) {
+            return $this->response->setJSON(['success' => false, 'message' => '상세 사유는 500자 이내로 입력해주세요.']);
+        }
+
+        $success = $this->orderModel->requestReturn($orderId, $userId, $reasonCode, $note);
 
         return $this->response->setJSON([
             'success' => $success,

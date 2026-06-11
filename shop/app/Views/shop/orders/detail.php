@@ -242,13 +242,28 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 
     <!-- 반품 사유 / 상태 안내 -->
     <?php if (in_array($order['status'], ['return_requested', 'return_approved', 'refunded'], true) && ! empty($order['return_reason'])): ?>
+    <?php
+        use App\Models\OrderModel;
+        $rCode  = $order['return_reason_code'] ?? null;
+        $rMeta  = $rCode ? (OrderModel::RETURN_REASON_CODES[$rCode] ?? null) : null;
+        $payer  = $rMeta['payer'] ?? null;
+    ?>
     <div class="alert alert-<?= $order['status'] === 'return_approved' ? 'info' : 'warning' ?> d-flex gap-2 mb-3">
         <i class="bi bi-arrow-return-left fs-5 flex-shrink-0"></i>
-        <div>
+        <div class="w-100">
             <div class="fw-semibold small">
                 <?= $order['status'] === 'return_approved' ? '반품 승인 — 환불 처리 중' : '반품 신청 사유' ?>
             </div>
             <div class="small mt-1"><?= esc($order['return_reason']) ?></div>
+            <?php if (! empty($order['return_reason_note'])): ?>
+            <div class="small text-muted mt-1"><?= esc($order['return_reason_note']) ?></div>
+            <?php endif; ?>
+            <?php if ($payer): ?>
+            <div class="small mt-2 <?= $payer === 'seller' ? 'text-info' : 'text-muted' ?>">
+                <i class="bi bi-truck me-1"></i>
+                <?= $payer === 'seller' ? '수거 택배비: 판매자 부담' : '반품 택배비: 구매자 부담' ?>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
@@ -308,6 +323,10 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 
     <!-- 반품 신청 모달 -->
     <?php if ($canReturn): ?>
+    <?php
+        use App\Models\OrderModel;
+        $returnReasonCodes = OrderModel::RETURN_REASON_CODES;
+    ?>
     <div class="modal fade" id="returnModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -316,11 +335,28 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small mb-3">반품 사유를 상세히 입력해주세요. 관리자 확인 후 처리됩니다.</p>
-                    <textarea id="returnReason" class="form-control" rows="4"
-                              placeholder="반품 사유를 입력해주세요 (예: 상품 불량, 오배송, 단순 변심 등)"
-                              maxlength="500"></textarea>
-                    <div class="text-end text-muted small mt-1"><span id="reasonLen">0</span>/500</div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">반품 사유 <span class="text-danger">*</span></label>
+                        <select id="returnReasonCode" class="form-select">
+                            <option value="">사유를 선택해주세요</option>
+                            <?php foreach ($returnReasonCodes as $code => $meta): ?>
+                            <option value="<?= $code ?>" data-payer="<?= $meta['payer'] ?>"><?= esc($meta['label']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- 택배비 부담 안내 (사유 선택 시 표시) -->
+                    <div id="returnShippingNotice" class="alert small py-2 mb-3 d-none">
+                        <i class="bi bi-truck me-1"></i><span id="returnShippingText"></span>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label small fw-semibold">상세 사유 <span class="text-muted fw-normal">(선택)</span></label>
+                        <textarea id="returnNote" class="form-control" rows="3"
+                                  placeholder="추가로 전달할 내용이 있으면 입력해주세요."
+                                  maxlength="500"></textarea>
+                        <div class="text-end text-muted small mt-1"><span id="returnNoteLen">0</span>/500</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
@@ -422,20 +458,41 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
             });
     });
 
-    // 반품 신청
-    document.getElementById('returnReason')?.addEventListener('input', function () {
-        document.getElementById('reasonLen').textContent = this.value.length;
+    // 반품 신청 — 사유 선택 시 택배비 안내 토글
+    document.getElementById('returnReasonCode')?.addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        const notice   = document.getElementById('returnShippingNotice');
+        const text     = document.getElementById('returnShippingText');
+        const payer    = selected.dataset.payer;
+
+        if (! payer) {
+            notice.classList.add('d-none');
+            return;
+        }
+        if (payer === 'seller') {
+            notice.className    = 'alert alert-info small py-2 mb-3';
+            text.textContent    = '수거 택배비는 판매자가 부담합니다.';
+        } else {
+            notice.className    = 'alert alert-warning small py-2 mb-3';
+            text.textContent    = '반품 택배비는 구매자가 부담합니다.';
+        }
+    });
+
+    document.getElementById('returnNote')?.addEventListener('input', function () {
+        document.getElementById('returnNoteLen').textContent = this.value.length;
     });
 
     document.getElementById('btnReturnSubmit')?.addEventListener('click', function () {
-        const reason = document.getElementById('returnReason').value.trim();
-        if (! reason) { alert('반품 사유를 입력해주세요.'); return; }
+        const reasonCode = document.getElementById('returnReasonCode').value;
+        if (! reasonCode) { alert('반품 사유를 선택해주세요.'); return; }
 
+        const note = document.getElementById('returnNote').value.trim();
         const btn  = this;
         const body = new FormData();
         body.append(btn.dataset.csrf, btn.dataset.csrfVal);
         body.append('order_id', btn.dataset.orderId);
-        body.append('reason', reason);
+        body.append('reason_code', reasonCode);
+        if (note) body.append('note', note);
 
         btn.disabled    = true;
         btn.textContent = '처리 중...';

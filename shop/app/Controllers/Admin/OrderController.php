@@ -309,13 +309,61 @@ class OrderController extends BaseController
             ->with($ok ? 'success' : 'error', $ok ? '교환이 거부되었습니다.' : '교환 거부에 실패했습니다.');
     }
 
-    /** POST /admin/orders/:id/exchange-complete — 교환 완료 (대체품 발송 확인) */
+    /** POST /admin/orders/:id/exchange-complete — 교환 완료 (대체품 지정 + 재고 차감) */
     public function completeExchange(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
-        $ok = $this->orderModel->completeExchange($id);
+        $json  = $this->request->getPost('exchange_items_json') ?? '[]';
+        $items = json_decode($json, true);
 
-        return redirect()->to("/admin/orders/{$id}")
-            ->with($ok ? 'success' : 'error', $ok ? '교환 완료 처리되었습니다.' : '교환 완료 처리에 실패했습니다.');
+        if (empty($items) || ! is_array($items)) {
+            return redirect()->to("/admin/orders/{$id}")->with('error', '대체품을 1개 이상 선택해주세요.');
+        }
+
+        $ok = $this->orderModel->completeExchange($id, $items);
+
+        $msg = $ok ? '교환 완료 처리되었습니다.' : '대체품 합계가 원주문 금액과 다르거나 재고가 부족합니다.';
+        return redirect()->to("/admin/orders/{$id}")->with($ok ? 'success' : 'error', $msg);
+    }
+
+    /** GET /admin/orders/exchange-product-search — 대체품 상품+SKU 검색 AJAX */
+    public function exchangeProductSearch(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $q  = trim($this->request->getGet('q') ?? '');
+        $db = db_connect();
+
+        $builder = $db->table('products')
+            ->select('products.id, products.name, products.price, products.discount_price, products.stock, media.file_path AS primary_image')
+            ->join('product_images', 'product_images.product_id = products.id AND product_images.is_primary = 1', 'left')
+            ->join('media', 'media.id = product_images.media_id', 'left')
+            ->where('products.deleted_at IS NULL', null, false)
+            ->where('products.status', 'on_sale');
+
+        if ($q !== '') {
+            $builder->like('products.name', $q);
+        }
+
+        $products = $builder->orderBy('products.id', 'DESC')->limit(20)->get()->getResultArray();
+
+        foreach ($products as &$p) {
+            $p['primary_image'] = $p['primary_image'] ? base_url($p['primary_image']) : null;
+            $p['sell_price']    = $p['discount_price'] > 0 ? (int) $p['discount_price'] : (int) $p['price'];
+
+            $skus = $db->table('product_skus')
+                ->select('product_skus.id AS sku_id, product_skus.price_diff, product_skus.stock AS sku_stock, GROUP_CONCAT(product_option_values.label ORDER BY product_option_values.id SEPARATOR " / ") AS option_label')
+                ->join('product_sku_values', 'product_sku_values.sku_id = product_skus.id')
+                ->join('product_option_values', 'product_option_values.id = product_sku_values.option_value_id')
+                ->where('product_skus.product_id', (int) $p['id'])
+                ->groupBy('product_skus.id')
+                ->orderBy('product_skus.id')
+                ->get()->getResultArray();
+
+            foreach ($skus as &$s) {
+                $s['sell_price'] = $p['sell_price'] + (int) $s['price_diff'];
+            }
+            $p['skus'] = $skus;
+        }
+
+        return $this->response->setJSON(['products' => $products]);
     }
 
     /** GET /admin/orders/tracking-export — 송장 입력용 주문 CSV 다운로드 */

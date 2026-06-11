@@ -161,6 +161,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('orders/(:num)/return-approve',    'Admin\OrderController::approveReturn/$1');
     $routes->post('orders/(:num)/return-reject',     'Admin\OrderController::rejectReturn/$1');
     $routes->post('orders/(:num)/return-refund',     'Admin\OrderController::confirmReturnRefund/$1');
+    $routes->get( 'orders/exchange-product-search',  'Admin\OrderController::exchangeProductSearch');
     $routes->post('orders/(:num)/exchange-approve',  'Admin\OrderController::approveExchange/$1');
     $routes->post('orders/(:num)/exchange-reject',   'Admin\OrderController::rejectExchange/$1');
     $routes->post('orders/(:num)/exchange-complete', 'Admin\OrderController::completeExchange/$1');
