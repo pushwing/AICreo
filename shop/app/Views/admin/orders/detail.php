@@ -446,6 +446,46 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
         </div>
         <?php endif; ?>
 
+        <!-- 내부 메모 -->
+        <div class="card mb-3" id="memoCard">
+            <div class="card-header fw-semibold bg-white d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-sticky me-1 text-warning"></i>내부 메모</span>
+                <span class="badge bg-secondary" id="memoCount"><?= count($memos ?? []) ?></span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-unstyled mb-0" id="memoList" style="font-size:.82rem;max-height:280px;overflow-y:auto">
+                    <?php foreach ($memos ?? [] as $memo): ?>
+                    <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-start gap-2"
+                        data-memo-id="<?= (int) $memo['id'] ?>">
+                        <div class="flex-grow-1">
+                            <div style="white-space:pre-wrap"><?= esc($memo['content']) ?></div>
+                            <div class="text-muted mt-1" style="font-size:.72rem">
+                                <?= esc($memo['admin_name'] ?? '관리자') ?> ·
+                                <?= date('Y년 n월 j일 G시 i분', strtotime($memo['created_at'])) ?>
+                            </div>
+                        </div>
+                        <button class="btn-memo-delete btn btn-sm btn-link text-danger p-0 flex-shrink-0"
+                                data-id="<?= (int) $memo['id'] ?>" title="삭제">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </li>
+                    <?php endforeach; ?>
+                    <?php if (empty($memos)): ?>
+                    <li class="px-3 py-3 text-muted text-center small" id="memoEmpty">메모가 없습니다.</li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+            <div class="card-footer bg-white p-2">
+                <div class="d-flex gap-2">
+                    <textarea id="memoContent" class="form-control form-control-sm" rows="2"
+                              placeholder="관리자 전용 메모 (고객 비노출)" style="resize:none"></textarea>
+                    <button id="btnMemoAdd" class="btn btn-sm btn-warning flex-shrink-0" style="min-width:52px">
+                        저장
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 상태 변경 이력 -->
         <?php if (!empty($order['statusLogs'])): ?>
         <div class="card mb-3">
@@ -526,4 +566,94 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
 
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+(function () {
+    var orderId  = <?= (int) $order['id'] ?>;
+    var csrfName = '<?= csrf_token() ?>';
+    var csrfVal  = '<?= csrf_hash() ?>';
+
+    function post(url, data) {
+        data[csrfName] = csrfVal;
+        var body = Object.entries(data).map(function (kv) {
+            return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]);
+        }).join('&');
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: body
+        }).then(function (r) { return r.json(); });
+    }
+
+    function updateCount(delta) {
+        var badge = document.getElementById('memoCount');
+        badge.textContent = parseInt(badge.textContent, 10) + delta;
+    }
+
+    // 메모 추가
+    document.getElementById('btnMemoAdd').addEventListener('click', function () {
+        var content = document.getElementById('memoContent').value.trim();
+        if (! content) return;
+
+        post('/admin/orders/' + orderId + '/memos', { content: content })
+        .then(function (data) {
+            if (! data.success) { alert(data.message || '저장 실패'); return; }
+
+            var memo = data.memo;
+            var empty = document.getElementById('memoEmpty');
+            if (empty) empty.remove();
+
+            var li = document.createElement('li');
+            li.className = 'px-3 py-2 border-bottom d-flex justify-content-between align-items-start gap-2';
+            li.dataset.memoId = memo.id;
+            li.innerHTML =
+                '<div class="flex-grow-1">'
+                + '<div style="white-space:pre-wrap">' + memo.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>'
+                + '<div class="text-muted mt-1" style="font-size:.72rem">'
+                + (memo.admin_name || '관리자') + ' · 방금 전'
+                + '</div></div>'
+                + '<button class="btn-memo-delete btn btn-sm btn-link text-danger p-0 flex-shrink-0" data-id="' + memo.id + '" title="삭제"><i class="bi bi-trash"></i></button>';
+
+            document.getElementById('memoList').appendChild(li);
+            document.getElementById('memoContent').value = '';
+            updateCount(1);
+            bindDelete(li.querySelector('.btn-memo-delete'));
+        });
+    });
+
+    // Ctrl+Enter로도 저장
+    document.getElementById('memoContent').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            e.preventDefault();
+            document.getElementById('btnMemoAdd').click();
+        }
+    });
+
+    // 메모 삭제
+    function bindDelete(btn) {
+        btn.addEventListener('click', function () {
+            if (! confirm('메모를 삭제하시겠습니까?')) return;
+            var memoId = btn.dataset.id;
+            post('/admin/orders/' + orderId + '/memos/' + memoId + '/delete', {})
+            .then(function (data) {
+                if (! data.success) { alert(data.message || '삭제 실패'); return; }
+                var li = btn.closest('li');
+                li.remove();
+                updateCount(-1);
+                if (document.querySelectorAll('#memoList li').length === 0) {
+                    var empty = document.createElement('li');
+                    empty.id = 'memoEmpty';
+                    empty.className = 'px-3 py-3 text-muted text-center small';
+                    empty.textContent = '메모가 없습니다.';
+                    document.getElementById('memoList').appendChild(empty);
+                }
+            });
+        });
+    }
+
+    document.querySelectorAll('.btn-memo-delete').forEach(bindDelete);
+}());
+</script>
 <?= $this->endSection() ?>

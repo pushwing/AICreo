@@ -98,7 +98,12 @@ $statusBadge = [
                 <?php foreach ($items as $order): ?>
                 <tr>
                     <td><input type="checkbox" class="order-check" value="<?= (int) $order['id'] ?>"></td>
-                    <td class="small fw-semibold"><?= esc($order['order_number']) ?></td>
+                    <td class="small fw-semibold">
+                        <?= esc($order['order_number']) ?>
+                        <?php if (($order['memo_count'] ?? 0) > 0): ?>
+                        <i class="bi bi-sticky text-warning ms-1" title="내부 메모 있음"></i>
+                        <?php endif; ?>
+                    </td>
                     <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></td>
                     <td class="small">
                         <?= esc($order['user_nickname'] ?? '-') ?>
