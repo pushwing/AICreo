@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\GradeService;
 use App\Libraries\Mailer;
 use App\Models\UserModel;
 
@@ -85,12 +86,15 @@ class UserController extends BaseController
             return redirect()->back()->with('error', '본인 계정은 수정할 수 없습니다.');
         }
 
+        $grade = $this->request->getPost('grade');
+        $validGrades = ['bronze', 'silver', 'gold', 'platinum'];
         $data = [
             'nickname'  => $this->request->getPost('nickname'),
             'phone'     => $this->request->getPost('phone') ?: null,
             'gender'    => $this->request->getPost('gender') ?: null,
             'birthday'  => $this->request->getPost('birthday') ?: null,
             'role'      => $this->request->getPost('role'),
+            'grade'     => in_array($grade, $validGrades, true) ? $grade : 'bronze',
             'is_active' => (int) $this->request->getPost('is_active'),
         ];
 
@@ -124,7 +128,15 @@ class UserController extends BaseController
             return redirect()->to('/admin/users')->with('error', '회원을 찾을 수 없습니다.');
         }
 
+        // 미인증 상태일 때만 보너스 지급 (이미 인증된 경우 중복 지급 방지)
+        $wasUnverified = ! $user['is_active'] && ! empty($user['email_verify_token']);
+
         $this->userModel->clearVerifyToken($id);
+
+        if ($wasUnverified) {
+            $settings = $this->viewData['settings'] ?? [];
+            (new GradeService())->awardSignupBonus($id, $settings);
+        }
 
         return redirect()->back()->with('success', '이메일 인증이 완료 처리되었습니다.');
     }

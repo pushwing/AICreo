@@ -46,11 +46,36 @@
                 </div>
 
                 <div class="col-md-4">
+                    <label class="form-label small fw-semibold d-block">대상 등급 <small class="text-muted">(미선택=전체)</small></label>
+                    <?php
+                        use App\Libraries\GradeService;
+                        $gradeLabels  = GradeService::LABELS;
+                        $gradeBadges  = GradeService::BADGE_CLASSES;
+                        $rawGrade     = old('target_grade', $coupon['target_grade'] ?? '');
+                        $selGrades    = $rawGrade ? array_map('trim', explode(',', $rawGrade)) : [];
+                    ?>
+                    <div class="d-flex flex-wrap gap-2 pt-1">
+                        <?php foreach ($gradeLabels as $gk => $gl): ?>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="checkbox"
+                                   name="target_grade[]" value="<?= $gk ?>"
+                                   id="grade_<?= $gk ?>"
+                                   <?= in_array($gk, $selGrades, true) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="grade_<?= $gk ?>">
+                                <span class="badge <?= $gradeBadges[$gk] ?>"><?= esc($gl) ?></span>
+                            </label>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="form-text">체크 없으면 전체 등급에 적용됩니다.</div>
+                </div>
+
+                <div class="col-md-4" id="discountValueWrap">
                     <label class="form-label small fw-semibold">할인값 <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <input type="number" name="discount_value" class="form-control"
                                value="<?= (int) old('discount_value', $coupon['discount_value'] ?? 0) ?>"
-                               min="1" required>
+                               min="1">
                         <span class="input-group-text" id="discountUnit">원</span>
                     </div>
                 </div>
@@ -120,14 +145,18 @@
 <?= $this->section('scripts') ?>
 <script>
 (function () {
-    const typeSelect  = document.getElementById('couponType');
-    const unitEl      = document.getElementById('discountUnit');
-    const maxWrap     = document.getElementById('maxDiscountWrap');
+    const typeSelect   = document.getElementById('couponType');
+    const unitEl       = document.getElementById('discountUnit');
+    const maxWrap      = document.getElementById('maxDiscountWrap');
+    const discountWrap = document.getElementById('discountValueWrap');
 
     function toggleType() {
-        const isPercent = typeSelect.value === 'percent';
-        unitEl.textContent  = isPercent ? '%' : '원';
-        maxWrap.style.display = isPercent ? '' : 'none';
+        const v         = typeSelect.value;
+        const isFree    = v === 'free_shipping';
+        const isPercent = v === 'percent';
+        unitEl.textContent        = isPercent ? '%' : '원';
+        maxWrap.style.display     = isPercent ? '' : 'none';
+        discountWrap.style.display = isFree ? 'none' : '';
     }
 
     typeSelect.addEventListener('change', toggleType);

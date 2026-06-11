@@ -23,6 +23,8 @@
         #content { margin-left: var(--sidebar-w); padding: 1.5rem; }
         #topbar  { background: #fff; border-bottom: 1px solid #e9ecef; padding: .6rem 1.5rem; margin-left: var(--sidebar-w); position: sticky; top: 0; z-index: 100; }
         .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #dc3545; display: inline-block; }
+        .badge-bronze { background-color: #a0522d; color: #fff; }
+        .badge-silver { background-color: #888f94; color: #fff; }
     </style>
 </head>
 <body>
@@ -75,6 +77,9 @@
         </a>
         <a href="/admin/points" class="nav-link <?= str_starts_with(uri_string(), 'admin/points') ? 'active' : '' ?>">
             <i class="bi bi-star me-2"></i>포인트 관리
+        </a>
+        <a href="/admin/grade/platinum" class="nav-link <?= str_starts_with(uri_string(), 'admin/grade') ? 'active' : '' ?>">
+            <i class="bi bi-trophy-fill me-2"></i>회원 등급
         </a>
 
         <div class="nav-section">운영</div>

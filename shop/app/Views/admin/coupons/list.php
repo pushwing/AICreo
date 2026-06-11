@@ -1,5 +1,6 @@
 <?= $this->extend('layouts/admin') ?>
 <?php $pageTitle = '쿠폰 관리' ?>
+<?php use App\Libraries\GradeService; ?>
 
 <?= $this->section('content') ?>
 
@@ -31,6 +32,7 @@
                     <th>쿠폰명</th>
                     <th>코드</th>
                     <th>종류</th>
+                    <th>대상 등급</th>
                     <th class="text-end">할인값</th>
                     <th class="text-end">최소주문</th>
                     <th class="text-center">수량</th>
@@ -41,19 +43,34 @@
             </thead>
             <tbody>
                 <?php if (empty($items)): ?>
-                <tr><td colspan="9" class="text-center py-4 text-muted">등록된 쿠폰이 없습니다.</td></tr>
+                <tr><td colspan="10" class="text-center py-4 text-muted">등록된 쿠폰이 없습니다.</td></tr>
                 <?php else: foreach ($items as $c):
                     $typeLabel = $types[$c['type']] ?? $c['type'];
-                    $discLabel = $c['type'] === 'fixed'
-                        ? number_format($c['discount_value']) . '원'
-                        : $c['discount_value'] . '%';
-                    if ($c['type'] === 'percent' && (int) $c['max_discount_amount'] > 0)
-                        $discLabel .= ' (최대 ' . number_format($c['max_discount_amount']) . '원)';
+                    if ($c['type'] === 'free_shipping') {
+                        $discLabel = '—';
+                    } elseif ($c['type'] === 'fixed') {
+                        $discLabel = number_format($c['discount_value']) . '원';
+                    } else {
+                        $discLabel = $c['discount_value'] . '%';
+                        if ((int) $c['max_discount_amount'] > 0)
+                            $discLabel .= ' (최대 ' . number_format($c['max_discount_amount']) . '원)';
+                    }
                 ?>
                 <tr>
                     <td class="fw-semibold small"><?= esc($c['name']) ?></td>
                     <td class="font-monospace small"><?= esc($c['code']) ?></td>
                     <td class="small"><?= esc($typeLabel) ?></td>
+                    <td class="small">
+                        <?php if (! empty($c['target_grade'])): ?>
+                            <?php foreach (array_map('trim', explode(',', $c['target_grade'])) as $g): ?>
+                                <span class="badge <?= GradeService::BADGE_CLASSES[$g] ?? 'bg-secondary' ?>">
+                                    <?= esc(GradeService::LABELS[$g] ?? $g) ?>
+                                </span>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <span class="text-muted">전체</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="text-end small"><?= esc($discLabel) ?></td>
                     <td class="text-end small">
                         <?= (int) $c['min_order_amount'] > 0 ? number_format($c['min_order_amount']) . '원' : '—' ?>
