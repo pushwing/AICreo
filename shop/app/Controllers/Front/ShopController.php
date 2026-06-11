@@ -21,7 +21,7 @@ class ShopController extends BaseController
         $this->imageModel    = new ProductImageModel();
     }
 
-    public function home()
+    public function home(): string
     {
         $bannerModel = new BannerModel();
         $newProducts = $this->productModel->getLatest(8);
@@ -38,7 +38,7 @@ class ShopController extends BaseController
         ]);
     }
 
-    public function detail(string $slug)
+    public function detail(string $slug): string
     {
         $product = $this->productModel
             ->where('slug', $slug)
@@ -68,7 +68,7 @@ class ShopController extends BaseController
         ]);
     }
 
-    public function index()
+    public function index(): string
     {
         $params = [
             'keyword'     => $this->request->getGet('keyword'),

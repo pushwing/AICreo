@@ -15,7 +15,7 @@ class BannerController extends BaseController
         $this->bannerModel = new BannerModel();
     }
 
-    public function index()
+    public function index(): string
     {
         return $this->render('admin/banners/list', [
             'banners'   => $this->bannerModel->orderBy('position')->orderBy('priority')->findAll(),
@@ -23,7 +23,7 @@ class BannerController extends BaseController
         ]);
     }
 
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/banners/form', [
             'banner'    => null,
@@ -31,7 +31,7 @@ class BannerController extends BaseController
         ]);
     }
 
-    public function store()
+    public function store(): \CodeIgniter\HTTP\RedirectResponse
     {
         $rules = [
             'position' => 'required|in_list[' . implode(',', array_keys(BannerModel::POSITIONS)) . ']',
@@ -55,7 +55,7 @@ class BannerController extends BaseController
         return redirect()->to('/admin/banners')->with('success', '배너가 등록되었습니다.');
     }
 
-    public function edit(int $id)
+    public function edit(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $banner = $this->bannerModel->find($id);
         if (! $banner) return redirect()->to('/admin/banners')->with('error', '배너를 찾을 수 없습니다.');
@@ -66,7 +66,7 @@ class BannerController extends BaseController
         ]);
     }
 
-    public function update(int $id)
+    public function update(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $banner = $this->bannerModel->find($id);
         if (! $banner) return redirect()->to('/admin/banners')->with('error', '배너를 찾을 수 없습니다.');
@@ -88,7 +88,7 @@ class BannerController extends BaseController
         return redirect()->to('/admin/banners')->with('success', '저장되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->bannerModel->deleteWithFile($id);
         return redirect()->to('/admin/banners')->with('success', '삭제되었습니다.');

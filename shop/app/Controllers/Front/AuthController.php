@@ -19,7 +19,7 @@ class AuthController extends BaseController
 
     // ─── 로그인 ──────────────────────────────────────────────────────────────────
 
-    public function login()
+    public function login(): \CodeIgniter\HTTP\RedirectResponse|string
     {
         if (session()->get('user_id')) {
             return redirect()->to('/');
@@ -27,7 +27,7 @@ class AuthController extends BaseController
         return $this->render('auth/login');
     }
 
-    public function loginProcess()
+    public function loginProcess(): \CodeIgniter\HTTP\RedirectResponse
     {
         $rules = [
             'email'    => 'required|valid_email',
@@ -67,7 +67,7 @@ class AuthController extends BaseController
         return redirect()->to(session()->getTempdata('redirect_url') ?? '/');
     }
 
-    public function logout()
+    public function logout(): \CodeIgniter\HTTP\RedirectResponse
     {
         session()->destroy();
         return redirect()->to('/auth/login');
@@ -75,12 +75,12 @@ class AuthController extends BaseController
 
     // ─── 회원가입 ─────────────────────────────────────────────────────────────────
 
-    public function register()
+    public function register(): string
     {
         return $this->render('auth/register');
     }
 
-    public function registerProcess()
+    public function registerProcess(): \CodeIgniter\HTTP\RedirectResponse
     {
         $rules = [
             'email'    => 'required|valid_email|is_unique[users.email]',
@@ -192,14 +192,14 @@ class AuthController extends BaseController
 
     // ─── 내 정보 수정 ────────────────────────────────────────────────────────────
 
-    public function profile()
+    public function profile(): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $user      = $this->userModel->find(session()->get('user_id'));
         $activeTab = $this->request->getGet('tab') ?? 'info';
         return $this->render('auth/profile', compact('user', 'activeTab'));
     }
 
-    public function profileUpdate()
+    public function profileUpdate(): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId = session()->get('user_id');
         $user   = $this->userModel->find($userId);

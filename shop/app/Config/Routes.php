@@ -192,7 +192,7 @@ $routes->group('order', ['filter' => 'auth:member'], function ($routes) {
 });
 
 // ─── 쿠폰 (로그인 필요) ──────────────────────────────────────────────────────
-$routes->post('coupon/validate', 'Front\CouponController::validate', ['filter' => 'auth:member']);
+$routes->post('coupon/check', 'Front\CouponController::check', ['filter' => 'auth:member']);
 
 // ─── 마이페이지 (로그인 필요) ────────────────────────────────────────────────
 $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {

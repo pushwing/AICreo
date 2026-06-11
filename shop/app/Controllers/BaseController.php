@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Models\BannerModel;
-use App\Models\CartModel;
 use App\Models\InquiryModel;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
@@ -18,7 +17,7 @@ class BaseController extends Controller
         \CodeIgniter\HTTP\RequestInterface $request,
         \CodeIgniter\HTTP\ResponseInterface $response,
         \Psr\Log\LoggerInterface $logger
-    ) {
+    ): void {
         parent::initController($request, $response, $logger);
 
         // 전역 사이트 설정 (캐시됨)
@@ -28,6 +27,7 @@ class BaseController extends Controller
         $menus = (new MenuModel())->getTree();
 
         // 로그인 정보
+        $userId   = (int) session()->get('user_id');
         $authUser = [
             'id'       => session()->get('user_id'),
             'nickname' => session()->get('user_nickname'),
@@ -43,7 +43,9 @@ class BaseController extends Controller
         }
 
         // 장바구니 수 (로그인 회원만)
-        $cartCount = $authUser['loggedIn'] ? (new CartModel())->getCount($authUser['id']) : 0;
+        $cartCount = $authUser['loggedIn']
+            ? (int) \Config\Database::connect()->table('cart_items')->where('user_id', $userId)->countAllResults()
+            : 0;
 
         $isAdmin = str_starts_with(uri_string(), 'admin');
 
@@ -60,7 +62,7 @@ class BaseController extends Controller
 
     protected function getUserRole(): string
     {
-        return session()->get('user_role') ?? 'guest';
+        return (string) (session()->get('user_role') ?? 'guest');
     }
 
     /**

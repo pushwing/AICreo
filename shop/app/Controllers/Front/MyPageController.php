@@ -35,7 +35,7 @@ class MyPageController extends BaseController
     }
 
     /** GET /mypage/orders */
-    public function orders()
+    public function orders(): string
     {
         $userId  = (int) session()->get('user_id');
         $period  = $this->request->getGet('period') ?? 'all';
@@ -74,7 +74,7 @@ class MyPageController extends BaseController
     }
 
     /** GET /mypage/orders/:orderNumber */
-    public function orderDetail(string $orderNumber)
+    public function orderDetail(string $orderNumber): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $userId = (int) session()->get('user_id');
 
@@ -93,7 +93,7 @@ class MyPageController extends BaseController
     }
 
     /** POST /mypage/orders/confirm-delivery — 배송 완료 확인 */
-    public function confirmDelivery()
+    public function confirmDelivery(): \CodeIgniter\HTTP\ResponseInterface
     {
         $userId  = (int) session()->get('user_id');
         $orderId = (int) $this->request->getPost('order_id');
@@ -114,7 +114,7 @@ class MyPageController extends BaseController
     }
 
     /** GET /mypage/addresses */
-    public function addresses()
+    public function addresses(): string
     {
         $userId    = (int) session()->get('user_id');
         $addresses = $this->addressModel->getByUser($userId);
@@ -122,7 +122,7 @@ class MyPageController extends BaseController
     }
 
     /** POST /mypage/addresses */
-    public function addressStore()
+    public function addressStore(): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId = (int) session()->get('user_id');
 
@@ -155,7 +155,7 @@ class MyPageController extends BaseController
     }
 
     /** POST /mypage/addresses/:id/default */
-    public function addressSetDefault(int $id)
+    public function addressSetDefault(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId = (int) session()->get('user_id');
 
@@ -167,7 +167,7 @@ class MyPageController extends BaseController
     }
 
     /** POST /mypage/addresses/:id/delete */
-    public function addressDelete(int $id)
+    public function addressDelete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $userId  = (int) session()->get('user_id');
         $address = $this->addressModel->where('id', $id)->where('user_id', $userId)->first();
@@ -198,7 +198,7 @@ class MyPageController extends BaseController
     }
 
     /** GET /mypage/coupons */
-    public function coupons()
+    public function coupons(): string
     {
         $userId  = (int) session()->get('user_id');
         $tab         = $this->request->getGet('tab') ?? 'available';
@@ -233,7 +233,7 @@ class MyPageController extends BaseController
     }
 
     /** GET /mypage/points */
-    public function points()
+    public function points(): string
     {
         $userId       = (int) session()->get('user_id');
         $currentPage  = max(1, (int) ($this->request->getGet('page') ?? 1));
@@ -245,7 +245,7 @@ class MyPageController extends BaseController
     }
 
     /** POST /mypage/orders/cancel — 즉시 취소 */
-    public function cancel()
+    public function cancel(): \CodeIgniter\HTTP\ResponseInterface
     {
         $userId  = (int) session()->get('user_id');
         $orderId = (int) $this->request->getPost('order_id');

@@ -14,7 +14,7 @@ class InquiryController extends BaseController
         $this->model = new InquiryModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $page   = max(1, (int) ($this->request->getGet('page') ?? 1));
         $filter = $this->request->getGet('filter') ?? '';
@@ -41,7 +41,7 @@ class InquiryController extends BaseController
         ]);
     }
 
-    public function view(int $id)
+    public function view(int $id): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $inquiry = $this->model->find($id);
         if (! $inquiry) return redirect()->to('/admin/inquiries');
@@ -51,7 +51,7 @@ class InquiryController extends BaseController
         return $this->render('admin/inquiries/view', ['inquiry' => $inquiry]);
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->model->delete($id);
         return redirect()->to('/admin/inquiries')->with('success', '삭제되었습니다.');

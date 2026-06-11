@@ -17,7 +17,7 @@ class MediaController extends BaseController
         $this->uploader   = new MediaUploader();
     }
 
-    public function index()
+    public function index(): string
     {
         $page   = (int) ($this->request->getGet('page') ?? 1);
         $limit  = 24;
@@ -31,7 +31,7 @@ class MediaController extends BaseController
         ]);
     }
 
-    public function upload()
+    public function upload(): \CodeIgniter\HTTP\ResponseInterface
     {
         $file = $this->request->getFile('file');
         if (! $file || ! $file->isValid()) {
@@ -49,13 +49,13 @@ class MediaController extends BaseController
         return $this->response->setJSON($result);
     }
 
-    public function updateAlt(int $id)
+    public function updateAlt(int $id): \CodeIgniter\HTTP\ResponseInterface
     {
         $this->mediaModel->update($id, ['alt' => $this->request->getPost('alt')]);
         return $this->response->setJSON(['success' => true]);
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $this->mediaModel->deleteWithFile($id);
         return redirect()->to('/admin/media')->with('success', '삭제되었습니다.');

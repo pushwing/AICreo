@@ -18,7 +18,7 @@ class PostController extends BaseController
         $this->boardModel = new BoardModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $keyword = $this->request->getGet('q') ?? '';
         $boardId = (int) ($this->request->getGet('board_id') ?? 0);
@@ -39,7 +39,7 @@ class PostController extends BaseController
         ]);
     }
 
-    public function delete(int $id)
+    public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $post = $this->postModel->find($id);
         if (! $post) {

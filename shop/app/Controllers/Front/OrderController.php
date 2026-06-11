@@ -30,7 +30,7 @@ class OrderController extends BaseController
     }
 
     /** GET /order — 주문서 */
-    public function index()
+    public function index(): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $userId = (int) session()->get('user_id');
         $items  = $this->cartModel->getByUser($userId);
@@ -70,7 +70,7 @@ class OrderController extends BaseController
      * POST /order/create — 주문 생성
      * 쿠폰 확정 + 포인트 차감 + payable_amount 산출까지 서버에서 처리
      */
-    public function create()
+    public function create(): \CodeIgniter\HTTP\ResponseInterface
     {
         $userId   = (int) session()->get('user_id');
         $settings = $this->viewData['settings'];
@@ -238,7 +238,7 @@ class OrderController extends BaseController
     }
 
     /** GET /order/bank_transfer/:orderNumber */
-    public function bankTransfer(string $orderNumber)
+    public function bankTransfer(string $orderNumber): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $userId = (int) session()->get('user_id');
         $order  = $this->orderModel->where('order_number', $orderNumber)->where('user_id', $userId)->first();
@@ -253,7 +253,7 @@ class OrderController extends BaseController
     }
 
     /** GET /order/complete/:orderNumber */
-    public function complete(string $orderNumber)
+    public function complete(string $orderNumber): \CodeIgniter\HTTP\RedirectResponse|string
     {
         $userId = (int) session()->get('user_id');
         $order  = $this->orderModel->where('order_number', $orderNumber)->where('user_id', $userId)->first();
@@ -268,7 +268,7 @@ class OrderController extends BaseController
     }
 
     /** GET /order/fail/:orderNumber */
-    public function fail(string $orderNumber)
+    public function fail(string $orderNumber): string
     {
         $userId  = (int) session()->get('user_id');
         $order   = $this->orderModel->where('order_number', $orderNumber)->where('user_id', $userId)->first();
@@ -278,7 +278,7 @@ class OrderController extends BaseController
     }
 
     /** POST /order/cancel */
-    public function cancel()
+    public function cancel(): \CodeIgniter\HTTP\ResponseInterface
     {
         $userId  = (int) session()->get('user_id');
         $orderId = (int) $this->request->getPost('order_id');

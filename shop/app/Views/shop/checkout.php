@@ -461,7 +461,7 @@ $userCoupons  = $userCoupons ?? [];
         body.append('order_amount', TOTAL_AMOUNT);
 
         try {
-            const res  = await fetch('/coupon/validate', { method: 'POST', body });
+            const res  = await fetch('/coupon/check', { method: 'POST', body });
             const data = await res.json();
             if (res.headers.get('X-CSRF-TOKEN')) csrfHash = res.headers.get('X-CSRF-TOKEN');
 
