@@ -20,8 +20,11 @@ class OrderController extends BaseController
         'expired'           => '만료',
         'refund_requested'  => '환불 요청',
         'refunded'          => '환불 완료',
-        'return_requested'  => '반품 요청',
-        'return_approved'   => '반품 승인',
+        'return_requested'   => '반품 요청',
+        'return_approved'    => '반품 승인',
+        'exchange_requested' => '교환 요청',
+        'exchange_approved'  => '교환 승인',
+        'exchange_completed' => '교환 완료',
     ];
 
     private const NEXT_STATUS = [
@@ -161,5 +164,32 @@ class OrderController extends BaseController
 
         return redirect()->to("/admin/orders/{$id}")
             ->with($ok ? 'success' : 'error', $ok ? '환불 완료 처리되었습니다.' : '환불 완료 처리에 실패했습니다.');
+    }
+
+    /** POST /admin/orders/:id/exchange-approve — 교환 승인 (재고 복구) */
+    public function approveExchange(int $id): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $ok = $this->orderModel->approveExchange($id);
+
+        return redirect()->to("/admin/orders/{$id}")
+            ->with($ok ? 'success' : 'error', $ok ? '교환이 승인되었습니다. 대체품 발송 후 완료 처리하세요.' : '교환 승인에 실패했습니다.');
+    }
+
+    /** POST /admin/orders/:id/exchange-reject — 교환 거부 */
+    public function rejectExchange(int $id): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $ok = $this->orderModel->rejectExchange($id);
+
+        return redirect()->to("/admin/orders/{$id}")
+            ->with($ok ? 'success' : 'error', $ok ? '교환이 거부되었습니다.' : '교환 거부에 실패했습니다.');
+    }
+
+    /** POST /admin/orders/:id/exchange-complete — 교환 완료 (대체품 발송 확인) */
+    public function completeExchange(int $id): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $ok = $this->orderModel->completeExchange($id);
+
+        return redirect()->to("/admin/orders/{$id}")
+            ->with($ok ? 'success' : 'error', $ok ? '교환 완료 처리되었습니다.' : '교환 완료 처리에 실패했습니다.');
     }
 }
