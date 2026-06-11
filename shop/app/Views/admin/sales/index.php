@@ -114,11 +114,11 @@
         <?php $profit = (int) ($summary['total_profit'] ?? 0); ?>
         <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small mb-1">영업이익</div>
+                <div class="text-muted small mb-1">1차 마진</div>
                 <div class="fs-5 fw-bold <?= $profit >= 0 ? 'text-success' : 'text-danger' ?>">
                     <?= number_format($profit) ?>원
                 </div>
-                <div class="text-muted" style="font-size:.72rem">실매출 - 매입원가 - 배송비</div>
+                <div class="text-muted" style="font-size:.72rem">실매출 − 매입원가 − 배송비</div>
             </div>
         </div>
     </div>
@@ -154,7 +154,7 @@
                             <th class="text-end">할인</th>
                             <th class="text-end">실 매출</th>
                             <th class="text-end">매입원가</th>
-                            <th class="text-end">영업이익</th>
+                            <th class="text-end">1차 마진</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -246,7 +246,7 @@
                     <th class="text-end">GMV</th>
                     <th class="text-end">실 매출</th>
                     <th class="text-end">매입원가</th>
-                    <th class="text-end">영업이익</th>
+                    <th class="text-end">1차 마진</th>
                     <th></th>
                 </tr>
             </thead>
