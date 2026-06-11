@@ -1,5 +1,6 @@
 <?= $this->extend('layouts/admin') ?>
 <?php $pageTitle = '회원 관리' ?>
+<?php use App\Libraries\GradeService; ?>
 
 <?= $this->section('content') ?>
 
@@ -42,6 +43,7 @@
                     <th>이메일</th>
                     <th>휴대폰</th>
                     <th>역할</th>
+                    <th>등급</th>
                     <th>상태</th>
                     <th>가입일</th>
                     <th>최근 로그인</th>
@@ -50,7 +52,7 @@
             </thead>
             <tbody>
                 <?php if (empty($users)): ?>
-                <tr><td colspan="9" class="text-center text-muted py-4">회원이 없습니다.</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-4">회원이 없습니다.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($users as $u): ?>
                 <?php $isUnverified = ! $u['is_active'] && ! empty($u['email_verify_token']); ?>
@@ -68,6 +70,12 @@
                         <?php if ($u['social_provider']): ?>
                             <span class="badge bg-info text-dark"><?= esc($u['social_provider']) ?></span>
                         <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php $grade = $u['grade'] ?? 'bronze'; ?>
+                        <span class="badge <?= GradeService::BADGE_CLASSES[$grade] ?>">
+                            <i class="bi <?= GradeService::ICONS[$grade] ?> me-1"></i><?= GradeService::LABELS[$grade] ?>
+                        </span>
                     </td>
                     <td>
                         <?php if ($u['is_active']): ?>

@@ -7,7 +7,8 @@ $totalAmount  = (int) ($totalAmount  ?? 0);
 $totalProduct = (int) ($totalProduct ?? 0);
 $shippingFee  = (int) ($shippingFee  ?? 0);
 $pointBalance = (int) ($pointBalance ?? 0);
-$pointEarnRate = (int) ($settings['point_earn_rate'] ?? 1);
+$_grade        = $authUser['grade'] ?? 'bronze';
+$pointEarnRate = (float) ($settings['point_earn_rate_' . $_grade] ?? $settings['point_earn_rate'] ?? 1);
 $minPayable   = (int) ($settings['min_payable_amount'] ?? 0);
 $userCoupons  = $userCoupons ?? [];
 ?>
@@ -180,9 +181,11 @@ $userCoupons  = $userCoupons ?? [];
                                         data-max="<?= (int) $uc['max_discount_amount'] ?>"
                                         data-min="<?= (int) $uc['min_order_amount'] ?>">
                                     <?= esc($uc['name']) ?>
-                                    (<?= $uc['type'] === 'fixed'
-                                        ? number_format($uc['discount_value']) . '원'
-                                        : $uc['discount_value'] . '%' ?> 할인)
+                                    (<?php
+                                        if ($uc['type'] === 'free_shipping') echo '무료배송';
+                                        elseif ($uc['type'] === 'fixed')    echo number_format($uc['discount_value']) . '원 할인';
+                                        else                                 echo $uc['discount_value'] . '% 할인';
+                                    ?>)
                                     <?php if ($uc['expires_at']): ?>
                                     · <?= date('n월 j일', strtotime($uc['expires_at'])) ?>까지
                                     <?php endif; ?>
@@ -428,14 +431,20 @@ $userCoupons  = $userCoupons ?? [];
         }
 
         let discount = 0;
-        if (type === 'fixed') {
+        const SHIPPING_FEE = <?= $shippingFee ?>;
+        if (type === 'free_shipping') {
+            discount = SHIPPING_FEE;
+        } else if (type === 'fixed') {
             discount = Math.min(val, TOTAL_AMOUNT);
         } else {
             discount = Math.floor(TOTAL_AMOUNT * val / 100);
             if (max > 0) discount = Math.min(discount, max);
         }
 
-        applyCoupon(parseInt(this.value), '', discount, opt.dataset.name + ' (' + discount.toLocaleString('ko-KR') + '원 할인)');
+        const discLabel = type === 'free_shipping'
+            ? opt.dataset.name + ' (무료배송)'
+            : opt.dataset.name + ' (' + discount.toLocaleString('ko-KR') + '원 할인)';
+        applyCoupon(parseInt(this.value), '', discount, discLabel);
     });
 
     // ─── 쿠폰 코드 적용 (AJAX) ────────────────────────────────────────────────
