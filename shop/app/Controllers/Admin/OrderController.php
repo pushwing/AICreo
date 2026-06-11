@@ -190,12 +190,16 @@ class OrderController extends BaseController
         $carriersRaw = $this->viewData['settings']['shipping_carriers'] ?? '[]';
         $carriers    = json_decode($carriersRaw, true) ?: [];
 
+        $rCode             = $order['return_reason_code'] ?? null;
+        $returnReasonPayer = $rCode ? (\App\Models\OrderModel::RETURN_REASON_CODES[$rCode]['payer'] ?? null) : null;
+
         return $this->render('admin/orders/detail', [
-            'order'        => $order,
-            'statusLabels' => self::STATUS_LABELS,
-            'nextStatus'   => self::NEXT_STATUS,
-            'memos'        => $this->memoModel->getByOrder($id),
-            'carriers'     => $carriers,
+            'order'             => $order,
+            'statusLabels'      => self::STATUS_LABELS,
+            'nextStatus'        => self::NEXT_STATUS,
+            'returnReasonPayer' => $returnReasonPayer,
+            'memos'             => $this->memoModel->getByOrder($id),
+            'carriers'          => $carriers,
         ]);
     }
 

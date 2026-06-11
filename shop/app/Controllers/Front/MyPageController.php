@@ -99,7 +99,12 @@ class MyPageController extends BaseController
 
         $order = $this->orderModel->getWithItems($row['id'], $userId);
 
-        return $this->render('shop/orders/detail', compact('order'));
+        $returnReasonCodes = \App\Models\OrderModel::RETURN_REASON_CODES;
+
+        $rCode             = $order['return_reason_code'] ?? null;
+        $returnReasonPayer = $rCode ? ($returnReasonCodes[$rCode]['payer'] ?? null) : null;
+
+        return $this->render('shop/orders/detail', compact('order', 'returnReasonCodes', 'returnReasonPayer'));
     }
 
     /** POST /mypage/orders/confirm-delivery — 배송 완료 확인 */

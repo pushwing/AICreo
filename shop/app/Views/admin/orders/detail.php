@@ -320,17 +320,11 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
             </div>
             <div class="card-body">
                 <?php if (! empty($order['return_reason'])): ?>
-                <?php
-                    use App\Models\OrderModel;
-                    $rCode = $order['return_reason_code'] ?? null;
-                    $rMeta = $rCode ? (OrderModel::RETURN_REASON_CODES[$rCode] ?? null) : null;
-                    $payer = $rMeta['payer'] ?? null;
-                ?>
                 <p class="text-muted small mb-2">
                     <strong>반품 사유:</strong> <?= esc($order['return_reason']) ?>
-                    <?php if ($payer): ?>
-                    <span class="badge <?= $payer === 'seller' ? 'bg-info' : 'bg-secondary' ?> ms-1">
-                        <?= $payer === 'seller' ? '판매자 택배비 부담' : '구매자 택배비 부담' ?>
+                    <?php if ($returnReasonPayer): ?>
+                    <span class="badge <?= $returnReasonPayer === 'seller' ? 'bg-info' : 'bg-secondary' ?> ms-1">
+                        <?= $returnReasonPayer === 'seller' ? '판매자 택배비 부담' : '구매자 택배비 부담' ?>
                     </span>
                     <?php endif; ?>
                 </p>

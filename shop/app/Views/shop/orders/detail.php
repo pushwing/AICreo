@@ -242,12 +242,6 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 
     <!-- 반품 사유 / 상태 안내 -->
     <?php if (in_array($order['status'], ['return_requested', 'return_approved', 'refunded'], true) && ! empty($order['return_reason'])): ?>
-    <?php
-        use App\Models\OrderModel;
-        $rCode  = $order['return_reason_code'] ?? null;
-        $rMeta  = $rCode ? (OrderModel::RETURN_REASON_CODES[$rCode] ?? null) : null;
-        $payer  = $rMeta['payer'] ?? null;
-    ?>
     <div class="alert alert-<?= $order['status'] === 'return_approved' ? 'info' : 'warning' ?> d-flex gap-2 mb-3">
         <i class="bi bi-arrow-return-left fs-5 flex-shrink-0"></i>
         <div class="w-100">
@@ -258,10 +252,10 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
             <?php if (! empty($order['return_reason_note'])): ?>
             <div class="small text-muted mt-1"><?= esc($order['return_reason_note']) ?></div>
             <?php endif; ?>
-            <?php if ($payer): ?>
-            <div class="small mt-2 <?= $payer === 'seller' ? 'text-info' : 'text-muted' ?>">
+            <?php if ($returnReasonPayer): ?>
+            <div class="small mt-2 <?= $returnReasonPayer === 'seller' ? 'text-info' : 'text-muted' ?>">
                 <i class="bi bi-truck me-1"></i>
-                <?= $payer === 'seller' ? '수거 택배비: 판매자 부담' : '반품 택배비: 구매자 부담' ?>
+                <?= $returnReasonPayer === 'seller' ? '수거 택배비: 판매자 부담' : '반품 택배비: 구매자 부담' ?>
             </div>
             <?php endif; ?>
         </div>
@@ -323,10 +317,6 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 
     <!-- 반품 신청 모달 -->
     <?php if ($canReturn): ?>
-    <?php
-        use App\Models\OrderModel;
-        $returnReasonCodes = OrderModel::RETURN_REASON_CODES;
-    ?>
     <div class="modal fade" id="returnModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
