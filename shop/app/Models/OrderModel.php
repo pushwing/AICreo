@@ -937,7 +937,11 @@ class OrderModel extends Model
         if (! $order) return null;
 
         $order['items']         = $this->fetchOrderItems($orderId);
-        $order['exchange_items'] = $this->db->table('exchange_items')->where('order_id', $orderId)->get()->getResultArray();
+        try {
+            $order['exchange_items'] = $this->db->table('exchange_items')->where('order_id', $orderId)->get()->getResultArray();
+        } catch (\Throwable $e) {
+            $order['exchange_items'] = [];
+        }
         $order['payment']       = $this->db->table('payments')->where('order_id', $orderId)->orderBy('id', 'DESC')->get()->getRowArray();
         $order['statusLogs']    = $this->db->table('order_status_logs')
             ->where('order_id', $orderId)
