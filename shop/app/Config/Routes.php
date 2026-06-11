@@ -172,13 +172,19 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'qna',               'Admin\QnaController::index');
     $routes->post('qna/(:num)/answer', 'Admin\QnaController::answer/$1');
     $routes->post('qna/(:num)/delete', 'Admin\QnaController::delete/$1');
+
+    // 리뷰 관리
+    $routes->get( 'reviews',              'Admin\ReviewController::index');
+    $routes->post('reviews/(:num)/delete','Admin\ReviewController::delete/$1');
 });
 
 // ─── 쇼핑 ────────────────────────────────────────────────────────────────────
 $routes->get( 'shop',                                       'Front\ShopController::index');
 $routes->get( 'shop/(:segment)',                            'Front\ShopController::detail/$1');
 $routes->post('shop/(:segment)/qna',                        'Front\ShopController::qnaStore/$1',  ['filter' => 'auth:member']);
-$routes->post('shop/(:segment)/qna/(:num)/delete',          'Front\ShopController::qnaDelete/$1/$2', ['filter' => 'auth:member']);
+$routes->post('shop/(:segment)/qna/(:num)/delete',          'Front\ShopController::qnaDelete/$1/$2',     ['filter' => 'auth:member']);
+$routes->post('shop/(:segment)/review',                     'Front\ShopController::reviewStore/$1',      ['filter' => 'auth:member']);
+$routes->post('shop/(:segment)/review/(:num)/delete',       'Front\ShopController::reviewDelete/$1/$2',  ['filter' => 'auth:member']);
 
 // ─── 장바구니 ──────────────────────────────────────────────────────────────────
 // add: 비로그인도 허용 (세션 저장), 나머지: 로그인 필요
