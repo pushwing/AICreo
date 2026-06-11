@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Models\ShippingAddressModel;
 use App\Models\UserModel;
 
 class AuthController extends BaseController
@@ -13,6 +14,8 @@ class AuthController extends BaseController
     {
         $this->userModel = new UserModel();
     }
+
+    // ─── 로그인 ──────────────────────────────────────────────────────────────────
 
     public function login()
     {
@@ -33,9 +36,20 @@ class AuthController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $user = $this->userModel->findByEmail($this->request->getPost('email'));
+        $email = $this->request->getPost('email');
+        $password = $this->request->getPost('password');
 
-        if (! $user || ! password_verify($this->request->getPost('password'), $user['password'])) {
+        // 미인증 유저 선체크 — 비밀번호 검증 전에 분기해 정탐 방지
+        $unverified = $this->userModel->findUnverified($email);
+        if ($unverified) {
+            return redirect()->back()->withInput()
+                ->with('unverified_email', $email)
+                ->with('error', '이메일 인증이 필요합니다. 메일함을 확인해주세요.');
+        }
+
+        $user = $this->userModel->findByEmail($email);
+
+        if (! $user || ! password_verify($password, $user['password'])) {
             return redirect()->back()->withInput()->with('error', '이메일 또는 비밀번호가 올바르지 않습니다.');
         }
 
@@ -56,6 +70,8 @@ class AuthController extends BaseController
         return redirect()->to('/auth/login');
     }
 
+    // ─── 회원가입 ─────────────────────────────────────────────────────────────────
+
     public function register()
     {
         return $this->render('auth/register');
@@ -67,48 +83,127 @@ class AuthController extends BaseController
             'email'    => 'required|valid_email|is_unique[users.email]',
             'password' => 'required|min_length[8]',
             'nickname' => 'required|min_length[2]|max_length[20]',
+            'phone'    => 'required|min_length[10]|max_length[20]',
         ];
 
         if (! $this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $this->userModel->insert([
-            'email'    => $this->request->getPost('email'),
-            'username' => $this->request->getPost('email'),
-            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'nickname' => $this->request->getPost('nickname'),
-            'role'     => 'member',
-        ]);
+        $userId = $this->userModel->insert([
+            'email'     => $this->request->getPost('email'),
+            'username'  => $this->request->getPost('email'),
+            'password'  => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'nickname'  => $this->request->getPost('nickname'),
+            'phone'     => $this->request->getPost('phone'),
+            'gender'    => $this->request->getPost('gender') ?: null,
+            'birthday'  => $this->request->getPost('birthday') ?: null,
+            'role'      => 'member',
+            'is_active' => 0,
+        ], true);
 
-        return redirect()->to('/auth/login')->with('success', '회원가입이 완료되었습니다. 로그인해주세요.');
+        if (! $userId) {
+            return redirect()->back()->withInput()->with('error', '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+
+        // 주소 입력된 경우 배송지에 저장
+        $zipcode  = $this->request->getPost('zipcode');
+        $address1 = $this->request->getPost('address1');
+        if ($zipcode && $address1) {
+            (new ShippingAddressModel())->saveAddress((int) $userId, [
+                'receiver_name'  => $this->request->getPost('nickname'),
+                'receiver_phone' => $this->request->getPost('phone'),
+                'zipcode'        => $zipcode,
+                'address1'       => $address1,
+                'address2'       => $this->request->getPost('address2') ?: '',
+                'is_default'     => 1,
+            ]);
+        }
+
+        $token = $this->userModel->generateVerifyToken((int) $userId);
+        $user  = $this->userModel->find((int) $userId);
+        $this->sendVerifyMail($user, $token);
+
+        return redirect()->to('/auth/verify-pending')
+            ->with('verify_email', $this->request->getPost('email'));
     }
 
-    // ─── 내 정보 수정 ────────────────────────────────────────────────────────
+    // ─── 이메일 인증 ──────────────────────────────────────────────────────────────
+
+    public function verifyPending()
+    {
+        return $this->render('auth/verify_pending');
+    }
+
+    public function verifyEmail(string $token)
+    {
+        $user = $this->userModel->verifyByToken($token);
+
+        if (! $user) {
+            return redirect()->to('/auth/login')
+                ->with('error', '인증 링크가 유효하지 않거나 만료되었습니다. 다시 요청해주세요.');
+        }
+
+        $this->userModel->clearVerifyToken($user['id']);
+
+        return redirect()->to('/auth/login')
+            ->with('success', '이메일 인증이 완료되었습니다. 로그인해주세요.');
+    }
+
+    public function resendVerification()
+    {
+        $email = $this->request->getPost('email');
+
+        if (! $email) {
+            return redirect()->back()->with('error', '이메일을 입력해주세요.');
+        }
+
+        $user = $this->userModel->findUnverified($email);
+
+        if (! $user) {
+            // 이미 인증됐거나 존재하지 않는 경우도 동일 메시지 (이메일 열거 방지)
+            return redirect()->to('/auth/verify-pending')
+                ->with('verify_email', $email)
+                ->with('resend_success', true);
+        }
+
+        // 1분 이내 재발송 차단
+        if ($user['email_verify_token_at'] &&
+            time() - strtotime($user['email_verify_token_at']) < 60) {
+            return redirect()->to('/auth/verify-pending')
+                ->with('verify_email', $email)
+                ->with('error', '1분 후 다시 시도해주세요.');
+        }
+
+        $token = $this->userModel->generateVerifyToken($user['id']);
+        $this->sendVerifyMail($user, $token);
+
+        return redirect()->to('/auth/verify-pending')
+            ->with('verify_email', $email)
+            ->with('resend_success', true);
+    }
+
+    // ─── 내 정보 수정 ────────────────────────────────────────────────────────────
 
     public function profile()
     {
-        if (! session()->get('user_id')) {
-            return redirect()->to('/auth/login')->with('error', '로그인이 필요합니다.');
-        }
-
-        $user = $this->userModel->find(session()->get('user_id'));
-        return $this->render('auth/profile', compact('user'));
+        $user      = $this->userModel->find(session()->get('user_id'));
+        $activeTab = $this->request->getGet('tab') ?? 'info';
+        return $this->render('auth/profile', compact('user', 'activeTab'));
     }
 
     public function profileUpdate()
     {
         $userId = session()->get('user_id');
-        if (! $userId) {
-            return redirect()->to('/auth/login');
-        }
-
-        $user = $this->userModel->find($userId);
+        $user   = $this->userModel->find($userId);
         $tab  = $this->request->getPost('tab') ?? 'info';
 
         // ── 기본정보 탭 ──
         if ($tab === 'info') {
-            $rules = ['nickname' => 'required|min_length[2]|max_length[20]'];
+            $rules = [
+                'nickname' => 'required|min_length[2]|max_length[20]',
+                'phone'    => 'required|min_length[10]|max_length[20]',
+            ];
 
             if (! $this->validate($rules)) {
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
@@ -116,9 +211,11 @@ class AuthController extends BaseController
 
             $this->userModel->update($userId, [
                 'nickname' => $this->request->getPost('nickname'),
+                'phone'    => $this->request->getPost('phone'),
+                'gender'   => $this->request->getPost('gender') ?: null,
+                'birthday' => $this->request->getPost('birthday') ?: null,
             ]);
 
-            // 세션 닉네임 갱신
             session()->set('user_nickname', $this->request->getPost('nickname'));
 
             return redirect()->to('/auth/profile')->with('success', '정보가 수정되었습니다.');
@@ -126,7 +223,6 @@ class AuthController extends BaseController
 
         // ── 비밀번호 탭 ──
         if ($tab === 'password') {
-            // 소셜 로그인 계정은 비밀번호 변경 불가
             if ($user['social_provider']) {
                 return redirect()->back()->with('error', '소셜 로그인 계정은 비밀번호를 변경할 수 없습니다.');
             }
@@ -153,5 +249,58 @@ class AuthController extends BaseController
         }
 
         return redirect()->to('/auth/profile');
+    }
+
+    // ─── 이메일 발송 (private) ────────────────────────────────────────────────────
+
+    private function sendVerifyMail(array $user, string $token): void
+    {
+        $settings = $this->viewData['settings'] ?? [];
+        $siteName = $settings['site_name'] ?? '쇼핑몰';
+        $siteUrl  = rtrim(base_url(), '/');
+
+        $verifyUrl = $siteUrl . '/auth/verify/' . $token;
+
+        $emailConfig = [
+            'protocol'   => 'smtp',
+            'SMTPHost'   => env('EMAIL_SMTP_HOST', ''),
+            'SMTPUser'   => env('EMAIL_SMTP_USER', ''),
+            'SMTPPass'   => env('EMAIL_SMTP_PASS', ''),
+            'SMTPPort'   => (int) env('EMAIL_SMTP_PORT', 587),
+            'SMTPCrypto' => env('EMAIL_SMTP_CRYPTO', 'tls'),
+            'mailType'   => 'html',
+            'charset'    => 'utf-8',
+        ];
+
+        $email = \Config\Services::email();
+        $email->initialize($emailConfig);
+        $email->setFrom(
+            env('EMAIL_FROM_ADDRESS', env('EMAIL_SMTP_USER', 'noreply@example.com')),
+            $siteName
+        );
+        $email->setTo($user['email']);
+        $email->setSubject("[{$siteName}] 이메일 주소를 인증해주세요");
+        $email->setMessage(
+            "<p>안녕하세요, <strong>{$siteName}</strong>입니다.</p>" .
+            "<p>아래 버튼을 클릭하면 이메일 인증이 완료됩니다. (24시간 이내 인증)</p>" .
+            "<p><a href='{$verifyUrl}' style='display:inline-block;padding:12px 24px;" .
+            "background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;'>" .
+            "이메일 인증하기</a></p>" .
+            "<p style='color:#888;font-size:.85em;'>링크: {$verifyUrl}</p>"
+        );
+
+        // SMTP 미설정 시 로그로 대체 (개발 환경)
+        if (! env('EMAIL_SMTP_HOST')) {
+            log_message('info', "VERIFY_EMAIL | to={$user['email']} | url={$verifyUrl}");
+            return;
+        }
+
+        try {
+            if (! $email->send()) {
+                log_message('error', "VERIFY_EMAIL_FAIL | to={$user['email']} | " . $email->printDebugger(['headers']));
+            }
+        } catch (\Throwable $e) {
+            log_message('error', "VERIFY_EMAIL_EXCEPTION | to={$user['email']} | " . $e->getMessage());
+        }
     }
 }
