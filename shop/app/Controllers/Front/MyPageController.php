@@ -7,6 +7,7 @@ use App\Models\OrderModel;
 use App\Models\PointLogModel;
 use App\Models\ShippingAddressModel;
 use App\Models\UserCouponModel;
+use App\Models\WishlistModel;
 
 class MyPageController extends BaseController
 {
@@ -14,6 +15,7 @@ class MyPageController extends BaseController
     private ShippingAddressModel $addressModel;
     private UserCouponModel      $userCouponModel;
     private PointLogModel        $pointLogModel;
+    private WishlistModel        $wishlistModel;
 
     // 상태 탭 정의 — key: 쿼리 파라미터 값, label: 표시명
     private const STATUS_TABS = [
@@ -32,6 +34,7 @@ class MyPageController extends BaseController
         $this->addressModel    = new ShippingAddressModel();
         $this->userCouponModel = new UserCouponModel();
         $this->pointLogModel   = new PointLogModel();
+        $this->wishlistModel   = new WishlistModel();
     }
 
     /** GET /mypage/orders */
@@ -314,5 +317,15 @@ class MyPageController extends BaseController
             'success' => $success,
             'message' => $success ? '주문이 취소되었습니다.' : '취소할 수 없는 주문입니다.',
         ]);
+    }
+
+    /** GET /mypage/wishlist */
+    public function wishlist(): string
+    {
+        $userId      = (int) session()->get('user_id');
+        $currentPage = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $result      = $this->wishlistModel->getByUser($userId, $currentPage);
+
+        return $this->render('shop/mypage/wishlist', $result);
     }
 }

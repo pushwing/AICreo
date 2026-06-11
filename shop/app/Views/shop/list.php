@@ -76,8 +76,19 @@
                     $hasDiscount  = $p['discount_price'] !== null;
                 ?>
                 <div class="col">
-                    <a href="/shop/<?= esc($p['slug']) ?>" class="text-decoration-none text-dark">
-                        <div class="card h-100 product-card">
+                    <div class="card h-100 product-card position-relative">
+                        <!-- 찜 버튼 -->
+                        <?php $isWishedItem = in_array((int) $p['id'], $wishedIds ?? [], true); ?>
+                        <button class="btn-wish position-absolute btn btn-sm"
+                                style="top:6px;right:6px;z-index:2;padding:2px 6px;background:rgba(255,255,255,.85);border:none"
+                                data-slug="<?= esc($p['slug']) ?>"
+                                data-csrf="<?= csrf_token() ?>"
+                                data-csrf-val="<?= csrf_hash() ?>"
+                                data-loggedin="<?= session()->get('user_id') ? 'true' : 'false' ?>"
+                                title="찜하기">
+                            <i class="bi <?= $isWishedItem ? 'bi-heart-fill' : 'bi-heart' ?> text-danger"></i>
+                        </button>
+                        <a href="/shop/<?= esc($p['slug']) ?>" class="text-decoration-none text-dark">
                             <!-- 이미지 -->
                             <div class="position-relative" style="aspect-ratio:1;overflow:hidden;background:#f8f9fa">
                                 <?php if ($p['primary_image']): ?>
@@ -122,8 +133,8 @@
                                 <span class="badge bg-light text-secondary border small mt-1"><?= number_format((int)$p['free_threshold']) ?>원 이상 무료</span>
                                 <?php endif; ?>
                             </div>
-                        </div>
-                    </a>
+                        </a>
+                    </div>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -153,4 +164,44 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+<script>
+document.querySelectorAll('.btn-wish').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (btn.dataset.loggedin !== 'true') {
+            window.location.href = '/auth/login';
+            return;
+        }
+
+        var slug     = btn.dataset.slug;
+        var csrfName = btn.dataset.csrf;
+        var csrfVal  = btn.dataset.csrfVal;
+
+        fetch('/shop/' + slug + '/wish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: csrfName + '=' + encodeURIComponent(csrfVal)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.success) return;
+            var icon = btn.querySelector('i');
+            if (data.wished) {
+                icon.classList.remove('bi-heart');
+                icon.classList.add('bi-heart-fill');
+            } else {
+                icon.classList.remove('bi-heart-fill');
+                icon.classList.add('bi-heart');
+            }
+            if (data.csrf_hash) btn.dataset.csrfVal = data.csrf_hash;
+        })
+        .catch(function() {});
+    });
+});
+</script>
 <?= $this->endSection() ?>

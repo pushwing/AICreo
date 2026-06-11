@@ -186,6 +186,15 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                     바로구매
                 </button>
                 <?php endif; ?>
+                <!-- 찜하기 -->
+                <button class="btn btn-outline-secondary" id="btnWish"
+                        data-slug="<?= esc($product['slug']) ?>"
+                        data-csrf="<?= csrf_token() ?>"
+                        data-csrf-val="<?= csrf_hash() ?>"
+                        data-loggedin="<?= session()->get('user_id') ? 'true' : 'false' ?>">
+                    <i class="bi <?= ($isWished ?? false) ? 'bi-heart-fill text-danger' : 'bi-heart' ?> me-1"></i>
+                    <span id="wishLabel"><?= ($isWished ?? false) ? '찜 해제' : '찜하기' ?></span>
+                </button>
             </div>
 
         </div>
@@ -434,6 +443,8 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
     </div>
 
 </div>
+
+<?= $this->view('themes/default/components/recently_viewed', ['recentProducts' => $recentProducts ?? []]) ?>
 
 <?= $this->endSection() ?>
 
@@ -714,6 +725,36 @@ document.querySelectorAll('.btn-qna-delete').forEach(function (btn) {
         const trigger = document.querySelector('[data-bs-target="' + hash + '"]');
         if (trigger) new bootstrap.Tab(trigger).show();
     }
+})();
+
+// ─── 찜하기 ───────────────────────────────────────────────────────────────────
+(function () {
+    var btn = document.getElementById('btnWish');
+    if (! btn) return;
+    btn.addEventListener('click', function () {
+        if (btn.dataset.loggedin !== 'true') {
+            if (confirm('로그인이 필요합니다. 로그인 페이지로 이동할까요?')) {
+                window.location.href = '/auth/login';
+            }
+            return;
+        }
+        var fd = new FormData();
+        fd.append(btn.dataset.csrf, btn.dataset.csrfVal);
+        fetch('/shop/' + btn.dataset.slug + '/wish', { method: 'POST', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (! data.success) return;
+                var icon  = btn.querySelector('i');
+                var label = document.getElementById('wishLabel');
+                if (data.wished) {
+                    icon.className  = 'bi bi-heart-fill text-danger me-1';
+                    label.textContent = '찜 해제';
+                } else {
+                    icon.className  = 'bi bi-heart me-1';
+                    label.textContent = '찜하기';
+                }
+            });
+    });
 })();
 </script>
 <?= $this->endSection() ?>

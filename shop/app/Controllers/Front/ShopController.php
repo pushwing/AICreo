@@ -10,6 +10,7 @@ use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
 use App\Models\ProductReviewModel;
 use App\Models\ProductSkuModel;
+use App\Models\WishlistModel;
 
 class ShopController extends BaseController
 {
@@ -19,6 +20,7 @@ class ShopController extends BaseController
     private ProductQnaModel    $qnaModel;
     private ProductReviewModel $reviewModel;
     private ProductSkuModel    $skuModel;
+    private WishlistModel      $wishlistModel;
 
     public function __construct()
     {
@@ -28,6 +30,7 @@ class ShopController extends BaseController
         $this->qnaModel      = new ProductQnaModel();
         $this->reviewModel   = new ProductReviewModel();
         $this->skuModel      = new ProductSkuModel();
+        $this->wishlistModel = new WishlistModel();
     }
 
     public function home(): string
@@ -88,6 +91,33 @@ class ShopController extends BaseController
 
         $optionsAndSkus = $this->skuModel->getOptionsAndSkus($product['id']);
 
+        // 찜 여부
+        $isWished = $userId > 0
+            ? $this->wishlistModel->isWished($userId, (int) $product['id'])
+            : false;
+
+        // 최근 본 상품 쿠키 업데이트
+        $viewed = json_decode($this->request->getCookie('recently_viewed') ?? '[]', true);
+        if (! is_array($viewed)) $viewed = [];
+        $viewed = array_values(array_filter($viewed, fn($s) => $s !== $slug));
+        array_unshift($viewed, $slug);
+        $viewed = array_slice($viewed, 0, 11);
+        $this->response->setCookie('recently_viewed', json_encode($viewed), 30 * 24 * 3600);
+
+        // 최근 본 상품 목록 (현재 상품 제외, 최대 10개)
+        $recentSlugs    = array_values(array_filter($viewed, fn($s) => $s !== $slug));
+        $recentProducts = [];
+        if ($recentSlugs) {
+            $recentProducts = $this->productModel
+                ->whereIn('slug', $recentSlugs)
+                ->whereIn('status', ['on_sale', 'sold_out'])
+                ->findAll();
+            $this->imageModel->attachPrimaryImages($recentProducts);
+            usort($recentProducts, fn($a, $b) =>
+                array_search($a['slug'], $recentSlugs) <=> array_search($b['slug'], $recentSlugs)
+            );
+        }
+
         return $this->render('shop/detail', [
             'product'         => $product,
             'images'          => $images,
@@ -107,7 +137,27 @@ class ShopController extends BaseController
             'reviewPerPage'   => $reviewPerPage,
             'canWriteReview'  => $canWriteReview,
             'reviewOrderId'   => $reviewOrderId,
+            // 찜 / 최근 본 상품
+            'isWished'        => $isWished,
+            'recentProducts'  => $recentProducts,
         ]);
+    }
+
+    /** POST /shop/:slug/wish — 찜 토글 (회원 전용) */
+    public function wishToggle(string $slug): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $userId = (int) session()->get('user_id');
+        if (! $userId) {
+            return $this->response->setJSON(['success' => false, 'message' => '로그인이 필요합니다.']);
+        }
+
+        $product = $this->productModel->where('slug', $slug)->first();
+        if (! $product) {
+            return $this->response->setJSON(['success' => false, 'message' => '상품을 찾을 수 없습니다.']);
+        }
+
+        $wished = $this->wishlistModel->toggle($userId, (int) $product['id']);
+        return $this->response->setJSON(['success' => true, 'wished' => $wished]);
     }
 
     /** POST /shop/:slug/qna */
@@ -259,11 +309,25 @@ class ShopController extends BaseController
 
         $this->imageModel->attachPrimaryImages($result['items']);
 
+        // 현재 페이지 상품에 대한 찜 여부 (로그인 사용자)
+        $wishedIds = [];
+        $userId    = (int) session()->get('user_id');
+        if ($userId > 0 && ! empty($result['items'])) {
+            $productIds = array_column($result['items'], 'id');
+            $rows       = $this->wishlistModel
+                ->select('product_id')
+                ->where('user_id', $userId)
+                ->whereIn('product_id', $productIds)
+                ->findAll();
+            $wishedIds = array_map('intval', array_column($rows, 'product_id'));
+        }
+
         return $this->render('shop/list', array_merge($result, [
-            'tree'    => $this->categoryModel->getTree(),
-            'keyword' => $params['keyword'],
-            'curCat'  => (int) $params['category_id'],
-            'curSort' => $params['sort'],
+            'tree'      => $this->categoryModel->getTree(),
+            'keyword'   => $params['keyword'],
+            'curCat'    => (int) $params['category_id'],
+            'curSort'   => $params['sort'],
+            'wishedIds' => $wishedIds,
         ]));
     }
 }
