@@ -7,6 +7,7 @@ use App\Libraries\MediaUploader;
 use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
 use App\Models\ProductModel;
+use App\Models\ProductSkuModel;
 use Config\Database;
 
 class ProductController extends BaseController
@@ -14,12 +15,14 @@ class ProductController extends BaseController
     private ProductModel      $productModel;
     private CategoryModel     $categoryModel;
     private ProductImageModel $imageModel;
+    private ProductSkuModel   $skuModel;
 
     public function __construct()
     {
         $this->productModel  = new ProductModel();
         $this->categoryModel = new CategoryModel();
         $this->imageModel    = new ProductImageModel();
+        $this->skuModel      = new ProductSkuModel();
     }
 
     public function index(): string
@@ -39,12 +42,13 @@ class ProductController extends BaseController
     public function create(): string
     {
         return $this->render('admin/products/form', [
-            'product'   => null,
-            'images'    => [],
-            'tree'      => $this->categoryModel->getTree(),
-            'statuses'  => ProductModel::STATUSES,
-            'shippings' => ProductModel::SHIPPING_TYPES,
-            'suppliers' => Database::connect()->table('suppliers')->orderBy('name')->get()->getResultArray(),
+            'product'        => null,
+            'images'         => [],
+            'tree'           => $this->categoryModel->getTree(),
+            'statuses'       => ProductModel::STATUSES,
+            'shippings'      => ProductModel::SHIPPING_TYPES,
+            'suppliers'      => Database::connect()->table('suppliers')->orderBy('name')->get()->getResultArray(),
+            'optionsAndSkus' => ['options' => [], 'skus' => []],
         ]);
     }
 
@@ -58,6 +62,7 @@ class ProductController extends BaseController
         $id   = $this->productModel->insert($data);
 
         $this->handleImages($id);
+        $this->handleOptions($id);
 
         return redirect()->to('/admin/products')->with('success', '상품이 등록되었습니다.');
     }
@@ -68,12 +73,13 @@ class ProductController extends BaseController
         if (! $product) return redirect()->to('/admin/products')->with('error', '상품을 찾을 수 없습니다.');
 
         return $this->render('admin/products/form', [
-            'product'   => $product,
-            'images'    => $this->imageModel->getByProduct($id),
-            'tree'      => $this->categoryModel->getTree(),
-            'statuses'  => ProductModel::STATUSES,
-            'shippings' => ProductModel::SHIPPING_TYPES,
-            'suppliers' => Database::connect()->table('suppliers')->orderBy('name')->get()->getResultArray(),
+            'product'        => $product,
+            'images'         => $this->imageModel->getByProduct($id),
+            'tree'           => $this->categoryModel->getTree(),
+            'statuses'       => ProductModel::STATUSES,
+            'shippings'      => ProductModel::SHIPPING_TYPES,
+            'suppliers'      => Database::connect()->table('suppliers')->orderBy('name')->get()->getResultArray(),
+            'optionsAndSkus' => $this->skuModel->getOptionsAndSkus($id),
         ]);
     }
 
@@ -88,6 +94,7 @@ class ProductController extends BaseController
 
         $this->productModel->update($id, $this->collectData($id));
         $this->handleImages($id);
+        $this->handleOptions($id);
 
         return redirect()->to('/admin/products')->with('success', '저장되었습니다.');
     }
@@ -212,6 +219,21 @@ class ProductController extends BaseController
             'shipping_fee'   => (int) $this->request->getPost('shipping_fee'),
             'free_threshold' => (int) $this->request->getPost('free_threshold'),
         ];
+    }
+
+    private function handleOptions(int $productId): void
+    {
+        $json = $this->request->getPost('options_json');
+        if (! $json) {
+            // 옵션 JSON이 없으면 기존 옵션 전체 삭제 (옵션 제거)
+            $this->skuModel->deleteByProduct($productId);
+            return;
+        }
+
+        $data = json_decode($json, true);
+        if (! is_array($data)) return;
+
+        $this->skuModel->saveOptionsAndSkus($productId, $data);
     }
 
     private function handleImages(int $productId): void

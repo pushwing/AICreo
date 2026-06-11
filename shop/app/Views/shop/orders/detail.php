@@ -83,6 +83,11 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                     <a href="/shop/<?= esc($item['product_slug'] ?? $item['product_id']) ?>" class="fw-semibold mb-1 text-dark text-decoration-none">
                         <?= esc($item['product_name']) ?>
                     </a>
+                    <?php if (! empty($item['sku_option_label'])): ?>
+                    <div class="text-muted" style="font-size:.75rem;margin-bottom:.1rem">
+                        <i class="bi bi-tag me-1"></i><?= esc($item['sku_option_label']) ?>
+                    </div>
+                    <?php endif; ?>
                     <div class="text-muted">
                         <?= number_format($item['product_price']) ?>원 × <?= (int) $item['qty'] ?>개
                     </div>

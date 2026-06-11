@@ -149,6 +149,11 @@ $userCoupons  = $userCoupons ?? [];
 
                             <div class="flex-grow-1 min-w-0">
                                 <div class="fw-semibold small text-truncate mb-1"><?= esc($item['name']) ?></div>
+                                <?php if (! empty($item['sku_label'])): ?>
+                                <div class="text-muted" style="font-size:.75rem;margin-bottom:.15rem">
+                                    <i class="bi bi-tag me-1"></i><?= esc($item['sku_label']) ?>
+                                </div>
+                                <?php endif; ?>
                                 <div class="text-muted small">
                                     <?= number_format($price) ?>원 × <?= (int) $item['qty'] ?>개
                                 </div>

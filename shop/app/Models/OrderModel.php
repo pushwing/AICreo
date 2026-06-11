@@ -94,17 +94,21 @@ class OrderModel extends Model
 
         $items = [];
         foreach ($cartItems as $item) {
-            $price   = (int) ($item['discount_price'] ?? $item['price']);
-            $qty     = (int) $item['qty'];
-            $items[] = [
-                'order_id'      => $orderId,
-                'product_id'    => (int) $item['product_id'],
-                'product_name'  => $item['name'],
-                'product_price' => $price,
-                'cost_price'    => $costMap[(int) $item['product_id']] ?? 0,
-                'qty'           => $qty,
-                'subtotal'      => $price * $qty,
-                'created_at'    => $now,
+            $basePrice = (int) ($item['discount_price'] ?? $item['price']);
+            $priceDiff = (int) ($item['price_diff'] ?? 0);
+            $price     = $basePrice + $priceDiff;
+            $qty       = (int) $item['qty'];
+            $items[]   = [
+                'order_id'         => $orderId,
+                'product_id'       => (int) $item['product_id'],
+                'sku_id'           => isset($item['sku_id']) && $item['sku_id'] ? (int) $item['sku_id'] : null,
+                'sku_option_label' => ($item['sku_label'] ?? '') ?: null,
+                'product_name'     => $item['name'],
+                'product_price'    => $price,
+                'cost_price'       => $costMap[(int) $item['product_id']] ?? 0,
+                'qty'              => $qty,
+                'subtotal'         => $price * $qty,
+                'created_at'       => $now,
             ];
         }
         $this->db->table('order_items')->insertBatch($items);
@@ -204,30 +208,10 @@ class OrderModel extends Model
         $items = $this->db->table('order_items')->where('order_id', $orderId)->get()->getResultArray();
 
         foreach ($items as $item) {
-            $stock = $this->db->query(
-                'SELECT stock FROM products WHERE id = ? FOR UPDATE',
-                [$item['product_id']]
-            )->getRow();
-
-            if (! $stock || (int) $stock->stock < (int) $item['qty']) {
+            if (! $this->deductItemStock($item)) {
                 $this->db->transRollback();
                 return false;
             }
-
-            $this->db->query(
-                'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
-                [$item['qty'], $item['product_id'], $item['qty']]
-            );
-
-            if ($this->db->affectedRows() === 0) {
-                $this->db->transRollback();
-                return false;
-            }
-
-            $this->db->query(
-                'UPDATE products SET status = "sold_out" WHERE id = ? AND stock = 0 AND status = "on_sale"',
-                [$item['product_id']]
-            );
         }
 
         $now = date('Y-m-d H:i:s');
@@ -270,30 +254,10 @@ class OrderModel extends Model
         $items = $this->db->table('order_items')->where('order_id', $orderId)->get()->getResultArray();
 
         foreach ($items as $item) {
-            $stock = $this->db->query(
-                'SELECT stock FROM products WHERE id = ? FOR UPDATE',
-                [$item['product_id']]
-            )->getRow();
-
-            if (! $stock || (int) $stock->stock < (int) $item['qty']) {
+            if (! $this->deductItemStock($item)) {
                 $this->db->transRollback();
                 return false;
             }
-
-            $this->db->query(
-                'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
-                [$item['qty'], $item['product_id'], $item['qty']]
-            );
-
-            if ($this->db->affectedRows() === 0) {
-                $this->db->transRollback();
-                return false;
-            }
-
-            $this->db->query(
-                'UPDATE products SET status = "sold_out" WHERE id = ? AND stock = 0 AND status = "on_sale"',
-                [$item['product_id']]
-            );
         }
 
         $now = date('Y-m-d H:i:s');
@@ -323,12 +287,18 @@ class OrderModel extends Model
             return false;
         }
 
-        // 장바구니 비우기
-        $productIds = array_column($items, 'product_id');
-        $this->db->table('cart_items')
-            ->where('user_id', (int) $order['user_id'])
-            ->whereIn('product_id', $productIds)
-            ->delete();
+        // 장바구니 비우기 (product_id + sku_id 조합으로 정확히 삭제)
+        foreach ($items as $item) {
+            $builder = $this->db->table('cart_items')
+                ->where('user_id', (int) $order['user_id'])
+                ->where('product_id', (int) $item['product_id']);
+            if ($item['sku_id']) {
+                $builder->where('sku_id', (int) $item['sku_id']);
+            } else {
+                $builder->where('sku_id IS NULL', null, false);
+            }
+            $builder->delete();
+        }
 
         $this->writeStatusLog($orderId, 'pending', 'paid', 'PG 결제 확인 (' . $pgProvider . ')');
 
@@ -358,10 +328,7 @@ class OrderModel extends Model
         if ($order['status'] === 'paid') {
             $items = $this->db->table('order_items')->where('order_id', $orderId)->get()->getResultArray();
             foreach ($items as $item) {
-                $this->db->query(
-                    'UPDATE products SET stock = stock + ?, status = IF(status = "sold_out" AND stock + ? > 0, "on_sale", status) WHERE id = ?',
-                    [$item['qty'], $item['qty'], $item['product_id']]
-                );
+                $this->restoreItemStock($item);
             }
             $this->db->table('payments')
                 ->where('order_id', $orderId)
@@ -498,10 +465,7 @@ class OrderModel extends Model
         if (in_array($order['status'], ['paid', 'preparing'], true)) {
             $items = $this->db->table('order_items')->where('order_id', $orderId)->get()->getResultArray();
             foreach ($items as $item) {
-                $this->db->query(
-                    'UPDATE products SET stock = stock + ?, status = IF(status = "sold_out" AND stock + ? > 0, "on_sale", status) WHERE id = ?',
-                    [$item['qty'], $item['qty'], $item['product_id']]
-                );
+                $this->restoreItemStock($item);
             }
             $this->db->table('payments')
                 ->where('order_id', $orderId)
@@ -943,5 +907,79 @@ class OrderModel extends Model
             'note'       => $note,
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * 재고 차감 헬퍼 (SKU 있으면 product_skus, 없으면 products)
+     * FOR UPDATE 락 + 조건부 UPDATE 패턴 유지
+     */
+    private function deductItemStock(array $item): bool
+    {
+        $qty = (int) $item['qty'];
+
+        if (! empty($item['sku_id'])) {
+            $skuId = (int) $item['sku_id'];
+
+            $row = $this->db->query(
+                'SELECT stock FROM product_skus WHERE id = ? FOR UPDATE',
+                [$skuId]
+            )->getRow();
+
+            if (! $row || (int) $row->stock < $qty) return false;
+
+            $this->db->query(
+                'UPDATE product_skus SET stock = stock - ? WHERE id = ? AND stock >= ?',
+                [$qty, $skuId, $qty]
+            );
+
+            return $this->db->affectedRows() > 0;
+        }
+
+        $productId = (int) $item['product_id'];
+
+        $row = $this->db->query(
+            'SELECT stock FROM products WHERE id = ? FOR UPDATE',
+            [$productId]
+        )->getRow();
+
+        if (! $row || (int) $row->stock < $qty) return false;
+
+        $this->db->query(
+            'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
+            [$qty, $productId, $qty]
+        );
+
+        if ($this->db->affectedRows() === 0) return false;
+
+        $this->db->query(
+            'UPDATE products SET status = "sold_out" WHERE id = ? AND stock = 0 AND status = "on_sale"',
+            [$productId]
+        );
+
+        return true;
+    }
+
+    /**
+     * 재고 복구 헬퍼 (SKU 있으면 product_skus, 없으면 products)
+     */
+    private function restoreItemStock(array $item): void
+    {
+        $qty = (int) $item['qty'];
+
+        if (! empty($item['sku_id'])) {
+            $this->db->query(
+                'UPDATE product_skus SET stock = stock + ? WHERE id = ?',
+                [$qty, (int) $item['sku_id']]
+            );
+            return;
+        }
+
+        $productId = (int) $item['product_id'];
+        $this->db->query(
+            'UPDATE products SET stock = stock + ?,
+                status = IF(status = "sold_out" AND stock + ? > 0, "on_sale", status)
+             WHERE id = ?',
+            [$qty, $qty, $productId]
+        );
     }
 }

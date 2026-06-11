@@ -38,6 +38,7 @@
             ?>
             <div class="card mb-2 cart-item <?= $isSoldOut ? 'opacity-75' : '' ?>"
                  data-product-id="<?= (int) $item['product_id'] ?>"
+                 data-sku-id="<?= (int) ($item['sku_id'] ?? 0) ?>"
                  data-price="<?= (int) $item['display_price'] ?>">
                 <div class="card-body py-3">
                     <div class="d-flex align-items-start gap-3">
@@ -67,6 +68,11 @@
                                class="text-decoration-none text-dark fw-semibold d-block text-truncate mb-1">
                                 <?= esc($item['name']) ?>
                             </a>
+                            <?php if (! empty($item['sku_label'])): ?>
+                            <div class="text-muted small mb-1">
+                                <i class="bi bi-tag me-1"></i><?= esc($item['sku_label']) ?>
+                            </div>
+                            <?php endif; ?>
 
                             <div class="small mb-1">
                                 <?php if ($item['discount_price']): ?>
@@ -106,6 +112,7 @@
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-secondary qty-update"
                                         data-product-id="<?= (int) $item['product_id'] ?>"
+                                        data-sku-id="<?= (int) ($item['sku_id'] ?? 0) ?>"
                                         data-csrf="<?= csrf_token() ?>"
                                         data-csrf-val="<?= csrf_hash() ?>">
                                     수정
@@ -121,6 +128,9 @@
                             <form method="post" action="/cart/delete" class="d-inline">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="product_id" value="<?= (int) $item['product_id'] ?>">
+                                <?php if (! empty($item['sku_id'])): ?>
+                                <input type="hidden" name="sku_id" value="<?= (int) $item['sku_id'] ?>">
+                                <?php endif; ?>
                                 <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
                             </form>
                         </div>
@@ -236,11 +246,13 @@
         updateBtn?.addEventListener('click', function () {
             const btn       = this;
             const productId = btn.dataset.productId;
+            const skuId     = btn.dataset.skuId || '0';
             const qty       = parseInt(input.value) || 1;
             const body      = new FormData();
             body.append(btn.dataset.csrf, btn.dataset.csrfVal);
             body.append('product_id', productId);
             body.append('qty', qty);
+            if (skuId !== '0') body.append('sku_id', skuId);
 
             btn.disabled    = true;
             btn.textContent = '저장 중';
