@@ -10,15 +10,6 @@
     <h4 class="fw-bold mb-0"><?= $coupon ? '쿠폰 수정' : '쿠폰 등록' ?></h4>
 </div>
 
-<?php if ($errors = session()->getFlashdata('errors')): ?>
-<div class="alert alert-danger py-2 small">
-    <ul class="mb-0 ps-3">
-        <?php foreach ($errors as $e): ?>
-        <li><?= esc($e) ?></li>
-        <?php endforeach; ?>
-    </ul>
-</div>
-<?php endif; ?>
 
 <form method="post" action="/admin/coupons/<?= $coupon ? (int)$coupon['id'] . '/edit' : 'create' ?>">
     <?= csrf_field() ?>

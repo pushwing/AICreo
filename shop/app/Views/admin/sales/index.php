@@ -229,7 +229,7 @@
                             <?= esc($order['order_number']) ?>
                         </a>
                     </td>
-                    <td class="small text-muted"><?= date('Y.m.d H:i', strtotime($order['created_at'])) ?></td>
+                    <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></td>
                     <td class="small"><?= esc($order['receiver_name']) ?></td>
                     <td class="small"><?= esc($order['nickname'] ?? $order['email'] ?? '—') ?></td>
                     <td class="small"><?= esc($pgLabel) ?><?= $order['payment_method'] ? ' · ' . esc($order['payment_method']) : '' ?></td>

@@ -17,17 +17,6 @@
     </div>
 </div>
 
-<?php if ($flash = session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($flash = session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-
 <div class="row g-4">
     <div class="col-md-8">
         <div class="card">
@@ -54,7 +43,7 @@
                             $typeColor = ['use'=>'warning','earn'=>'success','refund'=>'info','cancel'=>'secondary','admin'=>'dark'];
                             foreach ($items as $log): ?>
                         <tr>
-                            <td class="small text-muted"><?= date('y.m.d H:i', strtotime($log['created_at'])) ?></td>
+                            <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($log['created_at'])) ?></td>
                             <td>
                                 <span class="badge bg-<?= $typeColor[$log['type']] ?? 'secondary' ?> bg-opacity-75">
                                     <?= $typeMap[$log['type']] ?? $log['type'] ?>

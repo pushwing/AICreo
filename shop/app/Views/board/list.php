@@ -50,7 +50,7 @@
                 </a>
             </td>
             <td class="text-center text-muted small"><?= esc($post['author_name']) ?></td>
-            <td class="text-center text-muted small"><?= substr($post['created_at'], 0, 10) ?></td>
+            <td class="text-center text-muted small"><?= date('Y년 n월 j일', strtotime($post['created_at'])) ?></td>
             <td class="text-center text-muted small"><?= number_format($post['views']) ?></td>
         </tr>
         <?php endforeach; ?>
@@ -71,7 +71,7 @@
                 </a>
             </td>
             <td class="text-center text-muted small"><?= esc($post['user_nickname'] ?? $post['author_name']) ?></td>
-            <td class="text-center text-muted small"><?= substr($post['created_at'], 0, 10) ?></td>
+            <td class="text-center text-muted small"><?= date('Y년 n월 j일', strtotime($post['created_at'])) ?></td>
             <td class="text-center text-muted small"><?= number_format($post['views']) ?></td>
         </tr>
         <?php endforeach; ?>

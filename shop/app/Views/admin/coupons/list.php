@@ -10,16 +10,6 @@
     </a>
 </div>
 
-<?php if ($flash = session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($flash = session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
 
 <div class="card">
     <div class="card-header bg-white">
@@ -72,9 +62,9 @@
                         <?= $c['total_qty'] !== null ? number_format($c['used_count']) . '/' . number_format($c['total_qty']) : '무제한' ?>
                     </td>
                     <td class="small text-muted">
-                        <?= $c['starts_at']  ? date('y.m.d', strtotime($c['starts_at']))  : '' ?>
+                        <?= $c['starts_at']  ? date('Y년 n월 j일', strtotime($c['starts_at']))  : '' ?>
                         <?= ($c['starts_at'] && $c['expires_at']) ? ' ~ ' : '' ?>
-                        <?= $c['expires_at'] ? date('y.m.d', strtotime($c['expires_at'])) : ($c['starts_at'] ? '~' : '—') ?>
+                        <?= $c['expires_at'] ? date('Y년 n월 j일', strtotime($c['expires_at'])) : ($c['starts_at'] ? '~' : '—') ?>
                     </td>
                     <td class="text-center">
                         <span class="badge bg-<?= $c['is_active'] ? 'success' : 'secondary' ?>">

@@ -51,7 +51,7 @@ $providerLabel = match($user['social_provider'] ?? null) {
                 </div>
 
                 <div class="mb-3 text-muted small">
-                    <i class="bi bi-clock me-1"></i>가입일: <?= substr($user['created_at'], 0, 10) ?>
+                    <i class="bi bi-clock me-1"></i>가입일: <?= date('Y년 n월 j일', strtotime($user['created_at'])) ?>
                     <?php if ($user['last_login']): ?>
                     &nbsp;·&nbsp; 최근 로그인: <?= substr($user['last_login'], 0, 16) ?>
                     <?php endif; ?>

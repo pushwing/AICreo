@@ -51,7 +51,7 @@
             <?php foreach ($latestPosts as $post): ?>
             <a href="/board/notice/<?= $post['id'] ?>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                 <span><?= esc($post['title']) ?></span>
-                <span class="text-muted small"><?= substr($post['created_at'], 0, 10) ?></span>
+                <span class="text-muted small"><?= date('Y년 n월 j일', strtotime($post['created_at'])) ?></span>
             </a>
             <?php endforeach; ?>
         </div>

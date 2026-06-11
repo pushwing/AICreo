@@ -13,16 +13,6 @@
     </div>
 </div>
 
-<?php if ($flash = session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($flash = session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
 
 <div class="row g-4">
     <div class="col-md-5">
@@ -78,8 +68,8 @@
                                     <?= ['issued'=>'보유','used'=>'사용','expired'=>'만료'][$uc['status']] ?? $uc['status'] ?>
                                 </span>
                             </td>
-                            <td class="small text-muted"><?= $uc['issued_at'] ? date('y.m.d', strtotime($uc['issued_at'])) : '—' ?></td>
-                            <td class="small text-muted"><?= $uc['used_at']   ? date('y.m.d', strtotime($uc['used_at']))   : '—' ?></td>
+                            <td class="small text-muted"><?= $uc['issued_at'] ? date('Y년 n월 j일', strtotime($uc['issued_at'])) : '—' ?></td>
+                            <td class="small text-muted"><?= $uc['used_at']   ? date('Y년 n월 j일', strtotime($uc['used_at']))   : '—' ?></td>
                         </tr>
                         <?php endforeach; endif; ?>
                     </tbody>

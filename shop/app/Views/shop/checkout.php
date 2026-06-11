@@ -184,7 +184,7 @@ $userCoupons  = $userCoupons ?? [];
                                         ? number_format($uc['discount_value']) . '원'
                                         : $uc['discount_value'] . '%' ?> 할인)
                                     <?php if ($uc['expires_at']): ?>
-                                    · <?= date('m/d', strtotime($uc['expires_at'])) ?>까지
+                                    · <?= date('n월 j일', strtotime($uc['expires_at'])) ?>까지
                                     <?php endif; ?>
                                 </option>
                                 <?php endforeach; ?>

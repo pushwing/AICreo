@@ -10,6 +10,9 @@
     </li>
     <?php endforeach; ?>
     <li class="nav-item">
+        <a class="nav-link" href="/admin/settings/pg">결제수단</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link" href="/admin/settings/oauth">소셜 로그인</a>
     </li>
 </ul>

@@ -42,19 +42,6 @@ $statusBadge = [
     </div>
 </form>
 
-<!-- 플래시 -->
-<?php if ($flash = session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2">
-    <?= esc($flash) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($flash = session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2">
-    <?= esc($flash) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
 
 <!-- 목록 테이블 -->
 <div class="card">
@@ -92,7 +79,7 @@ $statusBadge = [
                 <?php foreach ($items as $order): ?>
                 <tr>
                     <td class="small fw-semibold"><?= esc($order['order_number']) ?></td>
-                    <td class="small text-muted"><?= date('Y-m-d H:i', strtotime($order['created_at'])) ?></td>
+                    <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></td>
                     <td class="small">
                         <?= esc($order['user_nickname'] ?? '-') ?>
                         <?php if ($order['user_email']): ?>

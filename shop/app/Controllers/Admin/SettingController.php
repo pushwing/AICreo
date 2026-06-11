@@ -17,7 +17,31 @@ class SettingController extends BaseController
     public function index(string $group = 'general')
     {
         if ($group === 'oauth') {
-            return $this->render('admin/settings/oauth', ['group' => 'oauth']);
+            return $this->render('admin/settings/oauth', [
+                'group'    => 'oauth',
+                'settings' => $this->settingModel->getAllAsMap(),
+            ]);
+        }
+
+        if ($group === 'pg') {
+            $pgList = [
+                'toss'          => ['label' => '토스페이먼츠', 'desc' => '신용카드·간편결제', 'env' => ['TOSS_CLIENT_KEY', 'TOSS_SECRET_KEY']],
+                'inicis'        => ['label' => 'KG이니시스',   'desc' => '신용카드·계좌이체', 'env' => ['INICIS_MERCHANT_ID', 'INICIS_SIGN_KEY']],
+                'nicepay'       => ['label' => '나이스페이',    'desc' => '신용카드·계좌이체', 'env' => ['NICEPAY_CLIENT_ID', 'NICEPAY_SECRET_KEY']],
+                'kakaopay'      => ['label' => '카카오페이',    'desc' => '간편결제',          'env' => ['KAKAOPAY_SECRET_KEY', 'KAKAOPAY_CID']],
+                'naverpay'      => ['label' => '네이버페이',    'desc' => '간편결제',          'env' => ['NAVERPAY_CLIENT_ID', 'NAVERPAY_CLIENT_SECRET']],
+                'payco'         => ['label' => 'PAYCO',         'desc' => '간편결제',          'env' => ['PAYCO_SELLER_KEY', 'PAYCO_SECRET_KEY']],
+                'bank_transfer' => ['label' => '무통장입금',    'desc' => '계좌이체 확인 후 처리', 'env' => []],
+            ];
+            return $this->render('admin/settings/pg', [
+                'group'        => 'pg',
+                'pgList'       => $pgList,
+                'settings'     => $this->settingModel->getAllAsMap(),
+                'bankSettings' => array_filter(
+                    $this->settingModel->getGroup('shop'),
+                    fn($s) => in_array($s['key'], ['bank_name', 'bank_account', 'bank_holder'])
+                ),
+            ]);
         }
 
         if ($group === 'theme') {
@@ -169,6 +193,33 @@ class SettingController extends BaseController
     {
         $postData = $this->request->getPost();
         unset($postData[csrf_token()]);
+
+        if ($group === 'pg') {
+            // 체크박스: POST에 없으면 0
+            $pgKeys = ['toss', 'inicis', 'nicepay', 'kakaopay', 'naverpay', 'payco', 'bank_transfer'];
+            $save = [];
+            foreach ($pgKeys as $key) {
+                $save["pg_enabled_{$key}"] = isset($postData["pg_enabled_{$key}"]) ? '1' : '0';
+            }
+            // 무통장 계좌 정보도 같이 저장
+            foreach (['bank_name', 'bank_account', 'bank_holder'] as $bk) {
+                if (array_key_exists($bk, $postData)) {
+                    $save[$bk] = $postData[$bk];
+                }
+            }
+            $this->settingModel->saveSettings($save);
+            return redirect()->to('/admin/settings/pg')->with('success', '결제수단 설정이 저장되었습니다.');
+        }
+
+        if ($group === 'oauth') {
+            $oauthKeys = ['naver', 'kakao', 'google'];
+            $save = [];
+            foreach ($oauthKeys as $key) {
+                $save["oauth_enabled_{$key}"] = isset($postData["oauth_enabled_{$key}"]) ? '1' : '0';
+            }
+            $this->settingModel->saveSettings($save);
+            return redirect()->to('/admin/settings/oauth')->with('success', '소셜 로그인 설정이 저장되었습니다.');
+        }
 
         if ($group === 'theme') {
             $theme = $postData['active_theme'] ?? 'default';

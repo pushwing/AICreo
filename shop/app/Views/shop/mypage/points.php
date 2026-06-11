@@ -38,7 +38,7 @@
                 <tbody>
                     <?php foreach ($items as $log): ?>
                     <tr>
-                        <td class="small text-muted"><?= date('y.m.d H:i', strtotime($log['created_at'])) ?></td>
+                        <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($log['created_at'])) ?></td>
                         <td>
                             <span class="badge bg-<?= $typeColor[$log['type']] ?? 'secondary' ?> bg-opacity-75">
                                 <?= $typeMap[$log['type']] ?? $log['type'] ?>

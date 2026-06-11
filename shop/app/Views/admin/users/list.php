@@ -70,8 +70,8 @@
                             ? '<span class="badge bg-success">활성</span>'
                             : '<span class="badge bg-secondary">비활성</span>' ?>
                     </td>
-                    <td class="small text-muted"><?= date('Y-m-d', strtotime($u['created_at'])) ?></td>
-                    <td class="small text-muted"><?= $u['last_login'] ? date('Y-m-d', strtotime($u['last_login'])) : '-' ?></td>
+                    <td class="small text-muted"><?= date('Y년 n월 j일', strtotime($u['created_at'])) ?></td>
+                    <td class="small text-muted"><?= $u['last_login'] ? date('Y년 n월 j일', strtotime($u['last_login'])) : '-' ?></td>
                     <td>
                         <a href="/admin/users/<?= $u['id'] ?>/edit" class="btn btn-sm btn-outline-secondary">수정</a>
                         <?php if ((int)$u['id'] !== (int)session()->get('user_id')): ?>

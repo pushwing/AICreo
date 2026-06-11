@@ -50,14 +50,14 @@
                     <?php endif; ?>
                     <?php if ($uc['expires_at']): ?>
                     <div class="small text-muted">
-                        ~<?= date('Y.m.d', strtotime($uc['expires_at'])) ?> 까지
+                        ~<?= date('Y년 n월 j일', strtotime($uc['expires_at'])) ?> 까지
                     </div>
                     <?php endif; ?>
                 </div>
                 <div class="text-end ms-3 flex-shrink-0">
                     <?php if ($uc['status'] === 'used'): ?>
                     <span class="badge bg-secondary">사용 완료</span>
-                    <div class="small text-muted mt-1"><?= $uc['used_at'] ? date('y.m.d', strtotime($uc['used_at'])) : '' ?></div>
+                    <div class="small text-muted mt-1"><?= $uc['used_at'] ? date('Y년 n월 j일', strtotime($uc['used_at'])) : '' ?></div>
                     <?php elseif ($expired): ?>
                     <span class="badge bg-secondary">기간 만료</span>
                     <?php else: ?>

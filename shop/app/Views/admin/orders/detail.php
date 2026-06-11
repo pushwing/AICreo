@@ -181,12 +181,12 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     <?php endif; ?>
                     <dt class="col-4 fw-normal text-muted">결제 일시</dt>
                     <dd class="col-8">
-                        <?= $payment['paid_at'] ? date('Y.m.d H:i', strtotime($payment['paid_at'])) : '<span class="text-warning">미확인</span>' ?>
+                        <?= $payment['paid_at'] ? date('Y년 n월 j일 G시 i분', strtotime($payment['paid_at'])) : '<span class="text-warning">미확인</span>' ?>
                     </dd>
                     <?php endif; ?>
 
                     <dt class="col-4 fw-normal text-muted">주문 일시</dt>
-                    <dd class="col-8"><?= date('Y.m.d H:i', strtotime($order['created_at'])) ?></dd>
+                    <dd class="col-8"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></dd>
                 </dl>
             </div>
         </div>
@@ -360,7 +360,7 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                                 <div class="text-muted"><?= esc($log['note']) ?></div>
                                 <?php endif; ?>
                                 <div class="text-muted" style="font-size:.72rem">
-                                    <?= date('Y.m.d H:i:s', strtotime($log['created_at'])) ?>
+                                    <?= date('Y년 n월 j일 G시 i분', strtotime($log['created_at'])) ?>
                                 </div>
                             </div>
                         </div>
