@@ -46,17 +46,28 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label small fw-semibold">대상 등급 <small class="text-muted">(미선택=전체)</small></label>
+                    <label class="form-label small fw-semibold d-block">대상 등급 <small class="text-muted">(미선택=전체)</small></label>
                     <?php
-                        $gradeLabels = \App\Libraries\GradeService::LABELS;
-                        $selGrade    = old('target_grade', $coupon['target_grade'] ?? '');
+                        use App\Libraries\GradeService;
+                        $gradeLabels  = GradeService::LABELS;
+                        $gradeBadges  = GradeService::BADGE_CLASSES;
+                        $rawGrade     = old('target_grade', $coupon['target_grade'] ?? '');
+                        $selGrades    = $rawGrade ? array_map('trim', explode(',', $rawGrade)) : [];
                     ?>
-                    <select name="target_grade" class="form-select">
-                        <option value="">전체 회원</option>
+                    <div class="d-flex flex-wrap gap-2 pt-1">
                         <?php foreach ($gradeLabels as $gk => $gl): ?>
-                        <option value="<?= $gk ?>" <?= $selGrade === $gk ? 'selected' : '' ?>><?= esc($gl) ?></option>
+                        <div class="form-check form-check-inline m-0">
+                            <input class="form-check-input" type="checkbox"
+                                   name="target_grade[]" value="<?= $gk ?>"
+                                   id="grade_<?= $gk ?>"
+                                   <?= in_array($gk, $selGrades, true) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="grade_<?= $gk ?>">
+                                <span class="badge <?= $gradeBadges[$gk] ?>"><?= esc($gl) ?></span>
+                            </label>
+                        </div>
                         <?php endforeach; ?>
-                    </select>
+                    </div>
+                    <div class="form-text">체크 없으면 전체 등급에 적용됩니다.</div>
                 </div>
 
                 <div class="col-md-4" id="discountValueWrap">

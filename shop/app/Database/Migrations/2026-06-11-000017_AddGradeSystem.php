@@ -27,7 +27,7 @@ class AddGradeSystem extends Migration
         $this->forge->addColumn('coupons', [
             'target_grade' => [
                 'type'       => 'VARCHAR',
-                'constraint' => 20,
+                'constraint' => 100,
                 'null'       => true,
                 'default'    => null,
                 'after'      => 'type',

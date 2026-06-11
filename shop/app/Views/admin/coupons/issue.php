@@ -41,19 +41,32 @@
         <div class="card">
             <div class="card-header fw-semibold bg-white">등급별 일괄 발급</div>
             <div class="card-body">
+                <?php
+                    $targetGrades = $coupon['target_grade']
+                        ? array_map('trim', explode(',', $coupon['target_grade']))
+                        : [];
+                ?>
+                <?php if (! empty($targetGrades)): ?>
+                <div class="mb-2 small text-muted">
+                    이 쿠폰의 대상 등급:
+                    <?php foreach ($targetGrades as $tg): ?>
+                        <span class="badge <?= $gradeBadges[$tg] ?? 'bg-secondary' ?>"><?= esc($gradeLabels[$tg] ?? $tg) ?></span>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
                 <form method="post" action="/admin/coupons/<?= (int) $coupon['id'] ?>/issue-grade">
                     <?= csrf_field() ?>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">대상 등급</label>
+                        <label class="form-label small fw-semibold">발급 대상 등급</label>
                         <select name="grade" class="form-select" required>
                             <?php foreach ($gradeLabels as $gk => $gl): ?>
                             <option value="<?= $gk ?>"
-                                <?= (isset($coupon['target_grade']) && $coupon['target_grade'] === $gk) ? 'selected' : '' ?>>
+                                <?= in_array($gk, $targetGrades, true) ? 'selected' : '' ?>>
                                 <?= esc($gl) ?>
                             </option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text">해당 등급 회원 전체에게 발급합니다. 이미 보유한 회원은 건너뜁니다.</div>
+                        <div class="form-text">선택한 등급 회원 전체에게 발급합니다. 이미 보유한 회원은 건너뜁니다.</div>
                     </div>
                     <button type="submit" class="btn btn-warning w-100"
                             onclick="return confirm('선택 등급 회원 전체에게 발급하겠습니까?')">

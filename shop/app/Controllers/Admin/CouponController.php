@@ -161,7 +161,9 @@ class CouponController extends BaseController
         }
 
         $db      = \Config\Database::connect();
-        $members = $db->table('users')->select('id')->where('role', 'member')->where('grade', $grade)->get()->getResultArray();
+        $members = $db->table('users')->select('id')
+            ->where('role', 'member')->where('is_active', 1)->where('grade', $grade)
+            ->get()->getResultArray();
 
         if (empty($members)) {
             return redirect()->back()->with('error', '해당 등급의 회원이 없습니다.');
@@ -213,12 +215,17 @@ class CouponController extends BaseController
 
     private function collectData(): array
     {
-        $type = $this->request->getPost('type');
+        $type         = $this->request->getPost('type');
+        $gradeRaw     = $this->request->getPost('target_grade') ?? [];
+        $validGrades  = ['bronze', 'silver', 'gold', 'platinum'];
+        $selectedGrades = array_values(array_filter((array) $gradeRaw, fn($g) => in_array($g, $validGrades, true)));
+        $targetGrade  = empty($selectedGrades) ? null : implode(',', $selectedGrades);
+
         return [
             'code'                => strtoupper(trim($this->request->getPost('code'))),
             'name'                => trim($this->request->getPost('name')),
             'type'                => $type,
-            'target_grade'        => $this->request->getPost('target_grade') ?: null,
+            'target_grade'        => $targetGrade,
             'discount_value'      => $type === 'free_shipping' ? 0 : (int) $this->request->getPost('discount_value'),
             'min_order_amount'    => (int) ($this->request->getPost('min_order_amount') ?? 0),
             'max_discount_amount' => (int) ($this->request->getPost('max_discount_amount') ?? 0),

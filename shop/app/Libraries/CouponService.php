@@ -108,15 +108,16 @@ class CouponService
             return $this->fail('최소 주문 금액(' . number_format($coupon['min_order_amount']) . '원) 이상일 때 사용 가능합니다.');
         }
 
-        // 등급 제한 쿠폰 검증
+        // 등급 제한 쿠폰 검증 (콤마 구분 다중 등급)
         if (! empty($coupon['target_grade'])) {
             $userRow = \Config\Database::connect()
                 ->table('users')->select('grade')->where('id', $userId)->get()->getRowArray();
-            $userGrade = $userRow['grade'] ?? 'bronze';
-            if ($userGrade !== $coupon['target_grade']) {
-                $gradeLabels = \App\Libraries\GradeService::LABELS;
-                $label = $gradeLabels[$coupon['target_grade']] ?? $coupon['target_grade'];
-                return $this->fail($label . ' 등급 전용 쿠폰입니다.');
+            $userGrade    = $userRow['grade'] ?? 'bronze';
+            $targetGrades = array_map('trim', explode(',', $coupon['target_grade']));
+            if (! in_array($userGrade, $targetGrades, true)) {
+                $gradeLabels   = \App\Libraries\GradeService::LABELS;
+                $targetLabels  = array_map(fn($g) => $gradeLabels[$g] ?? $g, $targetGrades);
+                return $this->fail(implode('·', $targetLabels) . ' 등급 전용 쿠폰입니다.');
             }
         }
 
