@@ -7,6 +7,21 @@
             <div class="card-body p-4">
                 <h5 class="mb-4 fw-bold">로그인</h5>
 
+                <?php if (session()->has('error')): ?>
+                <div class="alert alert-danger py-2 small">
+                    <?= esc(session('error')) ?>
+                    <?php if (session()->has('unverified_email')): ?>
+                    <form method="post" action="/auth/resend" class="mt-2">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="email" value="<?= esc(session('unverified_email')) ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-arrow-repeat me-1"></i>인증 메일 재발송
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
                 <!-- 일반 로그인 -->
                 <form method="post" action="/auth/login">
                     <?= csrf_field() ?>
@@ -20,6 +35,14 @@
                     <button type="submit" class="btn btn-primary w-100">로그인</button>
                 </form>
 
+                <?php
+                $oauthNaver  = ($settings['oauth_enabled_naver']  ?? '1') === '1';
+                $oauthKakao  = ($settings['oauth_enabled_kakao']  ?? '1') === '1';
+                $oauthGoogle = ($settings['oauth_enabled_google'] ?? '1') === '1';
+                $hasOauth    = $oauthNaver || $oauthKakao || $oauthGoogle;
+                ?>
+
+                <?php if ($hasOauth): ?>
                 <!-- 소셜 로그인 구분선 -->
                 <div class="d-flex align-items-center my-4">
                     <hr class="flex-grow-1">
@@ -30,6 +53,7 @@
                 <!-- 소셜 로그인 버튼 -->
                 <div class="d-flex flex-column gap-2">
 
+                    <?php if ($oauthNaver): ?>
                     <!-- 네이버 -->
                     <a href="/auth/social/naver" class="btn d-flex align-items-center justify-content-center gap-2 fw-semibold"
                        style="background:#03C75A; color:#fff; border:none;">
@@ -38,7 +62,9 @@
                         </svg>
                         네이버로 로그인
                     </a>
+                    <?php endif; ?>
 
+                    <?php if ($oauthKakao): ?>
                     <!-- 카카오 -->
                     <a href="/auth/social/kakao" class="btn d-flex align-items-center justify-content-center gap-2 fw-semibold"
                        style="background:#FEE500; color:#191919; border:none;">
@@ -47,7 +73,9 @@
                         </svg>
                         카카오로 로그인
                     </a>
+                    <?php endif; ?>
 
+                    <?php if ($oauthGoogle): ?>
                     <!-- 구글 -->
                     <a href="/auth/social/google" class="btn d-flex align-items-center justify-content-center gap-2 fw-semibold"
                        style="background:#fff; color:#3c4043; border:1px solid #dadce0;">
@@ -59,7 +87,10 @@
                         </svg>
                         Google로 로그인
                     </a>
+                    <?php endif; ?>
+
                 </div>
+                <?php endif; ?>
 
                 <div class="text-center mt-4 small">
                     <a href="/auth/register" class="text-decoration-none">회원가입</a>

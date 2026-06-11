@@ -4,24 +4,70 @@
 
 <!-- 탭 -->
 <ul class="nav nav-tabs mb-4">
-    <?php foreach (['general' => '기본', 'contact' => '연락처', 'sns' => 'SNS', 'seo' => 'SEO', 'footer' => '푸터'] as $g => $label): ?>
+    <?php foreach (['general' => '기본', 'contact' => '연락처', 'sns' => 'SNS', 'seo' => 'SEO', 'footer' => '푸터', 'shop' => '쇼핑'] as $g => $label): ?>
     <li class="nav-item">
         <a class="nav-link" href="/admin/settings/<?= $g ?>"><?= $label ?></a>
     </li>
     <?php endforeach; ?>
     <li class="nav-item">
+        <a class="nav-link" href="/admin/settings/pg">결제수단</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link active" href="/admin/settings/oauth">소셜 로그인</a>
     </li>
 </ul>
 
-<div class="alert alert-info">
+<!-- 활성화 토글 -->
+<form method="post" action="/admin/settings/oauth">
+    <?= csrf_field() ?>
+
+    <div class="card border-0 shadow-sm mb-4" style="max-width:600px">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-toggle-on me-2 text-primary"></i>소셜 로그인 활성화
+        </div>
+        <div class="card-body p-0">
+
+            <?php
+            $providers = [
+                'naver'  => ['label' => '네이버 로그인',  'icon' => 'bi-n-circle-fill text-success', 'badge' => 'bg-success'],
+                'kakao'  => ['label' => '카카오 로그인',  'icon' => 'bi-chat-fill text-warning',      'badge' => 'bg-warning text-dark'],
+                'google' => ['label' => '구글 로그인',    'icon' => 'bi-google text-danger',          'badge' => 'bg-danger'],
+            ];
+            foreach ($providers as $key => $p):
+                $enabled = ($settings["oauth_enabled_{$key}"] ?? '1') === '1';
+            ?>
+            <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi <?= $p['icon'] ?> fs-5"></i>
+                    <span class="fw-semibold small"><?= esc($p['label']) ?></span>
+                    <span class="badge <?= $p['badge'] ?> small"><?= strtoupper($key) ?></span>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           name="oauth_enabled_<?= esc($key) ?>" value="1"
+                           id="oauth_<?= esc($key) ?>"
+                           <?= $enabled ? 'checked' : '' ?>>
+                    <label class="form-check-label small text-muted" for="oauth_<?= esc($key) ?>">
+                        <?= $enabled ? '활성' : '비활성' ?>
+                    </label>
+                </div>
+            </div>
+            <?php endforeach; ?>
+
+        </div>
+        <div class="card-footer bg-white border-0 text-end p-3">
+            <button type="submit" class="btn btn-primary btn-sm px-4">저장</button>
+        </div>
+    </div>
+</form>
+
+<div class="alert alert-info small">
     <i class="bi bi-shield-lock me-2"></i>
-    소셜 로그인 키는 보안상 <strong>서버의 <code>.env</code> 파일</strong>에 직접 입력해야 합니다.<br>
-    아래 형식을 참고하여 설정하세요.
+    소셜 로그인 API 키는 보안상 <strong>서버의 <code>.env</code> 파일</strong>에 직접 입력해야 합니다.
 </div>
 
 <!-- 콜백 URL 안내 -->
-<div class="card border-0 shadow-sm mb-4">
+<div class="card border-0 shadow-sm mb-4" style="max-width:600px">
     <div class="card-header bg-white fw-semibold">콜백(Redirect) URL</div>
     <div class="card-body">
         <p class="small text-muted mb-2">각 소셜 앱 콘솔에 아래 URL을 등록하세요.</p>
@@ -40,7 +86,7 @@
 </div>
 
 <!-- .env 설정 가이드 -->
-<div class="card border-0 shadow-sm mb-4">
+<div class="card border-0 shadow-sm mb-4" style="max-width:600px">
     <div class="card-header bg-white fw-semibold">.env 설정 방법</div>
     <div class="card-body">
         <pre class="bg-dark text-white rounded p-3 small"><code># ─── 네이버 로그인 ────────────────────────────────────
@@ -62,7 +108,7 @@ oauth.google.client_secret = YOUR_GOOGLE_CLIENT_SECRET</code></pre>
 </div>
 
 <!-- 앱 등록 바로가기 -->
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm" style="max-width:600px">
     <div class="card-header bg-white fw-semibold">앱 등록 바로가기</div>
     <div class="list-group list-group-flush">
         <a href="https://developers.naver.com/apps/#/register" target="_blank"

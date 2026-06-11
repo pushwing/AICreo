@@ -28,7 +28,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
@@ -77,7 +77,7 @@
                         <?php $statusClass = ['on_sale' => 'success', 'sold_out' => 'warning', 'hidden' => 'secondary'][$p['status']] ?? 'secondary' ?>
                         <span class="badge bg-<?= $statusClass ?>"><?= esc($statuses[$p['status']] ?? $p['status']) ?></span>
                     </td>
-                    <td class="small text-muted"><?= substr($p['created_at'], 0, 10) ?></td>
+                    <td class="small text-muted"><?= date('Y년 n월 j일', strtotime($p['created_at'])) ?></td>
                     <td class="text-end">
                         <a href="/admin/products/<?= $p['id'] ?>/edit" class="btn btn-sm btn-outline-secondary">수정</a>
                         <form method="post" action="/admin/products/<?= $p['id'] ?>/delete" class="d-inline"

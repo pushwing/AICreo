@@ -99,7 +99,7 @@ $statusBadge = [
         <div class="card">
             <div class="card-header bg-white d-flex align-items-center justify-content-between py-2">
                 <div class="small">
-                    <span class="text-muted me-2"><?= date('Y.m.d', strtotime($order['created_at'])) ?></span>
+                    <span class="text-muted me-2"><?= date('Y년 n월 j일', strtotime($order['created_at'])) ?></span>
                     <span class="fw-semibold"><?= esc($order['order_number']) ?></span>
                 </div>
                 <div class="d-flex align-items-center gap-2">

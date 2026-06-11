@@ -52,7 +52,7 @@ class OrderController extends BaseController
         $totalAmount    = $totalProduct + $shippingFee;
         $savedAddresses = $this->addressModel->getByUser($userId);
         $savedAddress   = $this->addressModel->getDefault($userId);
-        $pgProviders    = PGFactory::labels();
+        $pgProviders    = PGFactory::enabledLabels();
         $userCoupons    = $this->userCouponModel->getAvailable($userId, $totalAmount);
 
         $user         = \Config\Database::connect()->table('users')->select('point_balance')->where('id', $userId)->get()->getRow();

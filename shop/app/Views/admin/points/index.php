@@ -7,18 +7,7 @@
     <h4 class="fw-bold mb-0">포인트 관리</h4>
 </div>
 
-<?php if ($flash = session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-<?php if ($flash = session()->getFlashdata('error')): ?>
-<div class="alert alert-danger alert-dismissible fade show py-2">
-    <?= esc($flash) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-
-<div class="card">
+<div class="card overflow-hidden">
     <div class="card-header bg-white">
         <form method="get" class="d-flex gap-2">
             <input type="text" name="keyword" class="form-control form-control-sm"

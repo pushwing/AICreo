@@ -27,7 +27,7 @@
     </div>
 </form>
 
-<div class="card">
+<div class="card overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead class="table-light">
@@ -63,7 +63,7 @@
                     </td>
                     <td class="small"><?= esc($p['user_nickname'] ?? $p['author_name']) ?></td>
                     <td class="small text-muted"><?= number_format($p['views']) ?></td>
-                    <td class="small text-muted"><?= date('Y-m-d', strtotime($p['created_at'])) ?></td>
+                    <td class="small text-muted"><?= date('Y년 n월 j일', strtotime($p['created_at'])) ?></td>
                     <td>
                         <form method="post" action="/admin/posts/<?= $p['id'] ?>/delete" class="d-inline"
                               onsubmit="return confirm('정말 삭제하시겠습니까?')">

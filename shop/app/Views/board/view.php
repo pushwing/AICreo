@@ -91,7 +91,7 @@
             <div class="d-flex justify-content-between">
                 <strong class="small"><?= esc($c['user_nickname'] ?? $c['author_name']) ?></strong>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted small"><?= substr($c['created_at'], 0, 16) ?></span>
+                    <span class="text-muted small"><?= date('Y년 n월 j일 G시 i분', strtotime($c['created_at'])) ?></span>
                     <?php if ($role === 'admin' || ($userId && $c['user_id'] == $userId)): ?>
                     <form method="post" action="/board/<?= esc($board['slug']) ?>/<?= $post['id'] ?>/comment/<?= $c['id'] ?>/delete"
                           onsubmit="return confirm('삭제?')">

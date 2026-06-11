@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Models\BannerModel;
 use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
 use App\Models\ProductModel;
@@ -18,6 +19,23 @@ class ShopController extends BaseController
         $this->productModel  = new ProductModel();
         $this->categoryModel = new CategoryModel();
         $this->imageModel    = new ProductImageModel();
+    }
+
+    public function home(): string
+    {
+        $bannerModel = new BannerModel();
+        $newProducts = $this->productModel->getLatest(8);
+        $this->imageModel->attachPrimaryImages($newProducts);
+
+        $discountedProducts = $this->productModel->getDiscounted(8);
+        $this->imageModel->attachPrimaryImages($discountedProducts);
+
+        return $this->render('shop/home', [
+            'mainTopBanners'    => $bannerModel->getActiveByPosition('main_top'),
+            'mainBotBanners'    => $bannerModel->getActiveByPosition('main_bottom'),
+            'newProducts'       => $newProducts,
+            'discountedProducts' => $discountedProducts,
+        ]);
     }
 
     public function detail(string $slug): string

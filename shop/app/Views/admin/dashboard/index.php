@@ -62,7 +62,7 @@
                     </div>
                     <div class="text-end flex-shrink-0 ms-2">
                         <div class="small fw-semibold"><?= number_format($order['total_amount']) ?>원</div>
-                        <div class="text-muted" style="font-size:.75rem"><?= substr($order['created_at'], 0, 10) ?></div>
+                        <div class="text-muted" style="font-size:.75rem"><?= date('Y년 n월 j일', strtotime($order['created_at'])) ?></div>
                     </div>
                 </a>
                 <?php endforeach; ?>
@@ -114,7 +114,7 @@
                         <span class="small"><?= esc($inq['name']) ?></span>
                         <span class="text-muted small ms-1"><?= esc($inq['subject'] ?: mb_substr($inq['message'], 0, 20)) ?></span>
                     </div>
-                    <span class="text-muted small"><?= substr($inq['created_at'], 0, 10) ?></span>
+                    <span class="text-muted small"><?= date('Y년 n월 j일', strtotime($inq['created_at'])) ?></span>
                 </a>
                 <?php endforeach; ?>
                 <?php if (empty($recentInquiries)): ?>
@@ -140,7 +140,7 @@
                         <span class="badge bg-light text-dark border me-1 small"><?= esc($post['board_name']) ?></span>
                         <span class="small text-dark"><?= esc($post['title']) ?></span>
                     </div>
-                    <span class="text-muted small flex-shrink-0 ms-2"><?= substr($post['created_at'], 0, 10) ?></span>
+                    <span class="text-muted small flex-shrink-0 ms-2"><?= date('Y년 n월 j일', strtotime($post['created_at'])) ?></span>
                 </a>
                 <?php endforeach; ?>
                 <?php if (empty($recentPosts)): ?>

@@ -38,9 +38,7 @@
         </div>
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm p-4">
-                <?php if (session()->has('success')): ?>
-                    <div class="alert alert-success"><?= esc(session('success')) ?></div>
-                <?php else: ?>
+                <?php if (! session()->has('success')): ?>
                     <?= $this->include('components/contact_form') ?>
                 <?php endif; ?>
             </div>

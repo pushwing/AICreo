@@ -35,4 +35,22 @@ class PGFactory
             'payco'         => 'PAYCO',
         ];
     }
+
+    /**
+     * 운영자 설정에서 활성화된 PG만 반환
+     */
+    public static function enabledLabels(): array
+    {
+        $settings = (new \App\Models\SettingModel())->getAllAsMap();
+
+        $all = self::labels();
+        $result = [];
+        foreach ($all as $key => $label) {
+            if (($settings["pg_enabled_{$key}"] ?? '0') === '1') {
+                $result[$key] = $label;
+            }
+        }
+        // 활성화된 게 없으면 전체 반환 (초기 설정 전 상황 대비)
+        return $result ?: $all;
+    }
 }

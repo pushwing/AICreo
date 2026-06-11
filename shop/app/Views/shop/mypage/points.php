@@ -24,7 +24,7 @@
         $typeMap   = ['use'=>'사용','earn'=>'적립','refund'=>'환불','cancel'=>'취소','admin'=>'지급/차감'];
         $typeColor = ['use'=>'warning','earn'=>'success','refund'=>'info','cancel'=>'secondary','admin'=>'dark'];
     ?>
-    <div class="card">
+    <div class="card overflow-hidden">
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
@@ -38,7 +38,7 @@
                 <tbody>
                     <?php foreach ($items as $log): ?>
                     <tr>
-                        <td class="small text-muted"><?= date('y.m.d H:i', strtotime($log['created_at'])) ?></td>
+                        <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($log['created_at'])) ?></td>
                         <td>
                             <span class="badge bg-<?= $typeColor[$log['type']] ?? 'secondary' ?> bg-opacity-75">
                                 <?= $typeMap[$log['type']] ?? $log['type'] ?>

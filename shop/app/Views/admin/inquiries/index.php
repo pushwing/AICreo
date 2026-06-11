@@ -34,7 +34,7 @@
                         <?= esc($inq['subject'] ?: mb_substr($inq['message'], 0, 30)) ?>
                     </a>
                 </td>
-                <td><?= substr($inq['created_at'], 0, 10) ?></td>
+                <td><?= date('Y년 n월 j일', strtotime($inq['created_at'])) ?></td>
                 <td>
                     <form method="post" action="/admin/inquiries/<?= $inq['id'] ?>/delete" class="d-inline" onsubmit="return confirm('삭제?')">
                         <?= csrf_field() ?>

@@ -6,7 +6,7 @@
 <div class="row g-4">
     <!-- 카테고리 목록 -->
     <div class="col-lg-8">
-        <div class="card">
+        <div class="card overflow-hidden">
             <div class="card-header fw-semibold">카테고리 목록</div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">

@@ -216,12 +216,12 @@ $isBankTransfer  = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 
                 <dt class="col-5 fw-normal text-muted">결제 일시</dt>
                 <dd class="col-7">
-                    <?= $payment['paid_at'] ? date('Y.m.d H:i', strtotime($payment['paid_at'])) : '-' ?>
+                    <?= $payment['paid_at'] ? date('Y년 n월 j일 G시 i분', strtotime($payment['paid_at'])) : '-' ?>
                 </dd>
                 <?php endif; ?>
 
                 <dt class="col-5 fw-normal text-muted">주문 일시</dt>
-                <dd class="col-7"><?= date('Y.m.d H:i', strtotime($order['created_at'])) ?></dd>
+                <dd class="col-7"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></dd>
             </dl>
         </div>
     </div>

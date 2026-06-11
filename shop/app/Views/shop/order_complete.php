@@ -96,7 +96,7 @@ $methodLabels = [
                 </dd>
 
                 <dt class="col-4 fw-normal text-muted">결제 일시</dt>
-                <dd class="col-8"><?= $payment['paid_at'] ? date('Y.m.d H:i', strtotime($payment['paid_at'])) : '-' ?></dd>
+                <dd class="col-8"><?= $payment['paid_at'] ? date('Y년 n월 j일 G시 i분', strtotime($payment['paid_at'])) : '-' ?></dd>
                 <?php endif; ?>
             </dl>
         </div>

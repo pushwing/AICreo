@@ -2,7 +2,6 @@
 <?= $this->section('content') ?>
 
 <?php
-$activeTab = $_GET['tab'] ?? 'info';
 $providerLabel = match($user['social_provider'] ?? null) {
     'google' => '구글',
     'kakao'  => '카카오',
@@ -43,15 +42,39 @@ $providerLabel = match($user['social_provider'] ?? null) {
                     <?php endif; ?>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label class="form-label">닉네임 <span class="text-danger">*</span></label>
                     <input type="text" name="nickname" class="form-control"
                            value="<?= esc(old('nickname', $user['nickname'])) ?>"
                            required minlength="2" maxlength="20">
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">휴대폰번호 <span class="text-danger">*</span></label>
+                    <input type="tel" name="phone" class="form-control"
+                           value="<?= esc(old('phone', $user['phone'] ?? '')) ?>"
+                           required maxlength="20" placeholder="01012345678">
+                </div>
+
+                <div class="row g-2 mb-4">
+                    <div class="col-6">
+                        <label class="form-label">성별</label>
+                        <select name="gender" class="form-select">
+                            <option value="">선택 안함</option>
+                            <option value="M" <?= old('gender', $user['gender'] ?? '') === 'M' ? 'selected' : '' ?>>남성</option>
+                            <option value="F" <?= old('gender', $user['gender'] ?? '') === 'F' ? 'selected' : '' ?>>여성</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">생년월일</label>
+                        <input type="date" name="birthday" class="form-control"
+                               value="<?= esc(old('birthday', $user['birthday'] ?? '')) ?>"
+                               max="<?= date('Y-m-d') ?>">
+                    </div>
+                </div>
+
                 <div class="mb-3 text-muted small">
-                    <i class="bi bi-clock me-1"></i>가입일: <?= substr($user['created_at'], 0, 10) ?>
+                    <i class="bi bi-clock me-1"></i>가입일: <?= date('Y년 n월 j일', strtotime($user['created_at'])) ?>
                     <?php if ($user['last_login']): ?>
                     &nbsp;·&nbsp; 최근 로그인: <?= substr($user['last_login'], 0, 16) ?>
                     <?php endif; ?>

@@ -5,7 +5,7 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // ─── 홈 ──────────────────────────────────────────────────────────────────────
-$routes->get('/', 'Front\ShopController::index');
+$routes->get('/', 'Front\ShopController::home');
 
 // ─── 인증 ────────────────────────────────────────────────────────────────────
 $routes->get( 'auth/login',    'Front\AuthController::login');
@@ -13,8 +13,11 @@ $routes->post('auth/login',    'Front\AuthController::loginProcess');
 $routes->get( 'auth/logout',   'Front\AuthController::logout');
 $routes->get( 'auth/register', 'Front\AuthController::register');
 $routes->post('auth/register', 'Front\AuthController::registerProcess');
-$routes->get( 'auth/profile',  'Front\AuthController::profile');
-$routes->post('auth/profile',  'Front\AuthController::profileUpdate');
+$routes->get( 'auth/verify-pending',     'Front\AuthController::verifyPending');
+$routes->get( 'auth/verify/(:segment)',  'Front\AuthController::verifyEmail/$1');
+$routes->post('auth/resend',             'Front\AuthController::resendVerification');
+$routes->get( 'auth/profile',  'Front\AuthController::profile',       ['filter' => 'auth:member']);
+$routes->post('auth/profile',  'Front\AuthController::profileUpdate', ['filter' => 'auth:member']);
 
 // ─── 소셜 로그인 ──────────────────────────────────────────────────────────────
 $routes->get('auth/social/(:segment)',          'Front\SocialAuthController::redirect/$1');
@@ -85,10 +88,12 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('posts/(:num)/delete','Admin\PostController::delete/$1');
 
     // 회원 관리
-    $routes->get( 'users',              'Admin\UserController::index');
-    $routes->get( 'users/(:num)/edit',  'Admin\UserController::edit/$1');
-    $routes->post('users/(:num)/edit',  'Admin\UserController::update/$1');
-    $routes->post('users/(:num)/delete','Admin\UserController::delete/$1');
+    $routes->get( 'users',                      'Admin\UserController::index');
+    $routes->get( 'users/(:num)/edit',          'Admin\UserController::edit/$1');
+    $routes->post('users/(:num)/edit',          'Admin\UserController::update/$1');
+    $routes->post('users/(:num)/delete',        'Admin\UserController::delete/$1');
+    $routes->post('users/(:num)/verify',        'Admin\UserController::manualVerify/$1');
+    $routes->post('users/(:num)/resend-verify', 'Admin\UserController::resendVerify/$1');
 
     // 문의 수신함
     $routes->get( 'inquiries',              'Admin\InquiryController::index');

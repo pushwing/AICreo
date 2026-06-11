@@ -196,7 +196,7 @@
 </div>
 
 <!-- ─── 주문 목록 ─────────────────────────────────────────────────────────── -->
-<div class="card">
+<div class="card overflow-hidden">
     <div class="card-header bg-white d-flex align-items-center justify-content-between">
         <span class="fw-semibold">결제 완료 주문 목록</span>
         <span class="text-muted small">최대 50건 표시</span>
@@ -229,7 +229,7 @@
                             <?= esc($order['order_number']) ?>
                         </a>
                     </td>
-                    <td class="small text-muted"><?= date('Y.m.d H:i', strtotime($order['created_at'])) ?></td>
+                    <td class="small text-muted"><?= date('Y년 n월 j일 G시 i분', strtotime($order['created_at'])) ?></td>
                     <td class="small"><?= esc($order['receiver_name']) ?></td>
                     <td class="small"><?= esc($order['nickname'] ?? $order['email'] ?? '—') ?></td>
                     <td class="small"><?= esc($pgLabel) ?><?= $order['payment_method'] ? ' · ' . esc($order['payment_method']) : '' ?></td>
