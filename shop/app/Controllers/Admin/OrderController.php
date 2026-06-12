@@ -315,6 +315,97 @@ class OrderController extends BaseController
             ->with($ok ? 'success' : 'error', $ok ? '교환 완료 처리되었습니다.' : '교환 완료 처리에 실패했습니다.');
     }
 
+    /** GET /admin/orders/tracking-template — CSV 양식 다운로드 */
+    public function trackingTemplate(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $csv = "\xEF\xBB\xBF" . implode(',', ['주문번호', '배송업체', '송장번호']) . "\n"
+             . "ORD-20240101-0001,CJ대한통운,123456789012\n"
+             . "ORD-20240101-0002,한진택배,987654321098\n";
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="tracking_upload_template.csv"')
+            ->setBody($csv);
+    }
+
+    /** GET /admin/orders/tracking-upload — 일괄 송장 등록 폼 */
+    public function trackingUploadForm(): string
+    {
+        return $this->render('admin/orders/tracking_upload', []);
+    }
+
+    /** POST /admin/orders/tracking-upload — CSV 파싱 및 일괄 업데이트 */
+    public function trackingUploadProcess(): string
+    {
+        $file = $this->request->getFile('csv_file');
+
+        if (! $file || ! $file->isValid() || $file->hasMoved()) {
+            return $this->render('admin/orders/tracking_upload', [
+                'uploadError' => 'CSV 파일을 선택해주세요.',
+            ]);
+        }
+
+        $ext = strtolower($file->getClientExtension());
+        if ($ext !== 'csv') {
+            return $this->render('admin/orders/tracking_upload', [
+                'uploadError' => 'CSV 파일(.csv)만 업로드 가능합니다.',
+            ]);
+        }
+
+        $raw     = file_get_contents($file->getTempName());
+        $content = ltrim($raw, "\xEF\xBB\xBF");  // BOM 제거
+        $content = str_replace("\r\n", "\n", $content);
+        $content = str_replace("\r", "\n", $content);
+        $lines   = array_values(array_filter(array_map('trim', explode("\n", $content))));
+
+        $successCount = 0;
+        $skippedCount = 0;
+        $errorRows     = [];
+
+        foreach ($lines as $idx => $line) {
+            $lineNum = $idx + 1;
+
+            // 헤더 행 건너뜀
+            if ($idx === 0 && preg_match('/^주문번호/u', $line)) {
+                continue;
+            }
+
+            $cols = str_getcsv($line);
+            if (count($cols) < 3) {
+                $errorRows[] = ['line' => $lineNum, 'raw' => $line, 'reason' => '컬럼 수 부족 (최소 3개 필요)'];
+                continue;
+            }
+
+            [$orderNumber, $carrier, $trackingNumber] = array_map('trim', array_slice($cols, 0, 3));
+
+            if ($orderNumber === '' || $trackingNumber === '') {
+                $skippedCount++;
+                continue;
+            }
+
+            $order = $this->orderModel->where('order_number', $orderNumber)->first();
+            if (! $order) {
+                $errorRows[] = ['line' => $lineNum, 'raw' => $line, 'reason' => "주문번호 '{$orderNumber}' 없음"];
+                continue;
+            }
+
+            $ok = $this->orderModel->updateTracking((int) $order['id'], $carrier, $trackingNumber);
+            if ($ok) {
+                $successCount++;
+            } else {
+                $errorRows[] = ['line' => $lineNum, 'raw' => $line, 'reason' => '업데이트 실패'];
+            }
+        }
+
+        return $this->render('admin/orders/tracking_upload', [
+            'results' => [
+                'success' => $successCount,
+                'skipped' => $skippedCount,
+                'errors'  => $errorRows,
+            ],
+        ]);
+    }
+
     /** POST /admin/orders/:id/memos — 내부 메모 추가 */
     public function memoStore(int $id): \CodeIgniter\HTTP\ResponseInterface
     {

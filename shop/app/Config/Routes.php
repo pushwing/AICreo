@@ -143,9 +143,12 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('points/adjust',             'Admin\PointController::adjust');
 
     // 주문 관리
-    $routes->get( 'orders',                        'Admin\OrderController::index');
-    $routes->get( 'orders/export',                 'Admin\OrderController::exportExcel');
-    $routes->post('orders/bulk-status',            'Admin\OrderController::bulkUpdateStatus');
+    $routes->get( 'orders',                          'Admin\OrderController::index');
+    $routes->get( 'orders/export',                   'Admin\OrderController::exportExcel');
+    $routes->get( 'orders/tracking-template',        'Admin\OrderController::trackingTemplate');
+    $routes->get( 'orders/tracking-upload',          'Admin\OrderController::trackingUploadForm');
+    $routes->post('orders/tracking-upload',          'Admin\OrderController::trackingUploadProcess');
+    $routes->post('orders/bulk-status',              'Admin\OrderController::bulkUpdateStatus');
     $routes->get( 'orders/(:num)',                 'Admin\OrderController::detail/$1');
     $routes->post('orders/(:num)/status',          'Admin\OrderController::updateStatus/$1');
     $routes->post('orders/(:num)/tracking',        'Admin\OrderController::updateTracking/$1');
