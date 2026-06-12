@@ -16,6 +16,30 @@ class UserController extends BaseController
         $this->userModel = new UserModel();
     }
 
+    public function json(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $rows = $this->userModel->builder()
+            ->select('id, nickname, email, phone, role, grade, social_provider, is_active, email_verify_token, created_at, last_login')
+            ->orderBy('id', 'DESC')
+            ->get()->getResultArray();
+
+        $data = array_map(fn($u) => [
+            'id'                 => (int) $u['id'],
+            'nickname'           => $u['nickname'],
+            'email'              => $u['email'],
+            'phone'              => $u['phone'] ?? '',
+            'role'               => $u['role'],
+            'grade'              => $u['grade'] ?? 'bronze',
+            'social_provider'    => $u['social_provider'] ?? '',
+            'is_active'          => (int) $u['is_active'],
+            'email_verify_token' => $u['email_verify_token'] ? '1' : '',
+            'created_at'         => $u['created_at'],
+            'last_login'         => $u['last_login'] ?? '',
+        ], $rows);
+
+        return $this->response->setJSON(['data' => $data]);
+    }
+
     public function index(): string
     {
         $keyword  = $this->request->getGet('q') ?? '';
