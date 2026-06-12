@@ -84,6 +84,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('settings/(:segment)',         'Admin\SettingController::update/$1');
 
     // 전체 게시물 관리
+    $routes->get( 'posts/json',          'Admin\PostController::json');
     $routes->get( 'posts',              'Admin\PostController::index');
     $routes->post('posts/(:num)/delete','Admin\PostController::delete/$1');
 
@@ -103,6 +104,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 상품 관리
     $routes->post('products/bulk',                           'Admin\ProductController::bulk');
+    $routes->get( 'products/json',                           'Admin\ProductController::json');
     $routes->get( 'products',                                'Admin\ProductController::index');
     $routes->get( 'products/create',                         'Admin\ProductController::create');
     $routes->post('products/create',                         'Admin\ProductController::store');
@@ -125,6 +127,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get('sales', 'Admin\SalesController::index');
 
     // 쿠폰 관리
+    $routes->get( 'coupons/json',               'Admin\CouponController::json');
     $routes->get( 'coupons',                   'Admin\CouponController::index');
     $routes->get( 'coupons/create',            'Admin\CouponController::create');
     $routes->post('coupons/create',            'Admin\CouponController::store');
@@ -145,6 +148,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('points/adjust',             'Admin\PointController::adjust');
 
     // 주문 관리
+    $routes->get( 'orders/json',                     'Admin\OrderController::json');
     $routes->get( 'orders',                          'Admin\OrderController::index');
     $routes->get( 'orders/export',                   'Admin\OrderController::exportExcel');
     $routes->get( 'orders/tracking-template',        'Admin\OrderController::trackingTemplate');
@@ -190,6 +194,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('qna/(:num)/delete', 'Admin\QnaController::delete/$1');
 
     // 리뷰 관리
+    $routes->get( 'reviews/json',          'Admin\ReviewController::json');
     $routes->get( 'reviews',              'Admin\ReviewController::index');
     $routes->post('reviews/(:num)/delete','Admin\ReviewController::delete/$1');
 

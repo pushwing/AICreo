@@ -62,6 +62,38 @@ class OrderController extends BaseController
         ]));
     }
 
+    /** GET /admin/orders/json */
+    public function json(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $db   = \Config\Database::connect();
+        $rows = $db->table('orders o')
+            ->select('o.id, o.order_number, o.created_at, o.receiver_name, o.total_amount, o.status,
+                      u.email AS user_email, u.nickname AS user_nickname,
+                      lp.pg_provider, lp.method AS payment_method,
+                      (SELECT COUNT(*) FROM order_memos WHERE order_id = o.id) AS memo_count')
+            ->join('users u', 'u.id = o.user_id', 'left')
+            ->join('payments lp', 'lp.id = (SELECT MAX(id) FROM payments WHERE order_id = o.id)', 'left')
+            ->orderBy('o.id', 'DESC')
+            ->get()->getResultArray();
+
+        $data = array_map(fn($r) => [
+            'id'             => (int) $r['id'],
+            'order_number'   => $r['order_number'],
+            'created_at'     => $r['created_at'],
+            'user_email'     => $r['user_email'] ?? '',
+            'user_nickname'  => $r['user_nickname'] ?? '',
+            'receiver_name'  => $r['receiver_name'],
+            'pg_provider'    => $r['pg_provider'] ?? '',
+            'payment_method' => $r['payment_method'] ?? '',
+            'total_amount'   => (int) $r['total_amount'],
+            'status'         => $r['status'],
+            'status_label'   => self::STATUS_LABELS[$r['status']] ?? $r['status'],
+            'memo_count'     => (int) $r['memo_count'],
+        ], $rows);
+
+        return $this->response->setJSON(['data' => $data]);
+    }
+
     /** GET /admin/orders/export — 엑셀 다운로드 */
     public function exportExcel(): \CodeIgniter\HTTP\ResponseInterface
     {

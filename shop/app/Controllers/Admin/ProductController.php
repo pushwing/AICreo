@@ -56,6 +56,37 @@ class ProductController extends BaseController
         ]));
     }
 
+    /** GET /admin/products/json */
+    public function json(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $db        = \Config\Database::connect();
+        $rows      = $db->table('products')
+            ->select('products.id, products.name, products.slug, products.price, products.discount_price,
+                      products.stock, products.status, products.created_at, categories.name AS category_name')
+            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->where('products.deleted_at IS NULL')
+            ->orderBy('products.id', 'DESC')
+            ->get()->getResultArray();
+        $this->imageModel->attachPrimaryImages($rows);
+        $threshold = (int) ($this->viewData['settings']['low_stock_threshold'] ?? 5);
+
+        $data = array_map(fn($p) => [
+            'id'             => (int) $p['id'],
+            'name'           => $p['name'],
+            'slug'           => $p['slug'],
+            'category_name'  => $p['category_name'] ?? '',
+            'price'          => (int) $p['price'],
+            'discount_price' => $p['discount_price'] ? (int) $p['discount_price'] : 0,
+            'stock'          => (int) $p['stock'],
+            'status'         => $p['status'],
+            'primary_image'  => $p['primary_image'] ?? '',
+            'created_at'     => $p['created_at'],
+            'is_low_stock'   => (int) ($p['stock'] <= $threshold),
+        ], $rows);
+
+        return $this->response->setJSON(['data' => $data]);
+    }
+
     /** POST /admin/products/bulk — 상품 일괄 편집 (상태·재고·삭제) */
     public function bulk(): \CodeIgniter\HTTP\RedirectResponse
     {
