@@ -35,6 +35,10 @@ class ShopController extends BaseController
 
     public function home(): string
     {
+        if (($this->viewData['settings']['store_homepage'] ?? 'default') === 'welcome') {
+            return $this->welcome();
+        }
+
         $bannerModel = new BannerModel();
         $newProducts = $this->productModel->getLatest(8);
         $this->imageModel->attachPrimaryImages($newProducts);

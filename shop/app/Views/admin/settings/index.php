@@ -51,6 +51,17 @@
                     <input type="text" name="<?= esc($s['key']) ?>" class="form-control form-control-sm"
                            value="<?= esc($s['value']) ?>" placeholder="uploads/media/... 경로 입력">
                     <div class="form-text">미디어 라이브러리에서 이미지 경로를 복사하세요.</div>
+                <?php elseif ($s['type'] === 'select'): ?>
+                    <?php
+                    $selectOptions = [
+                        'store_homepage' => ['default' => '기본 홈', 'welcome' => 'Welcome 페이지'],
+                    ][$s['key']] ?? [];
+                    ?>
+                    <select name="<?= esc($s['key']) ?>" class="form-select form-select-sm">
+                        <?php foreach ($selectOptions as $val => $label): ?>
+                        <option value="<?= esc($val) ?>" <?= $s['value'] === $val ? 'selected' : '' ?>><?= esc($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 <?php else: ?>
                     <input type="text" name="<?= esc($s['key']) ?>" class="form-control form-control-sm" value="<?= esc($s['value']) ?>">
                 <?php endif; ?>
