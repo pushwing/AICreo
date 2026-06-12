@@ -39,6 +39,9 @@ $statusBadge = [
     </div>
     <div class="col-auto ms-auto d-flex align-items-center gap-2">
         <span class="text-muted small">총 <?= number_format($total) ?>건</span>
+        <a href="/admin/orders/tracking-upload" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-truck me-1"></i>송장 일괄 등록
+        </a>
         <a href="/admin/orders/export?q=<?= urlencode($keyword) ?>&status=<?= urlencode($status) ?>"
            class="btn btn-success btn-sm">
             <i class="bi bi-file-earmark-excel me-1"></i>엑셀 다운로드
