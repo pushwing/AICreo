@@ -1,99 +1,110 @@
 <?= $this->extend('layouts/admin') ?>
+<?php $pageTitle = '리뷰 관리' ?>
 
 <?= $this->section('content') ?>
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0">리뷰 관리</h4>
+
+<div class="d-flex gap-2 mb-3 align-items-center">
+    <input id="quickFilter" type="text" class="form-control form-control-sm"
+           placeholder="상품명 / 작성자 / 내용 검색" style="width:260px">
+    <select id="rewardFilter" class="form-select form-select-sm" style="width:120px">
+        <option value="">전체</option>
+        <option value="1">포인트 지급</option>
+        <option value="0">미지급</option>
+    </select>
+    <div id="rowCount" class="ms-auto text-muted small"></div>
 </div>
 
-<?php if (session()->getFlashdata('success')): ?>
-<div class="alert alert-success py-2"><?= esc(session()->getFlashdata('success')) ?></div>
-<?php endif; ?>
+<div id="reviewsGrid" class="ag-theme-alpine" style="height:620px"></div>
 
-<!-- 검색 -->
-<form class="row g-2 mb-3" method="get">
-    <div class="col-auto">
-        <input type="text" name="q" class="form-control form-control-sm"
-               placeholder="리뷰내용·닉네임·상품명" value="<?= esc($keyword ?? '') ?>">
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-outline-secondary">검색</button>
-    </div>
-</form>
+<?= $this->endSection() ?>
 
-<div class="table-responsive">
-    <table class="table table-sm table-hover align-middle">
-        <thead class="table-light">
-            <tr>
-                <th style="width:60px">번호</th>
-                <th>상품</th>
-                <th>작성자</th>
-                <th>리뷰 내용</th>
-                <th style="width:80px">이미지</th>
-                <th style="width:90px">포인트</th>
-                <th style="width:100px">작성일</th>
-                <th style="width:80px">관리</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php if (empty($items)): ?>
-        <tr><td colspan="8" class="text-center text-muted py-4">등록된 리뷰가 없습니다.</td></tr>
-        <?php else: ?>
-        <?php foreach ($items as $review): ?>
-        <tr>
-            <td><?= (int) $review['id'] ?></td>
-            <td>
-                <a href="/shop/<?= esc($review['product_slug']) ?>" target="_blank" class="text-decoration-none small">
-                    <?= esc(mb_strimwidth($review['product_name'], 0, 30, '…')) ?>
-                </a>
-            </td>
-            <td class="small"><?= esc($review['nickname'] ?: $review['username']) ?></td>
-            <td class="small"><?= esc(mb_strimwidth($review['content'], 0, 60, '…')) ?></td>
-            <td class="small">
-                <?php if (! empty($review['images'])): ?>
-                <div class="d-flex gap-1 flex-wrap">
-                    <?php foreach ($review['images'] as $img): ?>
-                    <a href="<?= esc($img['image_path']) ?>" target="_blank">
-                        <img src="<?= esc($img['image_path']) ?>" alt=""
-                             style="width:36px;height:36px;object-fit:cover;border-radius:3px">
-                    </a>
-                    <?php endforeach; ?>
-                </div>
-                <?php else: ?>
-                <span class="text-muted">-</span>
-                <?php endif; ?>
-            </td>
-            <td class="small text-center">
-                <?= $review['is_rewarded'] ? '<span class="badge bg-warning text-dark">150P 지급</span>' : '-' ?>
-            </td>
-            <td class="small text-muted"><?= date('Y.m.d', strtotime($review['created_at'])) ?></td>
-            <td>
-                <form method="post" action="/admin/reviews/<?= (int) $review['id'] ?>/delete"
-                      onsubmit="return confirm('리뷰를 삭제하시겠습니까? 지급된 포인트도 회수됩니다.')">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
-                </form>
-            </td>
-        </tr>
-        <?php endforeach; ?>
-        <?php endif; ?>
-        </tbody>
-    </table>
-</div>
+<?= $this->section('scripts') ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
+<script>
+(function () {
+    function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-<?php
-$totalPages = (int) ceil(($total ?? 0) / max(1, ($perPage ?? 20)));
-if ($totalPages > 1):
-    $q = esc($keyword ?? '');
-?>
-<nav>
-    <ul class="pagination pagination-sm justify-content-center">
-        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-        <li class="page-item <?= $p === ($page ?? 1) ? 'active' : '' ?>">
-            <a class="page-link" href="?q=<?= $q ?>&page=<?= $p ?>"><?= $p ?></a>
-        </li>
-        <?php endfor; ?>
-    </ul>
-</nav>
-<?php endif; ?>
+    var rewardFilterVal = '';
+    var csrf = {
+        name:  document.querySelector('meta[name="csrf-name"]').content,
+        token: document.querySelector('meta[name="csrf-token"]').content,
+    };
 
+    var grid = agGrid.createGrid(document.getElementById('reviewsGrid'), {
+        columnDefs: [
+            { headerName: '번호', field: 'id', width: 80,
+              cellRenderer: function(p) { return '<span class="small">' + p.value + '</span>'; }},
+            { headerName: '상품', field: 'product_name', width: 200,
+              cellRenderer: function(p) {
+                  return '<a href="/shop/' + esc(p.data.product_slug) + '" target="_blank" '
+                       + 'class="text-decoration-none small">' + esc(p.value) + '</a>';
+              }},
+            { headerName: '작성자', field: 'author', width: 110,
+              cellRenderer: function(p) { return '<span class="small">' + esc(p.value || '') + '</span>'; }},
+            { headerName: '리뷰 내용', field: 'content', flex: 1, minWidth: 200,
+              cellRenderer: function(p) {
+                  var s = p.value || '';
+                  if (s.length > 60) s = s.substring(0, 60) + '…';
+                  return '<span class="small">' + esc(s) + '</span>';
+              }},
+            { headerName: '이미지', field: 'image_count', width: 80, type: 'numericColumn',
+              cellRenderer: function(p) {
+                  if (!p.value) return '<span class="text-muted small">-</span>';
+                  return '<span class="badge bg-light text-dark border small">' + p.value + '장</span>';
+              }},
+            { headerName: '포인트', field: 'is_rewarded', width: 100,
+              cellRenderer: function(p) {
+                  return p.value
+                      ? '<span class="badge bg-warning text-dark">150P 지급</span>'
+                      : '<span class="text-muted small">-</span>';
+              }},
+            { headerName: '작성일', field: 'created_at', width: 110,
+              cellRenderer: function(p) {
+                  if (!p.value) return '';
+                  return '<span class="small text-muted">'
+                       + new Date(p.value.replace(' ', 'T')).toLocaleDateString('ko-KR') + '</span>';
+              },
+              comparator: function(a, b) { return a < b ? -1 : a > b ? 1 : 0; }},
+            { headerName: '', width: 80, sortable: false, filter: false, resizable: false,
+              cellRenderer: function(p) {
+                  return '<button class="btn btn-sm btn-outline-danger" onclick="doDelete(' + p.data.id + ')">삭제</button>';
+              }},
+        ],
+        defaultColDef: { sortable: true, filter: true, resizable: true },
+        rowHeight: 46,
+        isExternalFilterPresent: function() { return rewardFilterVal !== ''; },
+        doesExternalFilterPass: function(node) { return String(node.data.is_rewarded) === rewardFilterVal; },
+        onModelUpdated: function(e) {
+            document.getElementById('rowCount').textContent = '총 ' + e.api.getDisplayedRowCount().toLocaleString() + '건';
+        },
+        onGridReady: function(e) {
+            fetch('/admin/reviews/json')
+                .then(function(r) { return r.json(); })
+                .then(function(d) { e.api.setGridOption('rowData', d.data); });
+        },
+        localeText: { noRowsToShow: '등록된 리뷰가 없습니다.' },
+    });
+
+    document.getElementById('quickFilter').addEventListener('input', function() {
+        grid.setGridOption('quickFilterText', this.value);
+    });
+
+    document.getElementById('rewardFilter').addEventListener('change', function() {
+        rewardFilterVal = this.value;
+        grid.onFilterChanged();
+    });
+
+    window.doDelete = function(id) {
+        if (!confirm('리뷰를 삭제하시겠습니까? 지급된 포인트도 회수됩니다.')) return;
+        fetch('/admin/reviews/' + id + '/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+            body: csrf.name + '=' + encodeURIComponent(csrf.token),
+        }).then(function() { location.reload(); });
+    };
+}());
+</script>
 <?= $this->endSection() ?>

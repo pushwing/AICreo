@@ -39,6 +39,34 @@ class PostController extends BaseController
         ]);
     }
 
+    /** GET /admin/posts/json */
+    public function json(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $posts = $this->postModel
+            ->select('posts.id, posts.title, posts.is_notice, posts.is_secret, posts.views,
+                      posts.created_at, posts.author_name,
+                      boards.name AS board_name, boards.slug AS board_slug,
+                      users.nickname AS user_nickname')
+            ->join('boards', 'boards.id = posts.board_id', 'left')
+            ->join('users', 'users.id = posts.user_id', 'left')
+            ->orderBy('posts.id', 'DESC')
+            ->findAll();
+
+        $data = array_map(fn($p) => [
+            'id'         => (int) $p['id'],
+            'title'      => $p['title'],
+            'is_notice'  => (int) $p['is_notice'],
+            'is_secret'  => (int) $p['is_secret'],
+            'board_name' => $p['board_name'] ?? '',
+            'board_slug' => $p['board_slug'] ?? '',
+            'author'     => $p['user_nickname'] ?: ($p['author_name'] ?? ''),
+            'views'      => (int) $p['views'],
+            'created_at' => $p['created_at'],
+        ], $posts);
+
+        return $this->response->setJSON(['data' => $data]);
+    }
+
     public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $post = $this->postModel->find($id);

@@ -4,122 +4,152 @@
 
 <?= $this->section('content') ?>
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <h4 class="fw-bold mb-0">쿠폰 관리</h4>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex gap-2">
+        <input id="quickFilter" type="text" class="form-control form-control-sm"
+               placeholder="쿠폰명, 코드 검색" style="width:220px">
+        <select id="activeFilter" class="form-select form-select-sm" style="width:110px">
+            <option value="">전체 상태</option>
+            <option value="1">활성</option>
+            <option value="0">비활성</option>
+        </select>
+    </div>
     <a href="/admin/coupons/create" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg me-1"></i>쿠폰 등록
     </a>
 </div>
 
+<div id="couponsGrid" class="ag-theme-alpine" style="height:620px"></div>
+<div id="rowCount" class="text-muted small mt-2"></div>
 
-<div class="card overflow-hidden">
-    <div class="card-header bg-white">
-        <form method="get" class="d-flex gap-2">
-            <input type="text" name="keyword" class="form-control form-control-sm"
-                   placeholder="쿠폰명, 코드" value="<?= esc($keyword) ?>" style="max-width:240px">
-            <button type="submit" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-search"></i>
-            </button>
-            <?php if ($keyword): ?>
-            <a href="/admin/coupons" class="btn btn-sm btn-outline-secondary">초기화</a>
-            <?php endif; ?>
-        </form>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>쿠폰명</th>
-                    <th>코드</th>
-                    <th>종류</th>
-                    <th>대상 등급</th>
-                    <th class="text-end">할인값</th>
-                    <th class="text-end">최소주문</th>
-                    <th class="text-center">수량</th>
-                    <th>유효기간</th>
-                    <th class="text-center">상태</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($items)): ?>
-                <tr><td colspan="10" class="text-center py-4 text-muted">등록된 쿠폰이 없습니다.</td></tr>
-                <?php else: foreach ($items as $c):
-                    $typeLabel = $types[$c['type']] ?? $c['type'];
-                    if ($c['type'] === 'free_shipping') {
-                        $discLabel = '—';
-                    } elseif ($c['type'] === 'fixed') {
-                        $discLabel = number_format($c['discount_value']) . '원';
-                    } else {
-                        $discLabel = $c['discount_value'] . '%';
-                        if ((int) $c['max_discount_amount'] > 0)
-                            $discLabel .= ' (최대 ' . number_format($c['max_discount_amount']) . '원)';
-                    }
-                ?>
-                <tr>
-                    <td class="fw-semibold small"><?= esc($c['name']) ?></td>
-                    <td class="font-monospace small"><?= esc($c['code']) ?></td>
-                    <td class="small"><?= esc($typeLabel) ?></td>
-                    <td class="small">
-                        <?php if (! empty($c['target_grade'])): ?>
-                            <?php foreach (array_map('trim', explode(',', $c['target_grade'])) as $g): ?>
-                                <span class="badge <?= GradeService::BADGE_CLASSES[$g] ?? 'bg-secondary' ?>">
-                                    <?= esc(GradeService::LABELS[$g] ?? $g) ?>
-                                </span>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <span class="text-muted">전체</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="text-end small"><?= esc($discLabel) ?></td>
-                    <td class="text-end small">
-                        <?= (int) $c['min_order_amount'] > 0 ? number_format($c['min_order_amount']) . '원' : '—' ?>
-                    </td>
-                    <td class="text-center small">
-                        <?= $c['total_qty'] !== null ? number_format($c['used_count']) . '/' . number_format($c['total_qty']) : '무제한' ?>
-                    </td>
-                    <td class="small text-muted">
-                        <?= $c['starts_at']  ? date('Y년 n월 j일', strtotime($c['starts_at']))  : '' ?>
-                        <?= ($c['starts_at'] && $c['expires_at']) ? ' ~ ' : '' ?>
-                        <?= $c['expires_at'] ? date('Y년 n월 j일', strtotime($c['expires_at'])) : ($c['starts_at'] ? '~' : '—') ?>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge bg-<?= $c['is_active'] ? 'success' : 'secondary' ?>">
-                            <?= $c['is_active'] ? '활성' : '비활성' ?>
-                        </span>
-                    </td>
-                    <td class="text-end">
-                        <a href="/admin/coupons/<?= (int) $c['id'] ?>/issue" class="btn btn-xs btn-outline-info"
-                           style="font-size:.72rem;padding:.15rem .45rem">발급</a>
-                        <a href="/admin/coupons/<?= (int) $c['id'] ?>/edit" class="btn btn-xs btn-outline-secondary"
-                           style="font-size:.72rem;padding:.15rem .45rem">수정</a>
-                        <form method="post" action="/admin/coupons/<?= (int) $c['id'] ?>/delete"
-                              class="d-inline"
-                              onsubmit="return confirm('비활성화하시겠습니까?')">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn-xs btn-outline-danger"
-                                    style="font-size:.72rem;padding:.15rem .45rem">비활성화</button>
-                        </form>
-                    </td>
-                </tr>
-                <?php endforeach; endif; ?>
-            </tbody>
-        </table>
-    </div>
+<?= $this->endSection() ?>
 
-    <?php if ($total > $perPage): ?>
-    <div class="card-footer bg-white">
-        <nav>
-            <ul class="pagination pagination-sm mb-0 justify-content-center">
-                <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                <li class="page-item <?= $p === $currentPage ? 'active' : '' ?>">
-                    <a class="page-link" href="?page=<?= $p ?>&keyword=<?= esc($keyword) ?>"><?= $p ?></a>
-                </li>
-                <?php endfor; ?>
-            </ul>
-        </nav>
-    </div>
-    <?php endif; ?>
-</div>
+<?= $this->section('scripts') ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
+<script>
+(function () {
+    var GRADE_LABELS = <?= json_encode(GradeService::LABELS) ?>;
+    var GRADE_BADGES = <?= json_encode(GradeService::BADGE_CLASSES) ?>;
 
+    function esc(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatDate(s) {
+        if (!s) return '';
+        return new Date(s.replace(' ', 'T')).toLocaleDateString('ko-KR');
+    }
+
+    function discountLabel(row) {
+        if (row.type === 'free_shipping') return '—';
+        if (row.type === 'fixed') return row.discount_value.toLocaleString() + '원';
+        var s = row.discount_value + '%';
+        if (row.max_discount_amount > 0) s += ' (최대 ' + row.max_discount_amount.toLocaleString() + '원)';
+        return s;
+    }
+
+    var activeFilterVal = '';
+    var csrf = {
+        name:  document.querySelector('meta[name="csrf-name"]').content,
+        token: document.querySelector('meta[name="csrf-token"]').content,
+    };
+
+    var grid = agGrid.createGrid(document.getElementById('couponsGrid'), {
+        columnDefs: [
+            { headerName: '쿠폰명', field: 'name', flex: 1, minWidth: 160,
+              cellRenderer: function(p) {
+                  return '<span class="fw-semibold small">' + esc(p.value) + '</span>';
+              }},
+            { headerName: '코드', field: 'code', width: 150,
+              cellRenderer: function(p) {
+                  return '<span class="font-monospace small">' + esc(p.value) + '</span>';
+              }},
+            { headerName: '종류', field: 'type_label', width: 100,
+              cellRenderer: function(p) { return '<span class="small">' + esc(p.value) + '</span>'; }},
+            { headerName: '대상 등급', field: 'target_grade', width: 150,
+              cellRenderer: function(p) {
+                  if (!p.value) return '<span class="text-muted small">전체</span>';
+                  return p.value.split(',').map(function(g) {
+                      g = g.trim();
+                      var cls = GRADE_BADGES[g] || 'bg-secondary';
+                      return '<span class="badge ' + cls + '">' + esc(GRADE_LABELS[g] || g) + '</span>';
+                  }).join(' ');
+              }},
+            { headerName: '할인값', width: 150,
+              valueGetter: function(p) { return discountLabel(p.data); },
+              cellRenderer: function(p) {
+                  return '<span class="small">' + esc(p.value) + '</span>';
+              }},
+            { headerName: '최소주문', field: 'min_order_amount', width: 100, type: 'numericColumn',
+              cellRenderer: function(p) {
+                  return '<span class="small">' + (p.value > 0 ? p.value.toLocaleString() + '원' : '—') + '</span>';
+              }},
+            { headerName: '수량', width: 100,
+              valueGetter: function(p) {
+                  return p.data.total_qty !== null
+                      ? p.data.used_count + '/' + p.data.total_qty
+                      : '무제한';
+              },
+              cellRenderer: function(p) {
+                  return '<span class="small text-center d-block">' + esc(p.value) + '</span>';
+              }},
+            { headerName: '유효기간', width: 180,
+              valueGetter: function(p) { return (p.data.starts_at || '') + ' ~ ' + (p.data.expires_at || ''); },
+              cellRenderer: function(p) {
+                  var s = formatDate(p.data.starts_at);
+                  var e = formatDate(p.data.expires_at);
+                  if (!s && !e) return '<span class="text-muted small">—</span>';
+                  if (s && e) return '<span class="small text-muted">' + s + ' ~ ' + e + '</span>';
+                  return '<span class="small text-muted">' + (s ? s + ' ~' : '~ ' + e) + '</span>';
+              }},
+            { headerName: '상태', field: 'is_active', width: 80,
+              cellRenderer: function(p) {
+                  return p.value
+                      ? '<span class="badge bg-success">활성</span>'
+                      : '<span class="badge bg-secondary">비활성</span>';
+              }},
+            { headerName: '', width: 160, sortable: false, filter: false, resizable: false,
+              cellRenderer: function(p) {
+                  return '<a href="/admin/coupons/' + p.data.id + '/issue" class="btn btn-sm btn-outline-info">발급</a> '
+                       + '<a href="/admin/coupons/' + p.data.id + '/edit" class="btn btn-sm btn-outline-secondary">수정</a> '
+                       + '<button class="btn btn-sm btn-outline-danger" onclick="doDeactivate(' + p.data.id + ')">비활성화</button>';
+              }},
+        ],
+        defaultColDef: { sortable: true, filter: true, resizable: true },
+        rowHeight: 50,
+        isExternalFilterPresent: function() { return activeFilterVal !== ''; },
+        doesExternalFilterPass: function(node) {
+            return String(node.data.is_active) === activeFilterVal;
+        },
+        onModelUpdated: function(e) {
+            document.getElementById('rowCount').textContent = '총 ' + e.api.getDisplayedRowCount().toLocaleString() + '개';
+        },
+        onGridReady: function(e) {
+            fetch('/admin/coupons/json')
+                .then(function(r) { return r.json(); })
+                .then(function(d) { e.api.setGridOption('rowData', d.data); });
+        },
+        localeText: { noRowsToShow: '등록된 쿠폰이 없습니다.' },
+    });
+
+    document.getElementById('quickFilter').addEventListener('input', function() {
+        grid.setGridOption('quickFilterText', this.value);
+    });
+
+    document.getElementById('activeFilter').addEventListener('change', function() {
+        activeFilterVal = this.value;
+        grid.onFilterChanged();
+    });
+
+    window.doDeactivate = function(id) {
+        if (!confirm('비활성화하시겠습니까?')) return;
+        fetch('/admin/coupons/' + id + '/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+            body: csrf.name + '=' + encodeURIComponent(csrf.token),
+        }).then(function() { location.reload(); });
+    };
+}());
+</script>
 <?= $this->endSection() ?>

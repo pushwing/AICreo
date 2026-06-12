@@ -32,6 +32,33 @@ class CouponController extends BaseController
         ]));
     }
 
+    /** GET /admin/coupons/json */
+    public function json(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $rows = \Config\Database::connect()->table('coupons')
+            ->orderBy('id', 'DESC')
+            ->get()->getResultArray();
+
+        $data = array_map(fn($c) => [
+            'id'                  => (int) $c['id'],
+            'name'                => $c['name'],
+            'code'                => $c['code'],
+            'type'                => $c['type'],
+            'type_label'          => CouponModel::TYPES[$c['type']] ?? $c['type'],
+            'target_grade'        => $c['target_grade'] ?? '',
+            'discount_value'      => (float) $c['discount_value'],
+            'max_discount_amount' => (int) $c['max_discount_amount'],
+            'min_order_amount'    => (int) $c['min_order_amount'],
+            'total_qty'           => $c['total_qty'] !== null ? (int) $c['total_qty'] : null,
+            'used_count'          => (int) $c['used_count'],
+            'starts_at'           => $c['starts_at'] ?? '',
+            'expires_at'          => $c['expires_at'] ?? '',
+            'is_active'           => (int) $c['is_active'],
+        ], $rows);
+
+        return $this->response->setJSON(['data' => $data]);
+    }
+
     /** GET /admin/coupons/create */
     public function create(): string
     {
