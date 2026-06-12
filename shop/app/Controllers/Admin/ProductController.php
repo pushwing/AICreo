@@ -81,7 +81,7 @@ class ProductController extends BaseController
             'status'         => $p['status'],
             'primary_image'  => $p['primary_image'] ?? '',
             'created_at'     => $p['created_at'],
-            'is_low_stock'   => (int) $p['stock'] <= $threshold,
+            'is_low_stock'   => (int) ($p['stock'] <= $threshold),
         ], $rows);
 
         return $this->response->setJSON(['data' => $data]);
