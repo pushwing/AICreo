@@ -125,7 +125,8 @@
                   var cls = STATUS_BADGE[p.value] || 'secondary';
                   return '<span class="badge bg-' + cls + '">' + esc(p.data.status_label) + '</span>';
               }},
-            { headerName: '', width: 70, sortable: false, filter: false, resizable: false,
+            { headerName: '', width: 90, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
               cellRenderer: function(p) {
                   return '<a href="/admin/orders/' + p.data.id + '" class="btn btn-sm btn-outline-secondary">상세</a>';
               }},
