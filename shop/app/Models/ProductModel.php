@@ -133,6 +133,19 @@ class ProductModel extends Model
             ->get()->getResultArray();
     }
 
+    public function getFeatured(int $limit = 8): array
+    {
+        return $this->db->table('products')
+            ->select('products.*, categories.name as category_name')
+            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->where('products.deleted_at IS NULL')
+            ->whereIn('products.status', ['on_sale', 'sold_out'])
+            ->where('products.is_featured', 1)
+            ->orderBy('products.id', 'DESC')
+            ->limit($limit)
+            ->get()->getResultArray();
+    }
+
     private function buildPage($builder, int $page, int $perPage): array
     {
         // DB Builder는 배열 기반 상태라 clone이 안전함 (Model clone과 달리 DB 커넥션을 통한 상태 공유 없음)

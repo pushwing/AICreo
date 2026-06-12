@@ -50,6 +50,31 @@ class ShopController extends BaseController
         ]);
     }
 
+    public function welcome(): string
+    {
+        $bannerModel = new BannerModel();
+
+        $newProducts = $this->productModel->getLatest(8);
+        $this->imageModel->attachPrimaryImages($newProducts);
+
+        $discountedProducts = $this->productModel->getDiscounted(8);
+        $this->imageModel->attachPrimaryImages($discountedProducts);
+
+        $featuredProducts = $this->productModel->getFeatured(8);
+        $this->imageModel->attachPrimaryImages($featuredProducts);
+
+        $categories = $this->categoryModel->getTree();
+
+        return $this->render('shop/welcome', [
+            'heroBanners'        => $bannerModel->getActiveByPosition('main_top'),
+            'mainBotBanners'     => $bannerModel->getActiveByPosition('main_bottom'),
+            'newProducts'        => $newProducts,
+            'discountedProducts' => $discountedProducts,
+            'featuredProducts'   => $featuredProducts,
+            'categories'         => $categories,
+        ]);
+    }
+
     public function detail(string $slug): string
     {
         $product = $this->productModel
