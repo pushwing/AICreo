@@ -70,8 +70,10 @@
 
 <?= $this->endSection() ?>
 
-<?= $this->section('scripts') ?>
+<?= $this->section('styles') ?>
 <link rel="stylesheet" href="/vendor/ag-grid/ag-theme-alpine.css">
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
 <script src="/vendor/ag-grid/ag-grid-community.noStyle.min.js"></script>
 <script>
 (function () {
