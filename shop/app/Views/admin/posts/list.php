@@ -19,8 +19,11 @@
 
 <?= $this->endSection() ?>
 
-<?= $this->section('scripts') ?>
+<?= $this->section('styles') ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
 <script>
 (function () {
@@ -64,13 +67,17 @@
                        + new Date(p.value.replace(' ', 'T')).toLocaleDateString('ko-KR') + '</span>';
               },
               comparator: function(a, b) { return a < b ? -1 : a > b ? 1 : 0; }},
-            { headerName: '', width: 70, sortable: false, filter: false, resizable: false,
+            { headerName: '', width: 90, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
               cellRenderer: function(p) {
                   return '<button class="btn btn-sm btn-outline-danger" onclick="doDelete(' + p.data.id + ')">삭제</button>';
               }},
         ],
         defaultColDef: { sortable: true, filter: true, resizable: true },
         rowHeight: 46,
+        pagination: true,
+        paginationPageSize: 20,
+        paginationPageSizeSelector: [20, 50, 100],
         isExternalFilterPresent: function() { return boardFilterVal !== ''; },
         doesExternalFilterPass: function(node) { return node.data.board_name === boardFilterVal; },
         onModelUpdated: function(e) {

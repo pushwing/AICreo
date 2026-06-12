@@ -70,8 +70,11 @@
 
 <?= $this->endSection() ?>
 
-<?= $this->section('scripts') ?>
+<?= $this->section('styles') ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
 <script>
 (function () {
@@ -176,6 +179,9 @@
         defaultColDef: { sortable: true, filter: true, resizable: true },
         rowSelection: 'multiple',
         rowHeight: 60,
+        pagination: true,
+        paginationPageSize: 20,
+        paginationPageSizeSelector: [20, 50, 100],
         suppressRowClickSelection: true,
         isExternalFilterPresent: function() { return statusFilterVal !== '' || lowStockOnly; },
         doesExternalFilterPass: function(node) {

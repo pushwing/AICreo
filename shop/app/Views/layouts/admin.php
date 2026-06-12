@@ -37,6 +37,7 @@
         .badge-bronze { background-color: #a0522d; color: #fff; }
         .badge-silver { background-color: #888f94; color: #fff; }
     </style>
+    <?= $this->renderSection('styles') ?>
 </head>
 <body>
 

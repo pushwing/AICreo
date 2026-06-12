@@ -42,8 +42,11 @@
 
 <?= $this->endSection() ?>
 
-<?= $this->section('scripts') ?>
+<?= $this->section('styles') ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
 <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
 <script>
 (function () {
@@ -122,7 +125,8 @@
                   var cls = STATUS_BADGE[p.value] || 'secondary';
                   return '<span class="badge bg-' + cls + '">' + esc(p.data.status_label) + '</span>';
               }},
-            { headerName: '', width: 70, sortable: false, filter: false, resizable: false,
+            { headerName: '', width: 90, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
               cellRenderer: function(p) {
                   return '<a href="/admin/orders/' + p.data.id + '" class="btn btn-sm btn-outline-secondary">상세</a>';
               }},
@@ -130,6 +134,9 @@
         defaultColDef: { sortable: true, filter: true, resizable: true },
         rowSelection: 'multiple',
         rowHeight: 54,
+        pagination: true,
+        paginationPageSize: 20,
+        paginationPageSizeSelector: [20, 50, 100],
         suppressRowClickSelection: true,
         isExternalFilterPresent: function() { return statusFilterVal !== ''; },
         doesExternalFilterPass: function(node) { return node.data.status === statusFilterVal; },
