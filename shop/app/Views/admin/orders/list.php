@@ -43,8 +43,8 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
-<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
+<link rel="stylesheet" href="/vendor/ag-grid/ag-theme-alpine.css">
+<script src="/vendor/ag-grid/ag-grid-community.noStyle.min.js"></script>
 <script>
 (function () {
     var STATUS_BADGE = {
