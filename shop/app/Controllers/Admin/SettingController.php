@@ -227,13 +227,12 @@ class SettingController extends BaseController
             return redirect()->to('/admin/settings/theme')->with('success', "테마가 '{$theme}'으로 변경되었습니다.");
         }
 
-        // carriers 타입: textarea 줄단위 → JSON 배열로 변환
-        if (isset($postData['shipping_carriers'])) {
-            $lines = array_values(array_filter(
-                array_map('trim', explode("\n", $postData['shipping_carriers'])),
-                fn ($l) => $l !== ''
-            ));
-            $postData['shipping_carriers'] = json_encode($lines, JSON_UNESCAPED_UNICODE);
+        // carriers 타입: 배열 입력 → JSON 배열로 변환
+        if (array_key_exists('shipping_carriers', $postData)) {
+            $raw      = $postData['shipping_carriers'];
+            $carriers = is_array($raw) ? $raw : [];
+            $carriers = array_values(array_filter(array_map('trim', $carriers), fn ($c) => $c !== ''));
+            $postData['shipping_carriers'] = json_encode($carriers, JSON_UNESCAPED_UNICODE);
         }
 
         $this->settingModel->saveSettings($postData);
