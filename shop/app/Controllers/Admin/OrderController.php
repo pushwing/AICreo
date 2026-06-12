@@ -95,9 +95,12 @@ class OrderController extends BaseController
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
 
+        $col = fn(int $c, int $r): string =>
+            \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c) . $r;
+
         $headers = ['주문번호', '주문일시', '수취인', '연락처', '우편번호', '주소', '상세주소', '상품명', '결제금액', '상태'];
-        foreach ($headers as $col => $header) {
-            $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
+        foreach ($headers as $idx => $header) {
+            $sheet->setCellValue($col($idx + 1, 1), $header);
         }
 
         // 헤더 스타일
@@ -115,16 +118,16 @@ class OrderController extends BaseController
             $productSummary = ($names[0] ?? '') . ($extra > 0 ? ' 외 ' . $extra . '건' : '');
             $rowNum         = $i + 2;
 
-            $sheet->setCellValueByColumnAndRow(1,  $rowNum, $order['order_number']);
-            $sheet->setCellValueByColumnAndRow(2,  $rowNum, $order['created_at']);
-            $sheet->setCellValueByColumnAndRow(3,  $rowNum, $order['receiver_name']);
-            $sheet->setCellValueByColumnAndRow(4,  $rowNum, $order['receiver_phone']);
-            $sheet->setCellValueByColumnAndRow(5,  $rowNum, $order['zipcode'] ?? '');
-            $sheet->setCellValueByColumnAndRow(6,  $rowNum, $order['address1'] ?? '');
-            $sheet->setCellValueByColumnAndRow(7,  $rowNum, $order['address2'] ?? '');
-            $sheet->setCellValueByColumnAndRow(8,  $rowNum, $productSummary);
-            $sheet->setCellValueByColumnAndRow(9,  $rowNum, (int) $order['total_amount']);
-            $sheet->setCellValueByColumnAndRow(10, $rowNum, self::STATUS_LABELS[$order['status']] ?? $order['status']);
+            $sheet->setCellValue($col(1,  $rowNum), $order['order_number']);
+            $sheet->setCellValue($col(2,  $rowNum), $order['created_at']);
+            $sheet->setCellValue($col(3,  $rowNum), $order['receiver_name']);
+            $sheet->setCellValue($col(4,  $rowNum), $order['receiver_phone']);
+            $sheet->setCellValue($col(5,  $rowNum), $order['zipcode'] ?? '');
+            $sheet->setCellValue($col(6,  $rowNum), $order['address1'] ?? '');
+            $sheet->setCellValue($col(7,  $rowNum), $order['address2'] ?? '');
+            $sheet->setCellValue($col(8,  $rowNum), $productSummary);
+            $sheet->setCellValue($col(9,  $rowNum), (int) $order['total_amount']);
+            $sheet->setCellValue($col(10, $rowNum), self::STATUS_LABELS[$order['status']] ?? $order['status']);
         }
 
         foreach (range('A', 'J') as $col) {
