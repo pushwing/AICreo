@@ -41,7 +41,8 @@ class ProductModel extends Model
         $page       = max(1, (int) ($params['page'] ?? 1));
 
         $builder = $this->db->table('products')
-            ->select('products.*, categories.name as category_name')
+            ->select('products.*, categories.name as category_name,
+                EXISTS(SELECT 1 FROM product_options WHERE product_id = products.id) AS has_options')
             ->join('categories', 'categories.id = products.category_id', 'left')
             ->where('products.deleted_at IS NULL')
             ->whereIn('products.status', ['on_sale', 'sold_out']);
