@@ -71,7 +71,8 @@
                        + new Date(p.value.replace(' ', 'T')).toLocaleDateString('ko-KR') + '</span>';
               },
               comparator: function(a, b) { return a < b ? -1 : a > b ? 1 : 0; }},
-            { headerName: '', width: 80, sortable: false, filter: false, resizable: false,
+            { headerName: '', width: 90, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
               cellRenderer: function(p) {
                   return '<button class="btn btn-sm btn-outline-danger" onclick="doDelete(' + p.data.id + ')">삭제</button>';
               }},
