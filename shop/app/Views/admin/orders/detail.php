@@ -260,9 +260,25 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                 <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/tracking">
                     <?= csrf_field() ?>
                     <div class="mb-2">
+                        <?php
+                            $savedCarrier  = $order['tracking_company'] ?? '';
+                            $carrierInList = in_array($savedCarrier, $carriers ?? [], true);
+                        ?>
+                        <?php if (! empty($carriers)): ?>
+                        <select name="tracking_company" class="form-select form-select-sm">
+                            <option value="">배송업체 선택</option>
+                            <?php foreach ($carriers as $c): ?>
+                            <option value="<?= esc($c) ?>" <?= $savedCarrier === $c ? 'selected' : '' ?>><?= esc($c) ?></option>
+                            <?php endforeach; ?>
+                            <?php if ($savedCarrier !== '' && ! $carrierInList): ?>
+                            <option value="<?= esc($savedCarrier) ?>" selected><?= esc($savedCarrier) ?></option>
+                            <?php endif; ?>
+                        </select>
+                        <?php else: ?>
                         <input type="text" name="tracking_company" class="form-control form-control-sm"
                                placeholder="택배사 (예: CJ대한통운)"
-                               value="<?= esc($order['tracking_company'] ?? '') ?>">
+                               value="<?= esc($savedCarrier) ?>">
+                        <?php endif; ?>
                     </div>
                     <div class="mb-2">
                         <input type="text" name="tracking_number" class="form-control form-control-sm"
