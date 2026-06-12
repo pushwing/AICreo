@@ -146,6 +146,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'orders',                          'Admin\OrderController::index');
     $routes->get( 'orders/export',                   'Admin\OrderController::exportExcel');
     $routes->get( 'orders/tracking-template',        'Admin\OrderController::trackingTemplate');
+    $routes->get( 'orders/tracking-export',          'Admin\OrderController::trackingExport');
     $routes->get( 'orders/tracking-upload',          'Admin\OrderController::trackingUploadForm');
     $routes->post('orders/tracking-upload',          'Admin\OrderController::trackingUploadProcess');
     $routes->post('orders/bulk-status',              'Admin\OrderController::bulkUpdateStatus');
