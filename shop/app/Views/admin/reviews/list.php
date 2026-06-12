@@ -19,11 +19,11 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('styles') ?>
-<link rel="stylesheet" href="/vendor/ag-grid/ag-grid.css">
-<link rel="stylesheet" href="/vendor/ag-grid/ag-theme-alpine.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-grid.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/styles/ag-theme-alpine.css">
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-<script src="/vendor/ag-grid/ag-grid-community.noStyle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.4/dist/ag-grid-community.noStyle.min.js"></script>
 <script>
 (function () {
     function esc(s) {
