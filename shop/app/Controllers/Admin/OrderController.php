@@ -83,12 +83,12 @@ class OrderController extends BaseController
         $nameMap  = [];
         if ($orderIds) {
             $rows = \Config\Database::connect()->table('order_items')
-                ->select('order_id, product_name, quantity')
+                ->select('order_id, product_name, qty')
                 ->whereIn('order_id', $orderIds)
                 ->orderBy('order_id')->orderBy('id')
                 ->get()->getResultArray();
             foreach ($rows as $row) {
-                $nameMap[(int) $row['order_id']][] = $row['product_name'] . ' x' . $row['quantity'];
+                $nameMap[(int) $row['order_id']][] = $row['product_name'] . ' x' . $row['qty'];
             }
         }
 
