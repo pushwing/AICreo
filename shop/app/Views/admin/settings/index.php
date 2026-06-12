@@ -4,7 +4,7 @@
 
 <!-- 탭 -->
 <ul class="nav nav-tabs mb-4">
-    <?php foreach (['general' => '기본', 'contact' => '연락처', 'sns' => 'SNS', 'seo' => 'SEO', 'footer' => '푸터', 'shop' => '쇼핑', 'grade' => '등급/포인트'] as $g => $label): ?>
+    <?php foreach (['general' => '기본', 'contact' => '연락처', 'sns' => 'SNS', 'seo' => 'SEO', 'footer' => '푸터', 'shop' => '쇼핑', 'grade' => '등급/포인트', 'welcome' => 'Welcome'] as $g => $label): ?>
     <li class="nav-item">
         <a class="nav-link <?= $group === $g ? 'active' : '' ?>" href="/admin/settings/<?= $g ?>"><?= $label ?></a>
     </li>
@@ -51,6 +51,16 @@
                     <input type="text" name="<?= esc($s['key']) ?>" class="form-control form-control-sm"
                            value="<?= esc($s['value']) ?>" placeholder="uploads/media/... 경로 입력">
                     <div class="form-text">미디어 라이브러리에서 이미지 경로를 복사하세요.</div>
+                <?php elseif ($s['type'] === 'boolean'): ?>
+                    <div class="form-check form-switch">
+                        <input type="hidden" name="<?= esc($s['key']) ?>" value="0">
+                        <input class="form-check-input" type="checkbox"
+                               name="<?= esc($s['key']) ?>" value="1" role="switch"
+                               id="chk_<?= esc($s['key']) ?>" <?= $s['value'] ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="chk_<?= esc($s['key']) ?>">
+                            <?= $s['value'] ? '표시' : '숨김' ?>
+                        </label>
+                    </div>
                 <?php elseif ($s['type'] === 'select'): ?>
                     <?php
                     $selectOptions = [

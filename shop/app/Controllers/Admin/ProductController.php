@@ -62,7 +62,7 @@ class ProductController extends BaseController
         $db        = \Config\Database::connect();
         $rows      = $db->table('products')
             ->select('products.id, products.name, products.slug, products.price, products.discount_price,
-                      products.stock, products.status, products.created_at, categories.name AS category_name')
+                      products.stock, products.status, products.is_featured, products.created_at, categories.name AS category_name')
             ->join('categories', 'categories.id = products.category_id', 'left')
             ->where('products.deleted_at IS NULL')
             ->orderBy('products.id', 'DESC')
@@ -82,6 +82,7 @@ class ProductController extends BaseController
             'primary_image'  => $p['primary_image'] ?? '',
             'created_at'     => $p['created_at'],
             'is_low_stock'   => (int) ($p['stock'] <= $threshold),
+            'is_featured'    => (int) $p['is_featured'],
         ], $rows);
 
         return $this->response->setJSON(['data' => $data]);
@@ -166,6 +167,17 @@ class ProductController extends BaseController
         );
 
         return $this->response->setJSON(['success' => true, 'stock' => $newStock]);
+    }
+
+    public function toggleFeatured(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $product = $this->productModel->find($id);
+        if (! $product) {
+            return $this->response->setJSON(['success' => false, 'message' => '상품을 찾을 수 없습니다.']);
+        }
+        $newVal = $product['is_featured'] ? 0 : 1;
+        $this->productModel->update($id, ['is_featured' => $newVal]);
+        return $this->response->setJSON(['success' => true, 'is_featured' => $newVal]);
     }
 
     public function create(): string

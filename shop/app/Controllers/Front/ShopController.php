@@ -56,26 +56,32 @@ class ShopController extends BaseController
 
     public function welcome(): string
     {
+        $s           = $this->viewData['settings'] ?? [];
         $bannerModel = new BannerModel();
 
-        $newProducts = $this->productModel->getLatest(8);
-        $this->imageModel->attachPrimaryImages($newProducts);
+        $newCount      = max(1, (int) ($s['welcome_new_count']      ?? 8));
+        $discountCount = max(1, (int) ($s['welcome_discount_count'] ?? 8));
+        $featuredCount = max(1, (int) ($s['welcome_featured_count'] ?? 8));
 
-        $discountedProducts = $this->productModel->getDiscounted(8);
-        $this->imageModel->attachPrimaryImages($discountedProducts);
+        $newProducts = ($s['welcome_show_new'] ?? '1') ? $this->productModel->getLatest($newCount) : [];
+        if ($newProducts) $this->imageModel->attachPrimaryImages($newProducts);
 
-        $featuredProducts = $this->productModel->getFeatured(8);
-        $this->imageModel->attachPrimaryImages($featuredProducts);
+        $discountedProducts = ($s['welcome_show_discount'] ?? '1') ? $this->productModel->getDiscounted($discountCount) : [];
+        if ($discountedProducts) $this->imageModel->attachPrimaryImages($discountedProducts);
 
-        $categories = $this->categoryModel->getTree();
+        $featuredProducts = ($s['welcome_show_featured'] ?? '1') ? $this->productModel->getFeatured($featuredCount) : [];
+        if ($featuredProducts) $this->imageModel->attachPrimaryImages($featuredProducts);
+
+        $categories = ($s['welcome_show_categories'] ?? '1') ? $this->categoryModel->getTree() : [];
 
         return $this->render('shop/welcome', [
-            'heroBanners'        => $bannerModel->getActiveByPosition('main_top'),
-            'mainBotBanners'     => $bannerModel->getActiveByPosition('main_bottom'),
+            'heroBanners'        => ($s['welcome_show_hero'] ?? '1')          ? $bannerModel->getActiveByPosition('main_top')    : [],
+            'mainBotBanners'     => ($s['welcome_show_bottom_banner'] ?? '1') ? $bannerModel->getActiveByPosition('main_bottom') : [],
             'newProducts'        => $newProducts,
             'discountedProducts' => $discountedProducts,
             'featuredProducts'   => $featuredProducts,
             'categories'         => $categories,
+            'wcfg'               => $s,
         ]);
     }
 

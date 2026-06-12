@@ -66,6 +66,11 @@
 </section>
 <?php endif; ?>
 
+<?php
+$featuredTitle  = $wcfg['welcome_featured_title']  ?? '기획전';
+$newTitle       = $wcfg['welcome_new_title']        ?? '신상품';
+$discountTitle  = $wcfg['welcome_discount_title']   ?? '할인 상품';
+?>
 <!-- ── 기획전 상품 ─────────────────────────────────────────────────────────── -->
 <?php if (!empty($featuredProducts)): ?>
 <section class="py-5">
@@ -73,7 +78,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <span class="badge bg-danger me-2">PICK</span>
-                <span class="fw-bold fs-5">기획전</span>
+                <span class="fw-bold fs-5"><?= esc($featuredTitle) ?></span>
             </div>
             <a href="/shop" class="text-decoration-none small text-muted">전체보기 <i class="bi bi-chevron-right"></i></a>
         </div>
@@ -136,7 +141,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <span class="badge bg-dark me-2">NEW</span>
-                <span class="fw-bold fs-5">신상품</span>
+                <span class="fw-bold fs-5"><?= esc($newTitle) ?></span>
             </div>
             <a href="/shop" class="text-decoration-none small text-muted">전체보기 <i class="bi bi-chevron-right"></i></a>
         </div>
@@ -198,7 +203,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <span class="badge bg-danger me-2">SALE</span>
-                <span class="fw-bold fs-5">할인 상품</span>
+                <span class="fw-bold fs-5"><?= esc($discountTitle) ?></span>
             </div>
             <a href="/shop" class="text-decoration-none small text-muted">전체보기 <i class="bi bi-chevron-right"></i></a>
         </div>

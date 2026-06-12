@@ -52,7 +52,7 @@ class SettingController extends BaseController
             ]);
         }
 
-        $allowed = ['general', 'contact', 'sns', 'seo', 'footer', 'shop', 'grade'];
+        $allowed = ['general', 'contact', 'sns', 'seo', 'footer', 'shop', 'grade', 'welcome'];
         if (! in_array($group, $allowed)) $group = 'general';
 
         return $this->render('admin/settings/index', [
