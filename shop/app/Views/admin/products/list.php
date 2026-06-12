@@ -179,6 +179,9 @@
         defaultColDef: { sortable: true, filter: true, resizable: true },
         rowSelection: 'multiple',
         rowHeight: 60,
+        pagination: true,
+        paginationPageSize: 20,
+        paginationPageSizeSelector: [20, 50, 100],
         suppressRowClickSelection: true,
         isExternalFilterPresent: function() { return statusFilterVal !== '' || lowStockOnly; },
         doesExternalFilterPass: function(node) {

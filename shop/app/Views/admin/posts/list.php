@@ -75,6 +75,9 @@
         ],
         defaultColDef: { sortable: true, filter: true, resizable: true },
         rowHeight: 46,
+        pagination: true,
+        paginationPageSize: 20,
+        paginationPageSizeSelector: [20, 50, 100],
         isExternalFilterPresent: function() { return boardFilterVal !== ''; },
         doesExternalFilterPass: function(node) { return node.data.board_name === boardFilterVal; },
         onModelUpdated: function(e) {

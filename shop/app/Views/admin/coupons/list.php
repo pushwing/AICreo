@@ -121,6 +121,9 @@
         ],
         defaultColDef: { sortable: true, filter: true, resizable: true },
         rowHeight: 50,
+        pagination: true,
+        paginationPageSize: 20,
+        paginationPageSizeSelector: [20, 50, 100],
         isExternalFilterPresent: function() { return activeFilterVal !== ''; },
         doesExternalFilterPass: function(node) {
             return String(node.data.is_active) === activeFilterVal;
