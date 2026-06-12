@@ -134,6 +134,25 @@
                                 <?php endif; ?>
                             </div>
                         </a>
+                        <!-- 빠른 장바구니 -->
+                        <?php if (! $isSoldOut): ?>
+                            <?php if ($p['has_options']): ?>
+                            <a href="/shop/<?= esc($p['slug']) ?>"
+                               class="btn btn-sm btn-outline-secondary w-100 py-2"
+                               style="border-radius:0 0 calc(.375rem - 1px) calc(.375rem - 1px)">
+                                <i class="bi bi-bag"></i> 옵션 선택
+                            </a>
+                            <?php else: ?>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary w-100 py-2 btn-quick-cart"
+                                    style="border-radius:0 0 calc(.375rem - 1px) calc(.375rem - 1px)"
+                                    data-product-id="<?= $p['id'] ?>"
+                                    data-csrf="<?= csrf_token() ?>"
+                                    data-csrf-val="<?= csrf_hash() ?>">
+                                <i class="bi bi-cart-plus"></i> 담기
+                            </button>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -165,6 +184,63 @@
 
 <?= $this->section('scripts') ?>
 <script>
+document.querySelectorAll('.btn-quick-cart').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var productId = btn.dataset.productId;
+        var csrfName  = btn.dataset.csrf;
+        var csrfVal   = btn.dataset.csrfVal;
+
+        btn.disabled = true;
+        var original = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'product_id=' + productId + '&qty=1&' + csrfName + '=' + encodeURIComponent(csrfVal)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.csrf_hash) {
+                document.querySelectorAll('.btn-quick-cart').forEach(function(b) {
+                    b.dataset.csrfVal = data.csrf_hash;
+                });
+            }
+            if (data.success) {
+                btn.innerHTML = '<i class="bi bi-check2"></i> 담김';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-success');
+                // 카트 카운트 업데이트
+                var badge = document.getElementById('cartBadge');
+                if (badge && data.cartCount !== undefined) {
+                    badge.textContent = data.cartCount;
+                    badge.style.display = data.cartCount > 0 ? '' : 'none';
+                }
+                setTimeout(function() {
+                    btn.innerHTML = original;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-primary');
+                    btn.disabled = false;
+                }, 1500);
+            } else {
+                btn.innerHTML = original;
+                btn.disabled = false;
+                alert(data.message || '장바구니 담기에 실패했습니다.');
+            }
+        })
+        .catch(function() {
+            btn.innerHTML = original;
+            btn.disabled = false;
+        });
+    });
+});
+
 document.querySelectorAll('.btn-wish').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
         e.preventDefault();

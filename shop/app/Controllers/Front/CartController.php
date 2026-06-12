@@ -132,6 +132,7 @@ class CartController extends BaseController
             'success'   => true,
             'message'   => '장바구니에 담겼습니다.',
             'cartCount' => $count,
+            'csrf_hash' => csrf_hash(),
         ]);
     }
 
