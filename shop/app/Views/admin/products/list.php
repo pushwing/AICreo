@@ -3,6 +3,14 @@
 
 <?= $this->section('content') ?>
 
+<!-- 일괄 처리용 히든 폼 (테이블과 별도 — 중첩 form 방지) -->
+<form id="bulkForm" method="post" action="/admin/products/bulk">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" id="bulkAction">
+    <input type="hidden" name="status" id="bulkStatusVal">
+    <input type="hidden" name="stock"  id="bulkStockVal">
+</form>
+
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <form method="get" action="/admin/products" class="d-flex gap-2 flex-wrap align-items-center">
         <input type="text" name="keyword" class="form-control form-control-sm" style="width:180px"
@@ -13,7 +21,6 @@
             <option value="<?= esc($val) ?>" <?= ($curStatus ?? '') === $val ? 'selected' : '' ?>><?= esc($label) ?></option>
             <?php endforeach; ?>
         </select>
-        <!-- 재고 부족 필터 탭 -->
         <?php $isLowStock = ($curStock ?? '') === 'low'; ?>
         <input type="hidden" name="stock" value="<?= $isLowStock ? 'low' : '' ?>">
         <a href="/admin/products?stock=<?= $isLowStock ? '' : 'low' ?><?= $keyword ? '&keyword='.urlencode($keyword) : '' ?>"
@@ -38,11 +45,45 @@
     </div>
 </div>
 
+<!-- 일괄 편집 액션 바 (1개 이상 선택 시 표시) -->
+<div id="bulkBar" class="card mb-3 border-primary d-none">
+    <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-3">
+        <span class="fw-semibold text-primary small"><span id="bulkCount">0</span>개 선택됨</span>
+        <div class="vr"></div>
+        <!-- 상태 변경 -->
+        <div class="d-flex align-items-center gap-1">
+            <span class="small text-muted">상태:</span>
+            <select id="bulkStatusSel" class="form-select form-select-sm" style="width:100px">
+                <?php foreach ($statuses as $val => $label): ?>
+                <option value="<?= esc($val) ?>"><?= esc($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button class="btn btn-sm btn-outline-primary" onclick="submitBulk('status')">변경</button>
+        </div>
+        <div class="vr"></div>
+        <!-- 재고 설정 -->
+        <div class="d-flex align-items-center gap-1">
+            <span class="small text-muted">재고:</span>
+            <input id="bulkStockInput" type="number" min="0" class="form-control form-control-sm" style="width:80px" placeholder="0">
+            <button class="btn btn-sm btn-outline-primary" onclick="submitBulk('stock')">설정</button>
+        </div>
+        <div class="vr"></div>
+        <!-- 삭제 -->
+        <button class="btn btn-sm btn-outline-danger" onclick="submitBulk('delete')">
+            <i class="bi bi-trash me-1"></i>삭제
+        </button>
+        <button class="btn btn-sm btn-link text-muted ms-auto p-0" onclick="clearSelection()">선택 해제</button>
+    </div>
+</div>
+
 <div class="card overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle">
             <thead class="table-light">
                 <tr>
+                    <th style="width:40px">
+                        <input type="checkbox" id="checkAll" class="form-check-input">
+                    </th>
                     <th style="width:60px">이미지</th>
                     <th>상품명</th>
                     <th>카테고리</th>
@@ -55,10 +96,13 @@
             </thead>
             <tbody>
                 <?php if (empty($items)): ?>
-                <tr><td colspan="8" class="text-center text-muted py-4">등록된 상품이 없습니다.</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">등록된 상품이 없습니다.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($items as $p): ?>
                 <tr>
+                    <td>
+                        <input type="checkbox" class="form-check-input rowCheck" value="<?= $p['id'] ?>">
+                    </td>
                     <td>
                         <?php if (! empty($p['primary_image'])): ?>
                         <img src="<?= esc($p['primary_image']) ?>" alt=""
@@ -138,6 +182,7 @@
 <?= $this->section('scripts') ?>
 <script>
 (function () {
+    /* ── 인라인 재고 편집 (기존) ── */
     var threshold = <?= (int) ($lowStockThreshold ?? 5) ?>;
 
     document.querySelectorAll('.stock-display').forEach(function (span) {
@@ -182,7 +227,7 @@
 
     document.querySelectorAll('.stock-input').forEach(function (input) {
         input.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); saveStock(input); }
+            if (e.key === 'Enter')  { e.preventDefault(); saveStock(input); }
             if (e.key === 'Escape') {
                 input.classList.add('d-none');
                 document.querySelector('.stock-display[data-id="' + input.dataset.id + '"]').classList.remove('d-none');
@@ -190,6 +235,70 @@
         });
         input.addEventListener('blur', function () { saveStock(input); });
     });
+
+    /* ── 일괄 편집 체크박스 ── */
+    var checkAll = document.getElementById('checkAll');
+    var bulkBar  = document.getElementById('bulkBar');
+    var bulkCount = document.getElementById('bulkCount');
+
+    function getChecked() {
+        return Array.from(document.querySelectorAll('.rowCheck:checked'));
+    }
+
+    function updateBar() {
+        var checked = getChecked();
+        bulkCount.textContent = checked.length;
+        bulkBar.classList.toggle('d-none', checked.length === 0);
+        checkAll.indeterminate = checked.length > 0 && checked.length < document.querySelectorAll('.rowCheck').length;
+        checkAll.checked = checked.length > 0 && checked.length === document.querySelectorAll('.rowCheck').length;
+    }
+
+    checkAll.addEventListener('change', function () {
+        document.querySelectorAll('.rowCheck').forEach(function (cb) { cb.checked = checkAll.checked; });
+        updateBar();
+    });
+
+    document.querySelectorAll('.rowCheck').forEach(function (cb) {
+        cb.addEventListener('change', updateBar);
+    });
 }());
+
+/* ── 일괄 액션 제출 ── */
+function submitBulk(action) {
+    var checked = Array.from(document.querySelectorAll('.rowCheck:checked'));
+    if (checked.length === 0) { alert('상품을 선택해주세요.'); return; }
+
+    if (action === 'status') {
+        document.getElementById('bulkStatusVal').value = document.getElementById('bulkStatusSel').value;
+    }
+    if (action === 'stock') {
+        var s = document.getElementById('bulkStockInput').value.trim();
+        if (s === '' || parseInt(s, 10) < 0) { alert('재고 수량을 올바르게 입력해주세요.'); return; }
+        document.getElementById('bulkStockVal').value = s;
+    }
+    if (action === 'delete') {
+        if (!confirm(checked.length + '개 상품을 삭제하시겠습니까?')) return;
+    }
+
+    var form = document.getElementById('bulkForm');
+    document.getElementById('bulkAction').value = action;
+
+    // 기존 IDs 제거 후 재추가
+    form.querySelectorAll('input[name="ids[]"]').forEach(function (el) { el.remove(); });
+    checked.forEach(function (cb) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'ids[]'; inp.value = cb.value;
+        form.appendChild(inp);
+    });
+
+    form.submit();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.rowCheck').forEach(function (cb) { cb.checked = false; });
+    document.getElementById('checkAll').checked = false;
+    document.getElementById('checkAll').indeterminate = false;
+    document.getElementById('bulkBar').classList.add('d-none');
+}
 </script>
 <?= $this->endSection() ?>
