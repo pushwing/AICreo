@@ -25,6 +25,7 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('styles') ?>
+<link rel="stylesheet" href="/vendor/ag-grid/ag-grid.css">
 <link rel="stylesheet" href="/vendor/ag-grid/ag-theme-alpine.css">
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
