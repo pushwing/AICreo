@@ -315,6 +315,47 @@ class OrderController extends BaseController
             ->with($ok ? 'success' : 'error', $ok ? '교환 완료 처리되었습니다.' : '교환 완료 처리에 실패했습니다.');
     }
 
+    /** GET /admin/orders/tracking-export — 송장 입력용 주문 CSV 다운로드 */
+    public function trackingExport(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $status = $this->request->getGet('status') ?: 'all';
+
+        $db     = \Config\Database::connect();
+        $builder = $db->table('orders o')
+            ->select('o.order_number, o.receiver_name, o.status, o.tracking_company, o.tracking_number')
+            ->orderBy('o.id', 'DESC');
+
+        if ($status !== 'all') {
+            $builder->where('o.status', $status);
+        } else {
+            $builder->whereIn('o.status', ['paid', 'preparing', 'shipped']);
+        }
+
+        $orders = $builder->get()->getResultArray();
+
+        $statusLabels = self::STATUS_LABELS;
+
+        $lines   = [];
+        $lines[] = "\xEF\xBB\xBF" . implode(',', ['주문번호', '수취인', '상태', '배송업체', '송장번호']);
+
+        foreach ($orders as $order) {
+            $lines[] = implode(',', [
+                $order['order_number'],
+                $order['receiver_name'],
+                $statusLabels[$order['status']] ?? $order['status'],
+                $order['tracking_company'] ?? '',
+                $order['tracking_number']  ?? '',
+            ]);
+        }
+
+        $filename = '송장입력_' . date('Ymd_His') . '.csv';
+
+        return $this->response
+            ->setHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . rawurlencode($filename) . '"')
+            ->setBody(implode("\n", $lines));
+    }
+
     /** GET /admin/orders/tracking-template — CSV 양식 다운로드 */
     public function trackingTemplate(): \CodeIgniter\HTTP\ResponseInterface
     {
