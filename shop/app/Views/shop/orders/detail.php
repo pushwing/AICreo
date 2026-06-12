@@ -264,9 +264,10 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
 
     <!-- 교환 상태 안내 -->
     <?php if (in_array($order['status'], ['exchange_requested', 'exchange_approved', 'exchange_completed'], true) && ! empty($order['exchange_reason'])): ?>
+    <?php $exchPayer = $exchangeReasonPayer ?? null; ?>
     <div class="alert alert-<?= $order['status'] === 'exchange_completed' ? 'success' : ($order['status'] === 'exchange_approved' ? 'info' : 'warning') ?> d-flex gap-2 mb-3">
         <i class="bi bi-arrow-left-right fs-5 flex-shrink-0"></i>
-        <div>
+        <div class="w-100">
             <div class="fw-semibold small">
                 <?php if ($order['status'] === 'exchange_requested'): ?>교환 신청 사유
                 <?php elseif ($order['status'] === 'exchange_approved'): ?>교환 승인 — 대체품 발송 준비 중
@@ -276,6 +277,21 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
             <div class="small mt-1"><?= esc($order['exchange_reason']) ?></div>
             <?php if (! empty($order['exchange_request_note'])): ?>
             <div class="small text-muted mt-1">요청 내용: <?= esc($order['exchange_request_note']) ?></div>
+            <?php endif; ?>
+            <?php if ($exchPayer): ?>
+            <div class="small mt-2 <?= $exchPayer === 'seller' ? 'text-info' : 'text-muted' ?>">
+                <i class="bi bi-truck me-1"></i>
+                <?= $exchPayer === 'seller' ? '교환 택배비: 판매자 부담' : '교환 택배비: 구매자 부담 (고객 직접 발송)' ?>
+            </div>
+            <?php endif; ?>
+            <?php if ($order['status'] === 'exchange_completed' && ! empty($order['exchange_tracking_number'])): ?>
+            <div class="small mt-2 text-success">
+                <i class="bi bi-truck me-1"></i>교환품 발송:
+                <?php if (! empty($order['exchange_tracking_company'])): ?>
+                <?= esc($order['exchange_tracking_company']) ?> &nbsp;
+                <?php endif; ?>
+                <?= esc($order['exchange_tracking_number']) ?>
+            </div>
             <?php endif; ?>
         </div>
     </div>
@@ -372,14 +388,28 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small mb-3">교환 사유를 입력해주세요. 관리자 확인 후 처리됩니다.</p>
-                    <textarea id="exchangeReason" class="form-control mb-2" rows="3"
-                              placeholder="교환 사유를 입력해주세요 (예: 사이즈 불일치, 색상 변경 등)"
-                              maxlength="500"></textarea>
-                    <div class="text-end text-muted small mb-3"><span id="exchangeReasonLen">0</span>/500</div>
-                    <textarea id="exchangeNote" class="form-control" rows="2"
-                              placeholder="원하는 교환 내용 (예: L→M 사이즈, 파랑→검정 색상) — 선택 사항"
-                              maxlength="1000"></textarea>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">교환 사유 <span class="text-danger">*</span></label>
+                        <select id="exchangeReasonCode" class="form-select">
+                            <option value="">사유를 선택해주세요</option>
+                            <?php foreach ($exchangeReasonCodes ?? [] as $code => $meta): ?>
+                            <option value="<?= $code ?>" data-payer="<?= $meta['payer'] ?>"><?= esc($meta['label']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- 배송비 부담 안내 -->
+                    <div id="exchangeShippingNotice" class="alert small py-2 mb-3 d-none">
+                        <i class="bi bi-truck me-1"></i><span id="exchangeShippingText"></span>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label small fw-semibold">요청 내용 <span class="text-muted fw-normal">(선택)</span></label>
+                        <textarea id="exchangeNote" class="form-control" rows="3"
+                                  placeholder="원하는 교환 내용을 입력해주세요 (예: L→M 사이즈, 파랑→검정 색상)"
+                                  maxlength="1000"></textarea>
+                        <div class="text-end text-muted small mt-1"><span id="exchangeNoteLen">0</span>/1000</div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
@@ -505,21 +535,41 @@ $isBankTransfer     = ($payment['pg_provider'] ?? '') === 'bank_transfer';
             });
     });
 
-    // 교환 신청
-    document.getElementById('exchangeReason')?.addEventListener('input', function () {
-        document.getElementById('exchangeReasonLen').textContent = this.value.length;
+    // 교환 신청 — 사유 선택 시 배송비 안내 토글
+    document.getElementById('exchangeReasonCode')?.addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        const notice   = document.getElementById('exchangeShippingNotice');
+        const text     = document.getElementById('exchangeShippingText');
+        const payer    = selected.dataset.payer;
+
+        if (! payer) {
+            notice.classList.add('d-none');
+            return;
+        }
+        if (payer === 'seller') {
+            notice.className = 'alert alert-info small py-2 mb-3';
+            text.textContent = '교환 택배비는 판매자가 부담합니다.';
+        } else {
+            notice.className = 'alert alert-warning small py-2 mb-3';
+            text.textContent = '교환 택배비는 구매자가 부담합니다. 상품을 먼저 발송해주세요.';
+        }
+    });
+
+    document.getElementById('exchangeNote')?.addEventListener('input', function () {
+        document.getElementById('exchangeNoteLen').textContent = this.value.length;
     });
 
     document.getElementById('btnExchangeSubmit')?.addEventListener('click', function () {
-        const reason = document.getElementById('exchangeReason').value.trim();
-        if (! reason) { alert('교환 사유를 입력해주세요.'); return; }
+        const reasonCode = document.getElementById('exchangeReasonCode').value;
+        if (! reasonCode) { alert('교환 사유를 선택해주세요.'); return; }
 
         const btn  = this;
         const body = new FormData();
         body.append(btn.dataset.csrf, btn.dataset.csrfVal);
         body.append('order_id', btn.dataset.orderId);
-        body.append('reason', reason);
-        body.append('note', document.getElementById('exchangeNote').value.trim());
+        body.append('reason_code', reasonCode);
+        const note = document.getElementById('exchangeNote').value.trim();
+        if (note) body.append('note', note);
 
         btn.disabled    = true;
         btn.textContent = '처리 중...';

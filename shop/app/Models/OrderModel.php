@@ -17,7 +17,11 @@ class OrderModel extends Model
         'receiver_name', 'receiver_phone', 'zipcode', 'address1', 'address2', 'delivery_memo',
         'tracking_company', 'tracking_number',
         'paid_at', 'cancelled_at', 'expired_at', 'delivered_at',
-        'return_reason', 'exchange_reason', 'exchange_request_note',
+        'return_reason', 'return_reason_code', 'return_reason_note',
+        'exchange_reason', 'exchange_reason_code', 'exchange_request_note',
+        'exchange_return_tracking_company', 'exchange_return_tracking_number',
+        'exchange_tracking_company', 'exchange_tracking_number',
+        'exchange_seller_shipping_fee',
     ];
 
     public const STATUS_LABELS = [
@@ -556,6 +560,15 @@ class OrderModel extends Model
         return $this->db->transStatus();
     }
 
+    /** 교환 사유 코드 목록 */
+    public const EXCHANGE_REASON_CODES = [
+        'simple_change' => ['label' => '단순 변심',               'payer' => 'buyer'],
+        'wrong_size'    => ['label' => '사이즈/색상 오선택',        'payer' => 'buyer'],
+        'wrong_item'    => ['label' => '오배송 (잘못된 상품 배송)', 'payer' => 'seller'],
+        'damaged'       => ['label' => '상품 파손/불량',            'payer' => 'seller'],
+        'missing_item'  => ['label' => '구성품 누락',               'payer' => 'seller'],
+    ];
+
     /** 반품 사유 코드 목록 */
     public const RETURN_REASON_CODES = [
         'simple_change' => ['label' => '단순 변심',               'payer' => 'buyer'],
@@ -688,8 +701,10 @@ class OrderModel extends Model
     }
 
     /** 교환 요청 — delivered + 7일 이내, 쿠폰·포인트 미변경 */
-    public function requestExchange(int $orderId, int $userId, string $reason, string $note = ''): bool
+    public function requestExchange(int $orderId, int $userId, string $reasonCode, string $note = ''): bool
     {
+        if (! array_key_exists($reasonCode, self::EXCHANGE_REASON_CODES)) return false;
+
         $order = $this->db->table('orders')
             ->where('id', $orderId)
             ->where('user_id', $userId)
@@ -704,15 +719,19 @@ class OrderModel extends Model
             }
         }
 
+        $label = self::EXCHANGE_REASON_CODES[$reasonCode]['label'];
+
         $this->db->transStart();
 
         $this->db->table('orders')->where('id', $orderId)->update([
             'status'                => 'exchange_requested',
-            'exchange_reason'       => $reason,
+            'exchange_reason'       => $label,
+            'exchange_reason_code'  => $reasonCode,
             'exchange_request_note' => $note ?: null,
         ]);
 
-        $this->writeStatusLog($orderId, 'delivered', 'exchange_requested', '회원 교환 요청: ' . mb_substr($reason, 0, 100));
+        $logNote = '회원 교환 요청: ' . $label . ($note !== '' ? ' / ' . mb_substr($note, 0, 80) : '');
+        $this->writeStatusLog($orderId, 'delivered', 'exchange_requested', $logNote);
 
         $this->db->transComplete();
         return $this->db->transStatus();
@@ -756,11 +775,14 @@ class OrderModel extends Model
     }
 
     /**
-     * 교환 완료 — 대체품 정보 저장 + 재고 차감
+     * 교환 완료 — 대체품 정보 저장 + 재고 차감 + 송장 기록
      *
      * @param array $exchangeItems [['product_id','sku_id','product_name','sku_option_label','product_price','qty'], ...]
+     * @param array $tracking      ['exchange_tracking_company','exchange_tracking_number',
+     *                              'exchange_return_tracking_company','exchange_return_tracking_number',
+     *                              'exchange_seller_shipping_fee']
      */
-    public function completeExchange(int $orderId, array $exchangeItems): bool
+    public function completeExchange(int $orderId, array $exchangeItems, array $tracking = []): bool
     {
         $order = $this->where('id', $orderId)->where('status', 'exchange_approved')->first();
         if (! $order) return false;
@@ -805,7 +827,25 @@ class OrderModel extends Model
             }
         }
 
-        $this->db->table('orders')->where('id', $orderId)->update(['status' => 'exchange_completed']);
+        $updateData = ['status' => 'exchange_completed'];
+
+        if (! empty($tracking['exchange_tracking_company'])) {
+            $updateData['exchange_tracking_company'] = $tracking['exchange_tracking_company'];
+        }
+        if (! empty($tracking['exchange_tracking_number'])) {
+            $updateData['exchange_tracking_number'] = $tracking['exchange_tracking_number'];
+        }
+        if (! empty($tracking['exchange_return_tracking_company'])) {
+            $updateData['exchange_return_tracking_company'] = $tracking['exchange_return_tracking_company'];
+        }
+        if (! empty($tracking['exchange_return_tracking_number'])) {
+            $updateData['exchange_return_tracking_number'] = $tracking['exchange_return_tracking_number'];
+        }
+        if (! empty($tracking['exchange_seller_shipping_fee'])) {
+            $updateData['exchange_seller_shipping_fee'] = (int) $tracking['exchange_seller_shipping_fee'];
+        }
+
+        $this->db->table('orders')->where('id', $orderId)->update($updateData);
 
         $this->writeStatusLog($orderId, 'exchange_approved', 'exchange_completed', '교환 완료 (대체품 발송 확인)');
 

@@ -193,13 +193,17 @@ class OrderController extends BaseController
         $rCode             = $order['return_reason_code'] ?? null;
         $returnReasonPayer = $rCode ? (\App\Models\OrderModel::RETURN_REASON_CODES[$rCode]['payer'] ?? null) : null;
 
+        $eCode               = $order['exchange_reason_code'] ?? null;
+        $exchangeReasonPayer = $eCode ? (\App\Models\OrderModel::EXCHANGE_REASON_CODES[$eCode]['payer'] ?? null) : null;
+
         return $this->render('admin/orders/detail', [
-            'order'             => $order,
-            'statusLabels'      => self::STATUS_LABELS,
-            'nextStatus'        => self::NEXT_STATUS,
-            'returnReasonPayer' => $returnReasonPayer,
-            'memos'             => $this->memoModel->getByOrder($id),
-            'carriers'          => $carriers,
+            'order'               => $order,
+            'statusLabels'        => self::STATUS_LABELS,
+            'nextStatus'          => self::NEXT_STATUS,
+            'returnReasonPayer'   => $returnReasonPayer,
+            'exchangeReasonPayer' => $exchangeReasonPayer,
+            'memos'               => $this->memoModel->getByOrder($id),
+            'carriers'            => $carriers,
         ]);
     }
 
@@ -313,7 +317,7 @@ class OrderController extends BaseController
             ->with($ok ? 'success' : 'error', $ok ? '교환이 거부되었습니다.' : '교환 거부에 실패했습니다.');
     }
 
-    /** POST /admin/orders/:id/exchange-complete — 교환 완료 (대체품 지정 + 재고 차감) */
+    /** POST /admin/orders/:id/exchange-complete — 교환 완료 (대체품 지정 + 재고 차감 + 송장) */
     public function completeExchange(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $json  = $this->request->getPost('exchange_items_json') ?? '[]';
@@ -323,7 +327,20 @@ class OrderController extends BaseController
             return redirect()->to("/admin/orders/{$id}")->with('error', '대체품을 1개 이상 선택해주세요.');
         }
 
-        $ok = $this->orderModel->completeExchange($id, $items);
+        $exchangeTrackingNumber = trim($this->request->getPost('exchange_tracking_number') ?? '');
+        if ($exchangeTrackingNumber === '') {
+            return redirect()->to("/admin/orders/{$id}")->with('error', '교환품 발송 송장번호를 입력해주세요.');
+        }
+
+        $tracking = [
+            'exchange_tracking_company'        => trim($this->request->getPost('exchange_tracking_company')        ?? ''),
+            'exchange_tracking_number'         => $exchangeTrackingNumber,
+            'exchange_return_tracking_company' => trim($this->request->getPost('exchange_return_tracking_company') ?? ''),
+            'exchange_return_tracking_number'  => trim($this->request->getPost('exchange_return_tracking_number')  ?? ''),
+            'exchange_seller_shipping_fee'     => (int) ($this->request->getPost('exchange_seller_shipping_fee')   ?? 0),
+        ];
+
+        $ok = $this->orderModel->completeExchange($id, $items, $tracking);
 
         $msg = $ok ? '교환 완료 처리되었습니다.' : '대체품 합계가 원주문 금액과 다르거나 재고가 부족합니다.';
         return redirect()->to("/admin/orders/{$id}")->with($ok ? 'success' : 'error', $msg);

@@ -394,7 +394,12 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
             <div class="card-body">
                 <?php if (! empty($order['exchange_reason'])): ?>
                 <p class="text-muted small mb-2">
-                    <strong>교환 사유:</strong><br><?= esc($order['exchange_reason']) ?>
+                    <strong>교환 사유:</strong> <?= esc($order['exchange_reason']) ?>
+                    <?php if ($exchangeReasonPayer): ?>
+                    <span class="badge <?= $exchangeReasonPayer === 'seller' ? 'bg-info' : 'bg-secondary' ?> ms-1">
+                        <?= $exchangeReasonPayer === 'seller' ? '판매자 배송비 부담' : '구매자 배송비 부담' ?>
+                    </span>
+                    <?php endif; ?>
                 </p>
                 <?php endif; ?>
                 <?php if (! empty($order['exchange_request_note'])): ?>
@@ -475,10 +480,43 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
                     </table>
                 </div>
 
+                <!-- 송장 입력 -->
+                <?php if ($exchangeReasonPayer === 'seller'): ?>
+                <div class="mb-3 p-2 bg-info bg-opacity-10 rounded">
+                    <div class="small fw-semibold text-info mb-2">
+                        <i class="bi bi-truck me-1"></i>수거 송장 (판매자 귀책 — 수거 택배 정보)
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                        <input type="text" id="exchReturnCompany" class="form-control" placeholder="택배사">
+                        <input type="text" id="exchReturnNumber" class="form-control" placeholder="수거 운송장 번호">
+                    </div>
+                    <div class="small fw-semibold text-muted mt-2 mb-1">
+                        <i class="bi bi-cash me-1"></i>회사 부담 배송비 <span class="fw-normal">(정산용)</span>
+                    </div>
+                    <input type="number" id="exchSellerFee" class="form-control form-control-sm" placeholder="금액 (원)" min="0">
+                </div>
+                <?php endif; ?>
+                <div class="mb-3">
+                    <div class="small fw-semibold mb-1">
+                        <i class="bi bi-box-seam me-1"></i>교환품 발송 송장 <span class="text-danger">*</span>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="exchTrackingCompany" class="form-control" placeholder="택배사 (예: CJ대한통운)">
+                        <input type="text" id="exchTrackingNumber" class="form-control" placeholder="운송장 번호">
+                    </div>
+                </div>
+
                 <!-- 제출 -->
                 <form method="post" action="/admin/orders/<?= (int) $order['id'] ?>/exchange-complete" id="exchCompleteForm">
                     <?= csrf_field() ?>
                     <input type="hidden" name="exchange_items_json" id="exchItemsJson" value="[]">
+                    <input type="hidden" name="exchange_tracking_company" id="exchTrackingCompanyHidden">
+                    <input type="hidden" name="exchange_tracking_number" id="exchTrackingNumberHidden">
+                    <?php if ($exchangeReasonPayer === 'seller'): ?>
+                    <input type="hidden" name="exchange_return_tracking_company" id="exchReturnCompanyHidden">
+                    <input type="hidden" name="exchange_return_tracking_number" id="exchReturnNumberHidden">
+                    <input type="hidden" name="exchange_seller_shipping_fee" id="exchSellerFeeHidden">
+                    <?php endif; ?>
                     <button type="submit" class="btn btn-info w-100" id="btnExchComplete" disabled>
                         <i class="bi bi-check2-all me-1"></i>교환 완료 처리
                     </button>
@@ -620,6 +658,24 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
 
             // ── 제출 확인 ─────────────────────────────────────────────────
             document.getElementById('exchCompleteForm').addEventListener('submit', function (e) {
+                const trackingNumber = document.getElementById('exchTrackingNumber')?.value.trim() ?? '';
+                if (! trackingNumber) {
+                    e.preventDefault();
+                    alert('교환품 발송 송장번호를 입력해주세요.');
+                    return;
+                }
+
+                // hidden 필드 동기화
+                document.getElementById('exchTrackingCompanyHidden').value = document.getElementById('exchTrackingCompany')?.value.trim() ?? '';
+                document.getElementById('exchTrackingNumberHidden').value  = trackingNumber;
+
+                const retComp = document.getElementById('exchReturnCompanyHidden');
+                if (retComp) {
+                    retComp.value = document.getElementById('exchReturnCompany')?.value.trim() ?? '';
+                    document.getElementById('exchReturnNumberHidden').value  = document.getElementById('exchReturnNumber')?.value.trim()  ?? '';
+                    document.getElementById('exchSellerFeeHidden').value     = document.getElementById('exchSellerFee')?.value           ?? '0';
+                }
+
                 if (! confirm('대체품 발송 내역을 저장하고 교환 완료 처리하시겠습니까?')) e.preventDefault();
             });
 
@@ -653,6 +709,31 @@ $canConfirmBank     = $isBankTransfer && $currentStatus === 'awaiting_payment';
             <div class="card-header fw-semibold bg-white">
                 <i class="bi bi-arrow-left-right me-1"></i>대체품 발송 내역
             </div>
+            <?php if (! empty($order['exchange_tracking_number']) || ! empty($order['exchange_return_tracking_number']) || ! empty($order['exchange_seller_shipping_fee'])): ?>
+            <div class="card-body pb-0 small text-muted">
+                <?php if (! empty($order['exchange_tracking_number'])): ?>
+                <div class="mb-1">
+                    <strong>교환품 발송:</strong>
+                    <?= esc($order['exchange_tracking_company'] ?? '') ?>
+                    <?= esc($order['exchange_tracking_number']) ?>
+                </div>
+                <?php endif; ?>
+                <?php if (! empty($order['exchange_return_tracking_number'])): ?>
+                <div class="mb-1">
+                    <strong>수거 송장:</strong>
+                    <?= esc($order['exchange_return_tracking_company'] ?? '') ?>
+                    <?= esc($order['exchange_return_tracking_number']) ?>
+                </div>
+                <?php endif; ?>
+                <?php if (! empty($order['exchange_seller_shipping_fee'])): ?>
+                <div class="mb-1">
+                    <strong>회사 부담 배송비:</strong>
+                    <?= number_format((int) $order['exchange_seller_shipping_fee']) ?>원
+                    <span class="badge bg-warning text-dark ms-1">정산 대상</span>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
             <div class="table-responsive">
                 <table class="table table-sm mb-0 small">
                     <thead class="table-light">

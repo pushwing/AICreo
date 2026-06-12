@@ -100,11 +100,17 @@ class MyPageController extends BaseController
         $order = $this->orderModel->getWithItems($row['id'], $userId);
 
         $returnReasonCodes = \App\Models\OrderModel::RETURN_REASON_CODES;
-
         $rCode             = $order['return_reason_code'] ?? null;
         $returnReasonPayer = $rCode ? ($returnReasonCodes[$rCode]['payer'] ?? null) : null;
 
-        return $this->render('shop/orders/detail', compact('order', 'returnReasonCodes', 'returnReasonPayer'));
+        $exchangeReasonCodes = \App\Models\OrderModel::EXCHANGE_REASON_CODES;
+        $eCode               = $order['exchange_reason_code'] ?? null;
+        $exchangeReasonPayer = $eCode ? ($exchangeReasonCodes[$eCode]['payer'] ?? null) : null;
+
+        return $this->render('shop/orders/detail', compact(
+            'order', 'returnReasonCodes', 'returnReasonPayer',
+            'exchangeReasonCodes', 'exchangeReasonPayer'
+        ));
     }
 
     /** POST /mypage/orders/confirm-delivery — 배송 완료 확인 */
@@ -290,20 +296,24 @@ class MyPageController extends BaseController
     /** POST /mypage/orders/exchange-request */
     public function requestExchange(): \CodeIgniter\HTTP\ResponseInterface
     {
-        $userId  = (int) session()->get('user_id');
-        $orderId = (int) $this->request->getPost('order_id');
-        $reason  = trim($this->request->getPost('reason') ?? '');
-        $note    = trim($this->request->getPost('note')   ?? '');
+        $userId     = (int) session()->get('user_id');
+        $orderId    = (int) $this->request->getPost('order_id');
+        $reasonCode = trim($this->request->getPost('reason_code') ?? '');
+        $note       = trim($this->request->getPost('note')        ?? '');
 
-        if (! $orderId || $reason === '') {
-            return $this->response->setJSON(['success' => false, 'message' => '교환 사유를 입력해주세요.']);
+        if (! $orderId || $reasonCode === '') {
+            return $this->response->setJSON(['success' => false, 'message' => '교환 사유를 선택해주세요.']);
         }
 
-        if (mb_strlen($reason) > 500) {
-            return $this->response->setJSON(['success' => false, 'message' => '교환 사유는 500자 이내로 입력해주세요.']);
+        if (! array_key_exists($reasonCode, \App\Models\OrderModel::EXCHANGE_REASON_CODES)) {
+            return $this->response->setJSON(['success' => false, 'message' => '올바르지 않은 교환 사유입니다.']);
         }
 
-        $success = $this->orderModel->requestExchange($orderId, $userId, $reason, $note);
+        if ($note !== '' && mb_strlen($note) > 1000) {
+            return $this->response->setJSON(['success' => false, 'message' => '상세 내용은 1000자 이내로 입력해주세요.']);
+        }
+
+        $success = $this->orderModel->requestExchange($orderId, $userId, $reasonCode, $note);
 
         return $this->response->setJSON([
             'success' => $success,
