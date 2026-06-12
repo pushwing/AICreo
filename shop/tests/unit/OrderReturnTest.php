@@ -217,7 +217,7 @@ final class OrderReturnTest extends CIUnitTestCase
         $orderId = $this->insertOrder($userId, 'delivered');
         $db      = db_connect();
 
-        $this->assertTrue($this->model->requestReturn($orderId, $userId, '단순 변심'));
+        $this->assertTrue($this->model->requestReturn($orderId, $userId, 'simple_change'));
 
         $order = $db->table('orders')->where('id', $orderId)->get()->getRowArray();
         $this->assertSame('return_requested', $order['status']);
@@ -229,7 +229,7 @@ final class OrderReturnTest extends CIUnitTestCase
         $userId  = $this->insertUser();
         $orderId = $this->insertOrder($userId, 'paid');
 
-        $this->assertFalse($this->model->requestReturn($orderId, $userId, '변심'));
+        $this->assertFalse($this->model->requestReturn($orderId, $userId, 'simple_change'));
         $this->assertSame('paid',
             db_connect()->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
         );
@@ -241,7 +241,7 @@ final class OrderReturnTest extends CIUnitTestCase
         $otherId = $this->insertUser();
         $orderId = $this->insertOrder($ownerId, 'delivered');
 
-        $this->assertFalse($this->model->requestReturn($orderId, $otherId, '변심'));
+        $this->assertFalse($this->model->requestReturn($orderId, $otherId, 'simple_change'));
     }
 
     public function testRequestReturnFailsAfter7Days(): void
@@ -251,7 +251,7 @@ final class OrderReturnTest extends CIUnitTestCase
             'delivered_at' => date('Y-m-d H:i:s', strtotime('-8 days')),
         ]);
 
-        $this->assertFalse($this->model->requestReturn($orderId, $userId, '변심'));
+        $this->assertFalse($this->model->requestReturn($orderId, $userId, 'simple_change'));
         $this->assertSame('delivered',
             db_connect()->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
         );
@@ -264,7 +264,7 @@ final class OrderReturnTest extends CIUnitTestCase
             'delivered_at' => date('Y-m-d H:i:s', strtotime('-6 days')),
         ]);
 
-        $this->assertTrue($this->model->requestReturn($orderId, $userId, '단순 변심'));
+        $this->assertTrue($this->model->requestReturn($orderId, $userId, 'simple_change'));
     }
 
     // ── approveReturn ─────────────────────────────────────────────────────────

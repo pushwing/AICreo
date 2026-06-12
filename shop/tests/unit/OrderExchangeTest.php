@@ -38,6 +38,7 @@ final class OrderExchangeTest extends CIUnitTestCase
         $db = db_connect();
 
         if ($this->cleanup['orders'] !== []) {
+            $db->table('exchange_items')->whereIn('order_id', $this->cleanup['orders'])->delete();
             $db->table('order_status_logs')->whereIn('order_id', $this->cleanup['orders'])->delete();
             $db->table('order_items')->whereIn('order_id', $this->cleanup['orders'])->delete();
             $db->table('payments')->whereIn('order_id', $this->cleanup['orders'])->delete();
@@ -190,11 +191,11 @@ final class OrderExchangeTest extends CIUnitTestCase
         $orderId = $this->insertOrder($userId, 'delivered');
         $db      = db_connect();
 
-        $this->assertTrue($this->model->requestExchange($orderId, $userId, '사이즈 교환'));
+        $this->assertTrue($this->model->requestExchange($orderId, $userId, 'wrong_size'));
 
         $order = $db->table('orders')->where('id', $orderId)->get()->getRowArray();
         $this->assertSame('exchange_requested', $order['status']);
-        $this->assertSame('사이즈 교환', $order['exchange_reason']);
+        $this->assertSame('사이즈/색상 오선택', $order['exchange_reason']);
     }
 
     public function testRequestExchangeSavesNote(): void
@@ -202,7 +203,7 @@ final class OrderExchangeTest extends CIUnitTestCase
         $userId  = $this->insertUser();
         $orderId = $this->insertOrder($userId, 'delivered');
 
-        $this->model->requestExchange($orderId, $userId, '색상 교환', 'L사이즈 블랙으로 교환 원합니다.');
+        $this->model->requestExchange($orderId, $userId, 'wrong_size', 'L사이즈 블랙으로 교환 원합니다.');
 
         $order = db_connect()->table('orders')->where('id', $orderId)->get()->getRowArray();
         $this->assertSame('L사이즈 블랙으로 교환 원합니다.', $order['exchange_request_note']);
@@ -213,7 +214,7 @@ final class OrderExchangeTest extends CIUnitTestCase
         $userId  = $this->insertUser();
         $orderId = $this->insertOrder($userId, 'paid');
 
-        $this->assertFalse($this->model->requestExchange($orderId, $userId, '변심'));
+        $this->assertFalse($this->model->requestExchange($orderId, $userId, 'simple_change'));
         $this->assertSame('paid',
             db_connect()->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
         );
@@ -225,7 +226,7 @@ final class OrderExchangeTest extends CIUnitTestCase
         $otherId = $this->insertUser();
         $orderId = $this->insertOrder($ownerId, 'delivered');
 
-        $this->assertFalse($this->model->requestExchange($orderId, $otherId, '변심'));
+        $this->assertFalse($this->model->requestExchange($orderId, $otherId, 'simple_change'));
     }
 
     public function testRequestExchangeFailsAfter7Days(): void
@@ -235,7 +236,7 @@ final class OrderExchangeTest extends CIUnitTestCase
             'delivered_at' => date('Y-m-d H:i:s', strtotime('-8 days')),
         ]);
 
-        $this->assertFalse($this->model->requestExchange($orderId, $userId, '변심'));
+        $this->assertFalse($this->model->requestExchange($orderId, $userId, 'simple_change'));
         $this->assertSame('delivered',
             db_connect()->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
         );
@@ -248,7 +249,7 @@ final class OrderExchangeTest extends CIUnitTestCase
             'delivered_at' => date('Y-m-d H:i:s', strtotime('-6 days')),
         ]);
 
-        $this->assertTrue($this->model->requestExchange($orderId, $userId, '색상 교환'));
+        $this->assertTrue($this->model->requestExchange($orderId, $userId, 'wrong_size'));
     }
 
     // ── approveExchange ───────────────────────────────────────────────────────
@@ -350,11 +351,22 @@ final class OrderExchangeTest extends CIUnitTestCase
 
     public function testCompleteExchangeSetsExchangeCompleted(): void
     {
-        $userId  = $this->insertUser();
-        $orderId = $this->insertOrder($userId, 'exchange_approved');
-        $db      = db_connect();
+        $userId    = $this->insertUser();
+        $productId = $this->insertProduct(10);
+        $orderId   = $this->insertOrder($userId, 'exchange_approved');
+        $this->insertOrderItem($orderId, $productId, 1);
+        $db        = db_connect();
 
-        $this->assertTrue($this->model->completeExchange($orderId));
+        $exchangeItems = [[
+            'product_id'       => $productId,
+            'sku_id'           => null,
+            'product_name'     => '교환테스트상품',
+            'sku_option_label' => null,
+            'product_price'    => 10000,
+            'qty'              => 1,
+        ]];
+
+        $this->assertTrue($this->model->completeExchange($orderId, $exchangeItems));
 
         $this->assertSame('exchange_completed',
             $db->table('orders')->where('id', $orderId)->get()->getRowArray()['status']
@@ -366,6 +378,6 @@ final class OrderExchangeTest extends CIUnitTestCase
         $userId  = $this->insertUser();
         $orderId = $this->insertOrder($userId, 'exchange_requested');
 
-        $this->assertFalse($this->model->completeExchange($orderId));
+        $this->assertFalse($this->model->completeExchange($orderId, []));
     }
 }
