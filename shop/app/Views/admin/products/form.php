@@ -198,9 +198,18 @@
                 </div>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-primary"><?= $product ? '저장' : '등록' ?></button>
                 <a href="/admin/products" class="btn btn-outline-secondary">취소</a>
+                <?php if ($product): ?>
+                <form method="post" action="/admin/products/<?= $product['id'] ?>/copy" class="d-inline"
+                      onsubmit="return confirm('이 상품을 복사하시겠습니까?')">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-outline-info">
+                        <i class="bi bi-copy"></i> 상품 복사
+                    </button>
+                </form>
+                <?php endif ?>
             </div>
         </form>
     </div>

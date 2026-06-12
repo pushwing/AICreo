@@ -228,6 +228,75 @@ class ProductController extends BaseController
         return redirect()->to('/admin/products')->with('success', '저장되었습니다.');
     }
 
+    public function copy(int $id): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $product = $this->productModel->find($id);
+        if (! $product) return redirect()->to('/admin/products')->with('error', '상품을 찾을 수 없습니다.');
+
+        $db  = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+
+        $newName = $product['name'] . ' (복사)';
+        $newSlug = $this->productModel->generateSlug($newName);
+
+        $newId = $this->productModel->insert([
+            'category_id'    => $product['category_id'],
+            'supplier_id'    => $product['supplier_id'],
+            'name'           => $newName,
+            'slug'           => $newSlug,
+            'price'          => $product['price'],
+            'cost_price'     => $product['cost_price'],
+            'discount_price' => $product['discount_price'],
+            'stock'          => 0,
+            'status'         => 'hidden',
+            'description'    => $product['description'],
+            'shipping_type'  => $product['shipping_type'],
+            'shipping_fee'   => $product['shipping_fee'],
+            'free_threshold' => $product['free_threshold'],
+            'created_at'     => $now,
+            'updated_at'     => $now,
+        ]);
+
+        // 이미지 복사 (media_id 참조만 공유, 파일 복사 없음)
+        foreach ($db->table('product_images')->where('product_id', $id)->get()->getResultArray() as $img) {
+            $db->table('product_images')->insert([
+                'product_id' => $newId,
+                'media_id'   => $img['media_id'],
+                'is_primary' => $img['is_primary'],
+                'sort_order' => $img['sort_order'],
+                'created_at' => $now,
+            ]);
+        }
+
+        // 옵션 복사: options → option_values → skus → sku_values
+        $optionIdMap      = [];
+        $optionValueIdMap = [];
+        foreach ($db->table('product_options')->where('product_id', $id)->get()->getResultArray() as $opt) {
+            $db->table('product_options')->insert(['product_id' => $newId, 'name' => $opt['name'], 'sort_order' => $opt['sort_order']]);
+            $newOptId                   = (int) $db->insertID();
+            $optionIdMap[(int) $opt['id']] = $newOptId;
+
+            foreach ($db->table('product_option_values')->where('option_id', $opt['id'])->get()->getResultArray() as $val) {
+                $db->table('product_option_values')->insert(['option_id' => $newOptId, 'value' => $val['value'], 'sort_order' => $val['sort_order']]);
+                $optionValueIdMap[(int) $val['id']] = (int) $db->insertID();
+            }
+        }
+
+        foreach ($db->table('product_skus')->where('product_id', $id)->get()->getResultArray() as $sku) {
+            $db->table('product_skus')->insert(['product_id' => $newId, 'price_diff' => $sku['price_diff'], 'stock' => 0, 'sku_code' => $sku['sku_code']]);
+            $newSkuId = (int) $db->insertID();
+
+            foreach ($db->table('product_sku_values')->where('sku_id', $sku['id'])->get()->getResultArray() as $sv) {
+                $newValId = $optionValueIdMap[(int) $sv['option_value_id']] ?? null;
+                if ($newValId) {
+                    $db->table('product_sku_values')->insert(['sku_id' => $newSkuId, 'option_value_id' => $newValId]);
+                }
+            }
+        }
+
+        return redirect()->to("/admin/products/{$newId}/edit")->with('success', '상품이 복사되었습니다. 내용을 확인하고 저장해주세요.');
+    }
+
     public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
         $product = $this->productModel->find($id);
