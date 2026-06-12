@@ -88,6 +88,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('posts/(:num)/delete','Admin\PostController::delete/$1');
 
     // 회원 관리
+    $routes->get( 'users/json',                 'Admin\UserController::json');
     $routes->get( 'users',                      'Admin\UserController::index');
     $routes->get( 'users/(:num)/edit',          'Admin\UserController::edit/$1');
     $routes->post('users/(:num)/edit',          'Admin\UserController::update/$1');
