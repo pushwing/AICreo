@@ -184,11 +184,15 @@ class OrderController extends BaseController
             return redirect()->to('/admin/orders')->with('error', '주문을 찾을 수 없습니다.');
         }
 
+        $carriersRaw = $this->viewData['settings']['shipping_carriers'] ?? '[]';
+        $carriers    = json_decode($carriersRaw, true) ?: [];
+
         return $this->render('admin/orders/detail', [
             'order'        => $order,
             'statusLabels' => self::STATUS_LABELS,
             'nextStatus'   => self::NEXT_STATUS,
             'memos'        => $this->memoModel->getByOrder($id),
+            'carriers'     => $carriers,
         ]);
     }
 

@@ -26,6 +26,14 @@
                 <label class="form-label small fw-semibold"><?= esc($s['label']) ?></label>
                 <?php if ($s['type'] === 'textarea'): ?>
                     <textarea name="<?= esc($s['key']) ?>" class="form-control form-control-sm" rows="3"><?= esc($s['value']) ?></textarea>
+                <?php elseif ($s['type'] === 'carriers'): ?>
+                    <?php
+                        $carriers = json_decode($s['value'] ?? '[]', true) ?: [];
+                        $carriersText = implode("\n", $carriers);
+                    ?>
+                    <textarea name="<?= esc($s['key']) ?>" class="form-control form-control-sm" rows="5"
+                              placeholder="한 줄에 업체명 하나씩 입력"><?= esc($carriersText) ?></textarea>
+                    <div class="form-text">한 줄에 배송업체 하나씩 입력합니다. 주문 송장 입력 시 셀렉트박스로 표시됩니다.</div>
                 <?php elseif ($s['type'] === 'image'): ?>
                     <?php if ($s['value']): ?>
                         <div class="mb-1"><img src="/<?= esc($s['value']) ?>" style="max-height:60px" class="img-thumbnail"></div>
