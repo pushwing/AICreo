@@ -56,6 +56,57 @@ class ProductController extends BaseController
         ]));
     }
 
+    /** POST /admin/products/bulk — 상품 일괄 편집 (상태·재고·삭제) */
+    public function bulk(): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $ids    = array_values(array_filter(array_map('intval', (array) $this->request->getPost('ids'))));
+        $action = $this->request->getPost('action');
+
+        if (empty($ids)) {
+            return redirect()->back()->with('error', '상품을 선택해주세요.');
+        }
+
+        $db = \Config\Database::connect();
+
+        switch ($action) {
+            case 'status':
+                $status = $this->request->getPost('status');
+                if (! array_key_exists($status, ProductModel::STATUSES)) {
+                    return redirect()->back()->with('error', '올바른 상태 값이 아닙니다.');
+                }
+                $db->table('products')
+                   ->whereIn('id', $ids)
+                   ->update(['status' => $status, 'updated_at' => date('Y-m-d H:i:s')]);
+                return redirect()->back()->with('success', count($ids) . '개 상품 상태가 변경되었습니다.');
+
+            case 'stock':
+                $stock = $this->request->getPost('stock');
+                if (! is_numeric($stock) || (int) $stock < 0) {
+                    return redirect()->back()->with('error', '올바른 재고 수량을 입력해주세요.');
+                }
+                $stock    = (int) $stock;
+                $adminId  = (int) session()->get('user_id');
+                $logModel = new StockLogModel();
+                foreach ($ids as $id) {
+                    $product = $this->productModel->find($id);
+                    if (! $product) continue;
+                    $oldStock = (int) $product['stock'];
+                    $this->productModel->update($id, ['stock' => $stock]);
+                    $logModel->record($id, 'adjust', abs($stock - $oldStock), $oldStock, $stock, '관리자 일괄 재고 조정', $adminId);
+                }
+                return redirect()->back()->with('success', count($ids) . '개 상품 재고가 변경되었습니다.');
+
+            case 'delete':
+                foreach ($ids as $id) {
+                    $this->productModel->delete($id);
+                }
+                return redirect()->back()->with('success', count($ids) . '개 상품이 삭제되었습니다.');
+
+            default:
+                return redirect()->back()->with('error', '올바른 액션이 아닙니다.');
+        }
+    }
+
     /** POST /admin/products/:id/stock — 인라인 재고 수정 */
     public function updateStock(int $id): \CodeIgniter\HTTP\ResponseInterface
     {

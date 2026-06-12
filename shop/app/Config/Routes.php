@@ -102,6 +102,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('inquiries/(:num)/delete','Admin\InquiryController::delete/$1');
 
     // 상품 관리
+    $routes->post('products/bulk',                           'Admin\ProductController::bulk');
     $routes->get( 'products',                                'Admin\ProductController::index');
     $routes->get( 'products/create',                         'Admin\ProductController::create');
     $routes->post('products/create',                         'Admin\ProductController::store');
