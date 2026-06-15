@@ -261,7 +261,7 @@ class ProductController extends BaseController
         $pending    = $alertModel->getPending((int) $product['id']);
         if (! $pending) return;
 
-        $settings = model('SettingModel')->getAll();
+        $settings = model('SettingModel')->getAllAsMap();
         $mailer   = new Mailer($settings);
         foreach ($pending as $alert) {
             $mailer->sendRestockAlert($alert['email'], $product);
