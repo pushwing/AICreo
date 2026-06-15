@@ -50,6 +50,7 @@
             str_starts_with($uri, 'admin/pages'), str_starts_with($uri, 'admin/boards'),
             str_starts_with($uri, 'admin/posts'), str_starts_with($uri, 'admin/media'),
             str_starts_with($uri, 'admin/banners'), str_starts_with($uri, 'admin/popups'),
+            str_starts_with($uri, 'admin/welcome'),
         ]);
         $inShop     = in_array(true, [
             str_starts_with($uri, 'admin/products'), str_starts_with($uri, 'admin/promotions'),
@@ -80,7 +81,8 @@
             <a href="/admin/posts"  class="nav-link <?= str_starts_with($uri, 'admin/posts')   ? 'active' : '' ?>"><i class="bi bi-file-earmark-text me-2"></i>전체 게시물</a>
             <a href="/admin/media"  class="nav-link <?= str_starts_with($uri, 'admin/media')   ? 'active' : '' ?>"><i class="bi bi-images me-2"></i>미디어</a>
             <a href="/admin/banners" class="nav-link <?= str_starts_with($uri, 'admin/banners') ? 'active' : '' ?>"><i class="bi bi-image me-2"></i>배너 관리</a>
-            <a href="/admin/popups"  class="nav-link <?= str_starts_with($uri, 'admin/popups')  ? 'active' : '' ?>"><i class="bi bi-window me-2"></i>팝업 관리</a>
+            <a href="/admin/popups"   class="nav-link <?= str_starts_with($uri, 'admin/popups')   ? 'active' : '' ?>"><i class="bi bi-window me-2"></i>팝업 관리</a>
+            <a href="/admin/welcome"  class="nav-link <?= str_starts_with($uri, 'admin/welcome')  ? 'active' : '' ?>"><i class="bi bi-layout-text-window-reverse me-2"></i>Welcome 페이지</a>
         </div>
 
         <!-- 쇼핑 -->

@@ -51,6 +51,23 @@
                     <input type="text" name="<?= esc($s['key']) ?>" class="form-control form-control-sm"
                            value="<?= esc($s['value']) ?>" placeholder="uploads/media/... 경로 입력">
                     <div class="form-text">미디어 라이브러리에서 이미지 경로를 복사하세요.</div>
+                <?php elseif ($s['type'] === 'boolean'): ?>
+                    <div class="form-check form-switch">
+                        <input type="hidden" name="<?= esc($s['key']) ?>" value="0">
+                        <input class="form-check-input" type="checkbox"
+                               name="<?= esc($s['key']) ?>" value="1" role="switch"
+                               id="chk_<?= esc($s['key']) ?>" <?= $s['value'] ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="chk_<?= esc($s['key']) ?>">
+                            <?= $s['value'] ? '표시' : '숨김' ?>
+                        </label>
+                    </div>
+                <?php elseif ($s['type'] === 'select'): ?>
+                    <?php $selectOptions = [][$s['key']] ?? []; ?>
+                    <select name="<?= esc($s['key']) ?>" class="form-select form-select-sm">
+                        <?php foreach ($selectOptions as $val => $label): ?>
+                        <option value="<?= esc($val) ?>" <?= $s['value'] === $val ? 'selected' : '' ?>><?= esc($label) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 <?php else: ?>
                     <input type="text" name="<?= esc($s['key']) ?>" class="form-control form-control-sm" value="<?= esc($s['value']) ?>">
                 <?php endif; ?>

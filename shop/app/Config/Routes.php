@@ -5,7 +5,8 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // ─── 홈 ──────────────────────────────────────────────────────────────────────
-$routes->get('/', 'Front\ShopController::home');
+$routes->get('/',        'Front\ShopController::home');
+$routes->get('welcome',  'Front\ShopController::welcome');
 
 // ─── 인증 ────────────────────────────────────────────────────────────────────
 $routes->get( 'auth/login',    'Front\AuthController::login');
@@ -113,6 +114,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/(:num)/copy',                    'Admin\ProductController::copy/$1');
     $routes->post('products/(:num)/delete',                  'Admin\ProductController::delete/$1');
     $routes->post('products/(:num)/stock',                   'Admin\ProductController::updateStock/$1');
+    $routes->post('products/(:num)/featured',               'Admin\ProductController::toggleFeatured/$1');
     $routes->post('products/image/(:num)/delete',            'Admin\ProductController::imageDelete/$1');
     $routes->get( 'products/categories',                     'Admin\ProductController::categories');
     $routes->post('products/categories',                     'Admin\ProductController::categoryStore');
@@ -180,6 +182,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'banners/(:num)/edit',  'Admin\BannerController::edit/$1');
     $routes->post('banners/(:num)/edit',  'Admin\BannerController::update/$1');
     $routes->post('banners/(:num)/delete','Admin\BannerController::delete/$1');
+    $routes->get( 'welcome',              'Admin\WelcomeController::index');
+    $routes->post('welcome',              'Admin\WelcomeController::update');
 
     // 팝업 관리
     $routes->get( 'popups',              'Admin\PopupController::index');
