@@ -182,6 +182,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'banners/(:num)/edit',  'Admin\BannerController::edit/$1');
     $routes->post('banners/(:num)/edit',  'Admin\BannerController::update/$1');
     $routes->post('banners/(:num)/delete','Admin\BannerController::delete/$1');
+    $routes->get( 'welcome',              'Admin\WelcomeController::index');
+    $routes->post('welcome',              'Admin\WelcomeController::update');
 
     // 팝업 관리
     $routes->get( 'popups',              'Admin\PopupController::index');
