@@ -232,6 +232,7 @@ $routes->post('shop/(:segment)/qna/(:num)/delete',          'Front\ShopControlle
 $routes->post('shop/(:segment)/review',                     'Front\ShopController::reviewStore/$1',      ['filter' => 'auth:member']);
 $routes->post('shop/(:segment)/review/(:num)/delete',       'Front\ShopController::reviewDelete/$1/$2',  ['filter' => 'auth:member']);
 $routes->post('shop/(:segment)/wish',                       'Front\ShopController::wishToggle/$1',       ['filter' => 'auth:member']);
+$routes->post('shop/(:segment)/restock-alert',              'Front\ShopController::restockAlert/$1');
 
 // ─── 장바구니 ──────────────────────────────────────────────────────────────────
 // add: 비로그인도 허용 (세션 저장), 나머지: 로그인 필요
@@ -261,6 +262,7 @@ $routes->group('mypage', ['filter' => 'auth:member'], function ($routes) {
     $routes->get( 'orders',                  'Front\MyPageController::orders');
     $routes->get( 'orders/(:segment)',       'Front\MyPageController::orderDetail/$1');
     $routes->post('orders/cancel',           'Front\MyPageController::cancel');
+    $routes->post('orders/reorder',          'Front\MyPageController::reorder');
     $routes->post('orders/confirm-delivery', 'Front\MyPageController::confirmDelivery');
     $routes->post('orders/return-request',    'Front\MyPageController::requestReturn');
     $routes->post('orders/exchange-request', 'Front\MyPageController::requestExchange');

@@ -172,6 +172,24 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
             <div class="d-grid gap-2">
                 <?php if ($isSoldOut): ?>
                 <button class="btn btn-secondary btn-lg" disabled>품절</button>
+                <!-- 재입고 알림 -->
+                <?php if (session()->get('user_id')): ?>
+                <button type="button" class="btn btn-outline-secondary btn-restock"
+                        data-slug="<?= esc($product['slug']) ?>"
+                        data-csrf="<?= csrf_token() ?>" data-csrf-val="<?= csrf_hash() ?>">
+                    <i class="bi bi-bell me-1"></i>재입고 알림 신청
+                </button>
+                <?php else: ?>
+                <div class="input-group mt-1">
+                    <input type="email" id="restockEmail" class="form-control form-control-sm"
+                           placeholder="이메일 입력 후 알림 신청">
+                    <button type="button" class="btn btn-outline-secondary btn-restock"
+                            data-slug="<?= esc($product['slug']) ?>"
+                            data-csrf="<?= csrf_token() ?>" data-csrf-val="<?= csrf_hash() ?>">
+                        <i class="bi bi-bell"></i> 알림
+                    </button>
+                </div>
+                <?php endif; ?>
                 <?php else: ?>
                 <button class="btn btn-primary btn-lg" id="btnAddCart"
                         data-product-id="<?= (int) $product['id'] ?>"
@@ -725,6 +743,42 @@ document.querySelectorAll('.btn-qna-delete').forEach(function (btn) {
         const trigger = document.querySelector('[data-bs-target="' + hash + '"]');
         if (trigger) new bootstrap.Tab(trigger).show();
     }
+})();
+
+// ─── 재입고 알림 ───────────────────────────────────────────────────────────────
+(function () {
+    document.querySelectorAll('.btn-restock').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var slug       = btn.dataset.slug;
+            var emailInput = document.getElementById('restockEmail');
+            var email      = '';
+            if (emailInput) {
+                email = emailInput.value.trim();
+                if (! email) { alert('이메일을 입력해주세요.'); emailInput.focus(); return; }
+                if (! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    alert('올바른 이메일 형식을 입력해주세요.'); return;
+                }
+            }
+            var fd = new FormData();
+            fd.append(btn.dataset.csrf, btn.dataset.csrfVal);
+            if (email) fd.append('email', email);
+            btn.disabled = true;
+            fetch('/shop/' + slug + '/restock-alert', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    alert(data.message);
+                    if (data.success && ! data.already) {
+                        btn.innerHTML = '<i class="bi bi-bell-fill me-1"></i>알림 신청 완료';
+                    } else {
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function () {
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                    btn.disabled = false;
+                });
+        });
+    });
 })();
 
 // ─── 찜하기 ───────────────────────────────────────────────────────────────────

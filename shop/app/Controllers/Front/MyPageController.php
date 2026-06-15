@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Models\CartModel;
 use App\Models\OrderModel;
 use App\Models\PointLogModel;
 use App\Models\ShippingAddressModel;
@@ -336,6 +337,48 @@ class MyPageController extends BaseController
         return $this->response->setJSON([
             'success' => $success,
             'message' => $success ? '주문이 취소되었습니다.' : '취소할 수 없는 주문입니다.',
+        ]);
+    }
+
+    /** POST /mypage/orders/reorder — 주문 상품을 장바구니에 다시 담기 */
+    public function reorder(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $userId  = (int) session()->get('user_id');
+        $orderId = (int) $this->request->getPost('order_id');
+
+        if (! $orderId) {
+            return $this->response->setJSON(['success' => false, 'message' => '잘못된 요청입니다.']);
+        }
+
+        $order = $this->orderModel->where('id', $orderId)->where('user_id', $userId)->first();
+        if (! $order) {
+            return $this->response->setJSON(['success' => false, 'message' => '주문을 찾을 수 없습니다.']);
+        }
+
+        $db    = \Config\Database::connect();
+        $items = $db->table('order_items')
+            ->select('product_id, sku_id, qty')
+            ->where('order_id', $orderId)
+            ->get()->getResultArray();
+
+        if (! $items) {
+            return $this->response->setJSON(['success' => false, 'message' => '주문 상품이 없습니다.']);
+        }
+
+        $cartModel = new CartModel();
+        foreach ($items as $item) {
+            $cartModel->upsert(
+                $userId,
+                (int) $item['product_id'],
+                (int) $item['qty'],
+                $item['sku_id'] ? (int) $item['sku_id'] : null
+            );
+        }
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'message'   => '장바구니에 담았습니다.',
+            'cartCount' => $cartModel->getCount($userId),
         ]);
     }
 

@@ -10,6 +10,7 @@ use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
 use App\Models\ProductReviewModel;
 use App\Models\ProductSkuModel;
+use App\Models\RestockAlertModel;
 use App\Models\WishlistModel;
 
 class ShopController extends BaseController
@@ -21,6 +22,7 @@ class ShopController extends BaseController
     private ProductReviewModel $reviewModel;
     private ProductSkuModel    $skuModel;
     private WishlistModel      $wishlistModel;
+    private RestockAlertModel  $restockModel;
 
     public function __construct()
     {
@@ -31,6 +33,7 @@ class ShopController extends BaseController
         $this->reviewModel   = new ProductReviewModel();
         $this->skuModel      = new ProductSkuModel();
         $this->wishlistModel = new WishlistModel();
+        $this->restockModel  = new RestockAlertModel();
     }
 
     public function home(): string
@@ -370,5 +373,48 @@ class ShopController extends BaseController
             'onlyDiscount' => (bool) $params['only_discount'],
             'wishedIds'    => $wishedIds,
         ]));
+    }
+
+    /** POST /shop/(:segment)/restock-alert */
+    public function restockAlert(string $slug): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $product = $this->productModel->where('slug', $slug)->where('deleted_at IS NULL', null, false)->first();
+        if (! $product) {
+            return $this->response->setJSON(['success' => false, 'message' => '상품을 찾을 수 없습니다.']);
+        }
+
+        $isSoldOut = $product['status'] === 'sold_out' || (int) $product['stock'] === 0;
+        if (! $isSoldOut) {
+            return $this->response->setJSON(['success' => false, 'message' => '현재 구매 가능한 상품입니다.']);
+        }
+
+        $userId = (int) session()->get('user_id');
+        if ($userId > 0) {
+            $user  = db_connect()->table('users')->select('email')->where('id', $userId)->get()->getRowArray();
+            $email = $user['email'] ?? '';
+        } else {
+            $email = trim($this->request->getPost('email') ?? '');
+        }
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->response->setJSON(['success' => false, 'message' => '유효한 이메일 주소를 입력해주세요.']);
+        }
+
+        if ($this->restockModel->exists((int) $product['id'], $email)) {
+            return $this->response->setJSON(['success' => true, 'already' => true, 'message' => '이미 재입고 알림이 신청되어 있습니다.']);
+        }
+
+        $this->restockModel->insert([
+            'product_id' => (int) $product['id'],
+            'user_id'    => $userId ?: null,
+            'email'      => $email,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'message'   => '재입고 시 이메일로 알려드리겠습니다.',
+            'csrf_hash' => csrf_hash(),
+        ]);
     }
 }
