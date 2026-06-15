@@ -117,6 +117,7 @@ $statusBadge = [
                             총 <?= number_format($order['total_amount']) ?>원
                         </div>
                     </div>
+                    <div class="d-flex gap-2">
                     <?php if ($canCancel): ?>
                     <button type="button" class="btn btn-sm btn-outline-danger btn-cancel"
                             data-order-id="<?= (int) $order['id'] ?>"
@@ -125,6 +126,13 @@ $statusBadge = [
                         주문 취소
                     </button>
                     <?php endif; ?>
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-reorder"
+                            data-order-id="<?= (int) $order['id'] ?>"
+                            data-csrf="<?= csrf_token() ?>"
+                            data-csrf-val="<?= csrf_hash() ?>">
+                        <i class="bi bi-arrow-clockwise me-1"></i>재주문
+                    </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -200,5 +208,32 @@ $statusBadge = [
         });
     });
 })();
+
+document.querySelectorAll('.btn-reorder').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        if (! confirm('해당 주문의 상품을 장바구니에 담으시겠습니까?')) return;
+        var body = new FormData();
+        body.append(btn.dataset.csrf, btn.dataset.csrfVal);
+        body.append('order_id', btn.dataset.orderId);
+        btn.disabled = true;
+        fetch('/mypage/orders/reorder', { method: 'POST', body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                alert(data.message);
+                if (data.success) {
+                    var badge = document.getElementById('cartBadge');
+                    if (badge) {
+                        badge.textContent   = data.cartCount;
+                        badge.style.display = data.cartCount > 0 ? '' : 'none';
+                    }
+                }
+                btn.disabled = false;
+            })
+            .catch(function () {
+                alert('오류가 발생했습니다. 다시 시도해주세요.');
+                btn.disabled = false;
+            });
+    });
+});
 </script>
 <?= $this->endSection() ?>

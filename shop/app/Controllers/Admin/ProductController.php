@@ -3,11 +3,13 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\Mailer;
 use App\Libraries\MediaUploader;
 use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
 use App\Models\ProductModel;
 use App\Models\ProductSkuModel;
+use App\Models\RestockAlertModel;
 use App\Models\StockLogModel;
 use Config\Database;
 
@@ -166,6 +168,10 @@ class ProductController extends BaseController
             $adminId
         );
 
+        if ($oldStock === 0 && $newStock > 0 && $product['status'] !== 'sold_out') {
+            $this->dispatchRestockAlerts($this->productModel->find($id));
+        }
+
         return $this->response->setJSON(['success' => true, 'stock' => $newStock]);
     }
 
@@ -233,11 +239,34 @@ class ProductController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $wasOutOfStock = (int) $product['stock'] === 0 || $product['status'] === 'sold_out';
+
         $this->productModel->update($id, $this->collectData($id));
         $this->handleImages($id);
         $this->handleOptions($id);
 
+        if ($wasOutOfStock) {
+            $updated = $this->productModel->find($id);
+            if ($updated && (int) $updated['stock'] > 0 && $updated['status'] !== 'sold_out') {
+                $this->dispatchRestockAlerts($updated);
+            }
+        }
+
         return redirect()->to('/admin/products')->with('success', '저장되었습니다.');
+    }
+
+    private function dispatchRestockAlerts(array $product): void
+    {
+        $alertModel = new RestockAlertModel();
+        $pending    = $alertModel->getPending((int) $product['id']);
+        if (! $pending) return;
+
+        $settings = model('SettingModel')->getAll();
+        $mailer   = new Mailer($settings);
+        foreach ($pending as $alert) {
+            $mailer->sendRestockAlert($alert['email'], $product);
+        }
+        $alertModel->markNotified((int) $product['id']);
     }
 
     public function copy(int $id): \CodeIgniter\HTTP\RedirectResponse

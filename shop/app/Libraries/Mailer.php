@@ -94,6 +94,28 @@ class Mailer
         }
     }
 
+    public function sendRestockAlert(string $toEmail, array $product): void
+    {
+        $productUrl = $this->siteUrl . '/shop/' . esc($product['slug']);
+
+        $body = $this->layout(
+            title: '재입고 알림',
+            content:
+                '<p style="margin:0 0 16px;font-size:15px;color:#374151;">관심 상품이 재입고되었습니다!</p>' .
+                '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">' .
+                $this->row('상품명', esc($product['name'])) .
+                '</table>' .
+                $this->button('지금 구매하기', $productUrl),
+            footer: '본 알림은 재입고 알림을 신청하신 분께만 발송됩니다.'
+        );
+
+        try {
+            $this->dispatch($toEmail, "[{$this->siteName}] 재입고 알림 — {$product['name']}", $body, "RESTOCK | to={$toEmail}");
+        } catch (\Throwable) {
+            // 발송 실패해도 알림 발송 처리는 계속
+        }
+    }
+
     // ------------------------------------------------------------------ //
     //  HTML helpers
     // ------------------------------------------------------------------ //
