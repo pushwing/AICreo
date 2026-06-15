@@ -333,11 +333,14 @@ class ShopController extends BaseController
     public function index(): string
     {
         $params = [
-            'keyword'     => $this->request->getGet('keyword'),
-            'category_id' => $this->request->getGet('category_id'),
-            'sort'        => $this->request->getGet('sort'),
-            'page'        => $this->request->getGet('page'),
-            'per_page'    => 12,
+            'keyword'      => $this->request->getGet('keyword'),
+            'category_id'  => $this->request->getGet('category_id'),
+            'sort'         => $this->request->getGet('sort'),
+            'page'         => $this->request->getGet('page'),
+            'per_page'     => 12,
+            'price_min'    => $this->request->getGet('price_min'),
+            'price_max'    => $this->request->getGet('price_max'),
+            'only_discount'=> $this->request->getGet('only_discount'),
         ];
 
         $result = $this->productModel->getList($params);
@@ -358,11 +361,14 @@ class ShopController extends BaseController
         }
 
         return $this->render('shop/list', array_merge($result, [
-            'tree'      => $this->categoryModel->getTree(),
-            'keyword'   => $params['keyword'],
-            'curCat'    => (int) $params['category_id'],
-            'curSort'   => $params['sort'],
-            'wishedIds' => $wishedIds,
+            'tree'         => $this->categoryModel->getTree(),
+            'keyword'      => $params['keyword'],
+            'curCat'       => (int) $params['category_id'],
+            'curSort'      => $params['sort'],
+            'priceMin'     => $params['price_min'] ?? '',
+            'priceMax'     => $params['price_max'] ?? '',
+            'onlyDiscount' => (bool) $params['only_discount'],
+            'wishedIds'    => $wishedIds,
         ]));
     }
 }

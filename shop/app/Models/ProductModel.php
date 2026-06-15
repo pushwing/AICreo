@@ -34,11 +34,14 @@ class ProductModel extends Model
      */
     public function getList(array $params = []): array
     {
-        $keyword    = $params['keyword']    ?? '';
-        $categoryId = $params['category_id'] ?? null;
-        $sort       = $params['sort']        ?? 'latest';
-        $perPage    = $params['per_page']    ?? 12;
-        $page       = max(1, (int) ($params['page'] ?? 1));
+        $keyword      = $params['keyword']      ?? '';
+        $categoryId   = $params['category_id']  ?? null;
+        $sort         = $params['sort']          ?? 'latest';
+        $perPage      = $params['per_page']      ?? 12;
+        $page         = max(1, (int) ($params['page'] ?? 1));
+        $priceMin     = isset($params['price_min']) && $params['price_min'] !== '' ? (int) $params['price_min'] : null;
+        $priceMax     = isset($params['price_max']) && $params['price_max'] !== '' ? (int) $params['price_max'] : null;
+        $onlyDiscount = ! empty($params['only_discount']);
 
         $builder = $this->db->table('products')
             ->select('products.*, categories.name as category_name,
@@ -65,6 +68,16 @@ class ProductModel extends Model
             } else {
                 $builder->where('products.category_id', $categoryId);
             }
+        }
+
+        if ($priceMin !== null) {
+            $builder->where("COALESCE(products.discount_price, products.price) >= {$priceMin}", null, false);
+        }
+        if ($priceMax !== null) {
+            $builder->where("COALESCE(products.discount_price, products.price) <= {$priceMax}", null, false);
+        }
+        if ($onlyDiscount) {
+            $builder->where('products.discount_price IS NOT NULL', null, false);
         }
 
         match ($sort) {
