@@ -19,9 +19,10 @@
 
     <div class="row g-4">
 
-        <!-- 카테고리 사이드바 -->
+        <!-- 필터 사이드바 -->
         <div class="col-lg-2 col-md-3">
-            <div class="list-group list-group-flush">
+            <!-- 카테고리 -->
+            <div class="list-group list-group-flush mb-3">
                 <a href="/shop" class="list-group-item list-group-item-action <?= ! $curCat ? 'active' : '' ?> py-2">
                     전체
                 </a>
@@ -38,6 +39,41 @@
                 <?php endforeach; ?>
                 <?php endforeach; ?>
             </div>
+
+            <!-- 가격·할인 필터 -->
+            <?php
+            $filterBase = array_filter([
+                'keyword'     => $keyword ?? '',
+                'category_id' => $curCat ?: '',
+                'sort'        => $curSort ?? '',
+            ], fn($v) => $v !== '');
+            ?>
+            <form method="get" action="/shop" id="filterForm">
+                <?php foreach ($filterBase as $k => $v): ?>
+                <input type="hidden" name="<?= esc($k) ?>" value="<?= esc($v) ?>">
+                <?php endforeach; ?>
+                <div class="border rounded p-3 bg-white small">
+                    <div class="fw-semibold mb-2">가격 범위</div>
+                    <div class="d-flex align-items-center gap-1 mb-2">
+                        <input type="number" name="price_min" class="form-control form-control-sm"
+                               placeholder="최소" min="0" step="1000"
+                               value="<?= esc($priceMin ?? '') ?>" style="width:0;flex:1">
+                        <span class="text-muted">~</span>
+                        <input type="number" name="price_max" class="form-control form-control-sm"
+                               placeholder="최대" min="0" step="1000"
+                               value="<?= esc($priceMax ?? '') ?>" style="width:0;flex:1">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="only_discount" value="1"
+                               id="chkDiscount" <?= ($onlyDiscount ?? false) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="chkDiscount">할인 상품만</label>
+                    </div>
+                    <div class="d-grid gap-1">
+                        <button type="submit" class="btn btn-sm btn-dark">필터 적용</button>
+                        <a href="/shop<?= $curCat ? '?category_id='.$curCat : '' ?>" class="btn btn-sm btn-outline-secondary">초기화</a>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <!-- 상품 목록 -->
@@ -49,7 +85,7 @@
                 <div class="d-flex gap-1">
                     <?php
                     $sorts = ['latest' => '최신순', 'price_asc' => '가격 낮은순', 'price_desc' => '가격 높은순'];
-                    $safeGet = array_intersect_key($_GET, array_flip(['keyword', 'category_id']));
+                    $safeGet = array_intersect_key($_GET, array_flip(['keyword', 'category_id', 'price_min', 'price_max', 'only_discount']));
                     foreach ($sorts as $sortVal => $sortLabel):
                         $qs = http_build_query(array_merge($safeGet, ['sort' => $sortVal, 'page' => 1]));
                     ?>
@@ -160,7 +196,7 @@
 
             <!-- 페이지네이션 -->
             <?php if ($totalPages > 1):
-                $baseQs = array_intersect_key($_GET, array_flip(['keyword', 'category_id', 'sort']));
+                $baseQs = array_intersect_key($_GET, array_flip(['keyword', 'category_id', 'sort', 'price_min', 'price_max', 'only_discount']));
             ?>
             <nav class="mt-4">
                 <ul class="pagination justify-content-center">
