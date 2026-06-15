@@ -12,6 +12,19 @@
 <form method="post" action="/admin/welcome">
     <?= csrf_field() ?>
 
+    <!-- 스토어 첫화면 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-3">스토어 첫화면</div>
+        <div class="card-body" style="max-width:400px">
+            <label class="form-label small fw-semibold">스토어 접속 시 첫 화면</label>
+            <select name="store_homepage" class="form-select form-select-sm">
+                <option value="default" <?= ($cfg['store_homepage']['value'] ?? 'default') === 'default' ? 'selected' : '' ?>>기본 홈</option>
+                <option value="welcome" <?= ($cfg['store_homepage']['value'] ?? 'default') === 'welcome' ? 'selected' : '' ?>>Welcome 페이지</option>
+            </select>
+            <div class="form-text">기본 홈: 상품 목록 페이지 / Welcome: 기획전·신상품·할인 섹션 페이지</div>
+        </div>
+    </div>
+
     <!-- 섹션 표시 -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white fw-semibold py-3">섹션 표시 / 숨김</div>

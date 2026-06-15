@@ -62,11 +62,7 @@
                         </label>
                     </div>
                 <?php elseif ($s['type'] === 'select'): ?>
-                    <?php
-                    $selectOptions = [
-                        'store_homepage' => ['default' => '기본 홈', 'welcome' => 'Welcome 페이지'],
-                    ][$s['key']] ?? [];
-                    ?>
+                    <?php $selectOptions = [][$s['key']] ?? []; ?>
                     <select name="<?= esc($s['key']) ?>" class="form-select form-select-sm">
                         <?php foreach ($selectOptions as $val => $label): ?>
                         <option value="<?= esc($val) ?>" <?= $s['value'] === $val ? 'selected' : '' ?>><?= esc($label) ?></option>
