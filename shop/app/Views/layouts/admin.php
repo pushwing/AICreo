@@ -36,6 +36,9 @@
         .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #dc3545; display: inline-block; }
         .badge-bronze { background-color: #a0522d; color: #fff; }
         .badge-silver { background-color: #888f94; color: #fff; }
+        #sidebar .nav-subgroup { color: #4e6678; font-size: .67rem; font-weight: 600; padding: .55rem 1.2rem .1rem 1.5rem; letter-spacing: .05em; text-transform: uppercase; }
+        #sidebar .nav-sublink  { color: #a8b7c7; padding: .38rem 1.2rem .38rem 2.1rem; font-size: .855rem; display: block; text-decoration: none; }
+        #sidebar .nav-sublink:hover, #sidebar .nav-sublink.active { color: #fff; background: #2d3f54; }
     </style>
     <?= $this->renderSection('styles') ?>
 </head>
@@ -73,16 +76,17 @@
             콘텐츠 <i class="bi bi-chevron-down"></i>
         </button>
         <div class="collapse <?= $inContent ? 'show' : '' ?>" id="sec-content">
-            <a href="/admin/dashboard" class="nav-link <?= $uri === 'admin/dashboard' || $uri === 'admin' ? 'active' : '' ?>">
-                <i class="bi bi-speedometer2 me-2"></i>대시보드
-            </a>
-            <a href="/admin/pages"  class="nav-link <?= str_starts_with($uri, 'admin/pages')   ? 'active' : '' ?>"><i class="bi bi-file-text me-2"></i>페이지 관리</a>
-            <a href="/admin/boards" class="nav-link <?= str_starts_with($uri, 'admin/boards')  ? 'active' : '' ?>"><i class="bi bi-card-list me-2"></i>게시판 관리</a>
-            <a href="/admin/posts"  class="nav-link <?= str_starts_with($uri, 'admin/posts')   ? 'active' : '' ?>"><i class="bi bi-file-earmark-text me-2"></i>전체 게시물</a>
-            <a href="/admin/media"  class="nav-link <?= str_starts_with($uri, 'admin/media')   ? 'active' : '' ?>"><i class="bi bi-images me-2"></i>미디어</a>
-            <a href="/admin/banners" class="nav-link <?= str_starts_with($uri, 'admin/banners') ? 'active' : '' ?>"><i class="bi bi-image me-2"></i>배너 관리</a>
-            <a href="/admin/popups"   class="nav-link <?= str_starts_with($uri, 'admin/popups')   ? 'active' : '' ?>"><i class="bi bi-window me-2"></i>팝업 관리</a>
-            <a href="/admin/welcome"  class="nav-link <?= str_starts_with($uri, 'admin/welcome')  ? 'active' : '' ?>"><i class="bi bi-layout-text-window-reverse me-2"></i>Welcome 페이지</a>
+            <div class="nav-subgroup">기본</div>
+            <a href="/admin/dashboard" class="nav-sublink <?= $uri === 'admin/dashboard' || $uri === 'admin' ? 'active' : '' ?>"><i class="bi bi-speedometer2 me-2"></i>대시보드</a>
+            <a href="/admin/pages"     class="nav-sublink <?= str_starts_with($uri, 'admin/pages')  ? 'active' : '' ?>"><i class="bi bi-file-text me-2"></i>페이지 관리</a>
+            <a href="/admin/media"     class="nav-sublink <?= str_starts_with($uri, 'admin/media')  ? 'active' : '' ?>"><i class="bi bi-images me-2"></i>미디어</a>
+            <div class="nav-subgroup">게시판</div>
+            <a href="/admin/boards"    class="nav-sublink <?= str_starts_with($uri, 'admin/boards') ? 'active' : '' ?>"><i class="bi bi-card-list me-2"></i>게시판 관리</a>
+            <a href="/admin/posts"     class="nav-sublink <?= str_starts_with($uri, 'admin/posts')  ? 'active' : '' ?>"><i class="bi bi-file-earmark-text me-2"></i>전체 게시물</a>
+            <div class="nav-subgroup">마케팅</div>
+            <a href="/admin/banners"   class="nav-sublink <?= str_starts_with($uri, 'admin/banners') ? 'active' : '' ?>"><i class="bi bi-image me-2"></i>배너 관리</a>
+            <a href="/admin/popups"    class="nav-sublink <?= str_starts_with($uri, 'admin/popups')  ? 'active' : '' ?>"><i class="bi bi-window me-2"></i>팝업 관리</a>
+            <a href="/admin/welcome"   class="nav-sublink <?= str_starts_with($uri, 'admin/welcome') ? 'active' : '' ?>"><i class="bi bi-layout-text-window-reverse me-2"></i>Welcome 페이지</a>
         </div>
 
         <!-- 쇼핑 -->
@@ -92,15 +96,17 @@
             쇼핑 <i class="bi bi-chevron-down"></i>
         </button>
         <div class="collapse <?= $inShop ? 'show' : '' ?>" id="sec-shop">
-            <a href="/admin/products" class="nav-link <?= str_starts_with($uri, 'admin/products') && ! str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-bag me-2"></i>상품 관리</a>
-            <a href="/admin/products/categories" class="nav-link <?= str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-tags me-2"></i>카테고리 관리</a>
-            <a href="/admin/promotions" class="nav-link <?= str_starts_with($uri, 'admin/promotions') ? 'active' : '' ?>"><i class="bi bi-megaphone me-2"></i>기획전 관리</a>
-            <a href="/admin/suppliers"  class="nav-link <?= str_starts_with($uri, 'admin/suppliers')  ? 'active' : '' ?>"><i class="bi bi-truck me-2"></i>매입처 관리</a>
-            <a href="/admin/inventory"  class="nav-link <?= str_starts_with($uri, 'admin/inventory')  ? 'active' : '' ?>"><i class="bi bi-boxes me-2"></i>재고 관리</a>
-            <a href="/admin/orders"     class="nav-link <?= str_starts_with($uri, 'admin/orders')     ? 'active' : '' ?>"><i class="bi bi-receipt me-2"></i>주문 관리</a>
-            <a href="/admin/sales"      class="nav-link <?= str_starts_with($uri, 'admin/sales')      ? 'active' : '' ?>"><i class="bi bi-graph-up-arrow me-2"></i>매출 관리</a>
-            <a href="/admin/coupons"    class="nav-link <?= str_starts_with($uri, 'admin/coupons')    ? 'active' : '' ?>"><i class="bi bi-ticket-perforated me-2"></i>쿠폰 관리</a>
-            <a href="/admin/points"     class="nav-link <?= str_starts_with($uri, 'admin/points')     ? 'active' : '' ?>"><i class="bi bi-star me-2"></i>포인트 관리</a>
+            <div class="nav-subgroup">상품</div>
+            <a href="/admin/products"            class="nav-sublink <?= str_starts_with($uri, 'admin/products') && ! str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-bag me-2"></i>상품 관리</a>
+            <a href="/admin/products/categories" class="nav-sublink <?= str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-tags me-2"></i>카테고리 관리</a>
+            <a href="/admin/promotions"          class="nav-sublink <?= str_starts_with($uri, 'admin/promotions') ? 'active' : '' ?>"><i class="bi bi-megaphone me-2"></i>기획전 관리</a>
+            <a href="/admin/suppliers"           class="nav-sublink <?= str_starts_with($uri, 'admin/suppliers')  ? 'active' : '' ?>"><i class="bi bi-truck me-2"></i>매입처 관리</a>
+            <a href="/admin/inventory"           class="nav-sublink <?= str_starts_with($uri, 'admin/inventory')  ? 'active' : '' ?>"><i class="bi bi-boxes me-2"></i>재고 관리</a>
+            <div class="nav-subgroup">거래</div>
+            <a href="/admin/orders"  class="nav-sublink <?= str_starts_with($uri, 'admin/orders')  ? 'active' : '' ?>"><i class="bi bi-receipt me-2"></i>주문 관리</a>
+            <a href="/admin/sales"   class="nav-sublink <?= str_starts_with($uri, 'admin/sales')   ? 'active' : '' ?>"><i class="bi bi-graph-up-arrow me-2"></i>매출 관리</a>
+            <a href="/admin/coupons" class="nav-sublink <?= str_starts_with($uri, 'admin/coupons') ? 'active' : '' ?>"><i class="bi bi-ticket-perforated me-2"></i>쿠폰 관리</a>
+            <a href="/admin/points"  class="nav-sublink <?= str_starts_with($uri, 'admin/points')  ? 'active' : '' ?>"><i class="bi bi-star me-2"></i>포인트 관리</a>
         </div>
 
         <!-- 운영 -->
@@ -110,18 +116,21 @@
             운영 <i class="bi bi-chevron-down"></i>
         </button>
         <div class="collapse <?= $inOps ? 'show' : '' ?>" id="sec-ops">
-            <a href="/admin/users"          class="nav-link <?= str_starts_with($uri, 'admin/users')     ? 'active' : '' ?>"><i class="bi bi-person-lines-fill me-2"></i>회원 관리</a>
-            <a href="/admin/grade/platinum" class="nav-link <?= str_starts_with($uri, 'admin/grade')     ? 'active' : '' ?>"><i class="bi bi-trophy-fill me-2"></i>회원 등급</a>
-            <a href="/admin/inquiries"      class="nav-link <?= str_starts_with($uri, 'admin/inquiries') ? 'active' : '' ?>">
+            <div class="nav-subgroup">회원</div>
+            <a href="/admin/users"          class="nav-sublink <?= str_starts_with($uri, 'admin/users') ? 'active' : '' ?>"><i class="bi bi-person-lines-fill me-2"></i>회원 관리</a>
+            <a href="/admin/grade/platinum" class="nav-sublink <?= str_starts_with($uri, 'admin/grade') ? 'active' : '' ?>"><i class="bi bi-trophy-fill me-2"></i>회원 등급</a>
+            <div class="nav-subgroup">CS</div>
+            <a href="/admin/inquiries" class="nav-sublink <?= str_starts_with($uri, 'admin/inquiries') ? 'active' : '' ?>">
                 <i class="bi bi-envelope me-2"></i>문의글 관리
                 <?php if ($unreadInquiries > 0): ?><span class="badge bg-danger ms-1"><?= $unreadInquiries ?></span><?php endif; ?>
             </a>
-            <a href="/admin/qna" class="nav-link <?= str_starts_with($uri, 'admin/qna') ? 'active' : '' ?>">
+            <a href="/admin/qna" class="nav-sublink <?= str_starts_with($uri, 'admin/qna') ? 'active' : '' ?>">
                 <i class="bi bi-chat-dots me-2"></i>상품 문의 관리
                 <?php if ($unansweredQna > 0): ?><span class="badge bg-danger ms-1"><?= $unansweredQna ?></span><?php endif; ?>
             </a>
-            <a href="/admin/stats" class="nav-link <?= str_starts_with($uri, 'admin/stats') ? 'active' : '' ?>"><i class="bi bi-bar-chart-line me-2"></i>접속 통계</a>
-            <a href="/admin/menus" class="nav-link <?= str_starts_with($uri, 'admin/menus') ? 'active' : '' ?>"><i class="bi bi-list-ul me-2"></i>메뉴 관리</a>
+            <div class="nav-subgroup">분석·관리</div>
+            <a href="/admin/stats" class="nav-sublink <?= str_starts_with($uri, 'admin/stats') ? 'active' : '' ?>"><i class="bi bi-bar-chart-line me-2"></i>접속 통계</a>
+            <a href="/admin/menus" class="nav-sublink <?= str_starts_with($uri, 'admin/menus') ? 'active' : '' ?>"><i class="bi bi-list-ul me-2"></i>메뉴 관리</a>
         </div>
 
         <!-- 설정 -->
