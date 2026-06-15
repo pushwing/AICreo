@@ -2,13 +2,6 @@
 <?php $pageTitle = 'Welcome 페이지 설정' ?>
 <?= $this->section('content') ?>
 
-<?php if (session()->getFlashdata('success')): ?>
-<div class="alert alert-success alert-dismissible fade show py-2 mb-3" role="alert">
-    <?= esc(session()->getFlashdata('success')) ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-<?php endif; ?>
-
 <form method="post" action="/admin/welcome">
     <?= csrf_field() ?>
 
