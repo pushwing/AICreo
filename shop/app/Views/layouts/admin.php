@@ -66,7 +66,7 @@
             str_starts_with($uri, 'admin/inquiries'), str_starts_with($uri, 'admin/qna'),
             str_starts_with($uri, 'admin/stats'), str_starts_with($uri, 'admin/menus'),
         ]);
-        $inSettings = str_starts_with($uri, 'admin/settings');
+        $inSettings = str_starts_with($uri, 'admin/settings') || str_starts_with($uri, 'admin/schedule');
     ?>
     <nav class="mt-2">
         <!-- 콘텐츠 -->
@@ -143,6 +143,7 @@
             <a href="/admin/settings/general" class="nav-link <?= $uri !== 'admin/settings/oauth' && $uri !== 'admin/settings/theme' && ! str_starts_with($uri, 'admin/settings/theme') && str_starts_with($uri, 'admin/settings') ? 'active' : '' ?>"><i class="bi bi-gear me-2"></i>사이트 설정</a>
             <a href="/admin/settings/theme"   class="nav-link <?= str_starts_with($uri, 'admin/settings/theme') ? 'active' : '' ?>"><i class="bi bi-palette me-2"></i>테마 관리</a>
             <a href="/admin/settings/oauth"   class="nav-link <?= $uri === 'admin/settings/oauth' ? 'active' : '' ?>"><i class="bi bi-people me-2"></i>소셜 로그인</a>
+            <a href="/admin/schedule"         class="nav-link <?= str_starts_with($uri, 'admin/schedule') ? 'active' : '' ?>"><i class="bi bi-clock-history me-2"></i>배치 작업</a>
         </div>
 
         <div class="nav-section mt-3">사이트</div>

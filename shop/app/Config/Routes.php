@@ -84,6 +84,10 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('settings/theme/upload',       'Admin\SettingController::uploadTheme');
     $routes->post('settings/(:segment)',         'Admin\SettingController::update/$1');
 
+    // 배치 작업 관리
+    $routes->get( 'schedule',                    'Admin\ScheduleController::index');
+    $routes->post('schedule/(:segment)/toggle',  'Admin\ScheduleController::toggle/$1');
+
     // 전체 게시물 관리
     $routes->get( 'posts/json',          'Admin\PostController::json');
     $routes->get( 'posts',              'Admin\PostController::index');

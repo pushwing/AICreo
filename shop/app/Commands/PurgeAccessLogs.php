@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Models\AccessLogModel;
+use App\Models\SettingModel;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 
@@ -14,6 +15,12 @@ class PurgeAccessLogs extends BaseCommand
 
     public function run(array $params): void
     {
+        $settings = (new SettingModel())->getAllAsMap();
+        if (! (bool) ($settings['schedule_stats_purge_logs_enabled'] ?? 1)) {
+            CLI::write('[stats:purge-logs] 비활성화됨 — 스킵', 'yellow');
+            return;
+        }
+
         $days  = (int) ($params[0] ?? 90);
         $count = (new AccessLogModel())->purgeOlderThan($days);
 

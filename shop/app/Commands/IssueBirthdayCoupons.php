@@ -15,6 +15,12 @@ class IssueBirthdayCoupons extends BaseCommand
     public function run(array $params): void
     {
         $settings = (new SettingModel())->getAllAsMap();
+
+        if (! (bool) ($settings['schedule_coupons_birthday_enabled'] ?? 1)) {
+            CLI::write('[coupons:birthday] 비활성화됨 — 스킵', 'yellow');
+            return;
+        }
+
         $couponId = (int) ($settings['coupon_birthday_id'] ?? 0);
 
         if ($couponId <= 0) {
