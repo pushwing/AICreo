@@ -7,14 +7,26 @@
     <!-- 카테고리 목록 -->
     <div class="col-lg-8">
         <div class="card overflow-hidden">
-            <div class="card-header fw-semibold">카테고리 목록</div>
+            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                <span>카테고리 목록</span>
+                <form method="post" action="/admin/products/categories/publish" class="d-inline">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="bi bi-cloud-upload me-1"></i>쇼핑몰에 적용
+                    </button>
+                </form>
+            </div>
+            <div class="alert alert-warning alert-sm mb-0 rounded-0 border-0 py-2 px-3 small">
+                <i class="bi bi-info-circle me-1"></i>
+                추가·수정·삭제 후 <strong>쇼핑몰에 적용</strong> 버튼을 눌러야 쇼핑몰에 반영됩니다.
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
+                            <th style="width:80px">순서</th>
                             <th>이름</th>
                             <th>구분</th>
-                            <th>순서</th>
                             <th>상태</th>
                             <th></th>
                         </tr>
@@ -25,11 +37,16 @@
                         <?php endif; ?>
                         <?php foreach ($tree as $parent): ?>
                         <tr class="table-light">
+                            <td class="text-center">
+                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm p-0 px-1 btn-cat-move"
+                                        data-id="<?= $parent['id'] ?>" data-dir="up">▲</button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm p-0 px-1 btn-cat-move"
+                                        data-id="<?= $parent['id'] ?>" data-dir="down">▼</button>
+                            </td>
                             <td class="fw-semibold"><?= esc($parent['name']) ?></td>
                             <td><span class="badge bg-secondary">대분류</span></td>
-                            <td><?= $parent['sort_order'] ?></td>
                             <td><?= $parent['is_active'] ? '<span class="badge bg-success">활성</span>' : '<span class="badge bg-secondary">비활성</span>' ?></td>
-                            <td class="text-end">
+                            <td class="text-end" style="white-space:nowrap">
                                 <button class="btn btn-sm btn-outline-secondary edit-btn"
                                         data-id="<?= $parent['id'] ?>"
                                         data-parent-id=""
@@ -45,11 +62,16 @@
                         </tr>
                         <?php foreach ($parent['children'] as $child): ?>
                         <tr>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm p-0 px-1 btn-cat-move"
+                                        data-id="<?= $child['id'] ?>" data-dir="up">▲</button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary btn-sm p-0 px-1 btn-cat-move"
+                                        data-id="<?= $child['id'] ?>" data-dir="down">▼</button>
+                            </td>
                             <td class="ps-4">— <?= esc($child['name']) ?></td>
                             <td><span class="badge bg-light text-secondary border">소분류</span></td>
-                            <td><?= $child['sort_order'] ?></td>
                             <td><?= $child['is_active'] ? '<span class="badge bg-success">활성</span>' : '<span class="badge bg-secondary">비활성</span>' ?></td>
-                            <td class="text-end">
+                            <td class="text-end" style="white-space:nowrap">
                                 <button class="btn btn-sm btn-outline-secondary edit-btn"
                                         data-id="<?= $child['id'] ?>"
                                         data-parent-id="<?= $parent['id'] ?>"
@@ -149,6 +171,24 @@
 
 <?= $this->section('scripts') ?>
 <script>
+// ▲/▼ 순서 이동
+const csrfName  = '<?= csrf_token() ?>';
+let   csrfToken = '<?= csrf_hash() ?>';
+
+document.querySelectorAll('.btn-cat-move').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const id  = this.dataset.id;
+        const dir = this.dataset.dir;
+        fetch('/admin/products/categories/' + id + '/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: csrfName + '=' + encodeURIComponent(csrfToken) + '&direction=' + dir,
+        })
+        .then(r => r.json())
+        .then(data => { if (data.ok) location.reload(); });
+    });
+});
+
 document.querySelectorAll('.edit-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
         const id       = this.dataset.id;
