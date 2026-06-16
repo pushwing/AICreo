@@ -14,26 +14,50 @@
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto">
                 <?php foreach ($menus as $menu): ?>
-                <li class="nav-item <?= !empty($menu['children']) ? 'dropdown' : '' ?>">
-                    <?php if (!empty($menu['children'])): ?>
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <?= esc($menu['title']) ?>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <?php foreach ($menu['children'] as $child): ?>
-                            <li>
-                                <a class="dropdown-item" href="<?= esc($child['url']) ?>" target="<?= esc($child['target']) ?>">
-                                    <?= esc($child['title']) ?>
-                                </a>
-                            </li>
+                <?php if ($menu['url'] === '#categories'): ?>
+                <?php if (!empty($categories)): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="/shop" data-bs-toggle="dropdown">
+                        <?= esc($menu['title']) ?>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/shop">전체 상품</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <?php foreach ($categories as $cat): ?>
+                            <?php if (!empty($cat['children'])): ?>
+                            <li><a class="dropdown-item fw-semibold" href="/shop?category_id=<?= $cat['id'] ?>"><?= esc($cat['name']) ?></a></li>
+                            <?php foreach ($cat['children'] as $child): ?>
+                            <li><a class="dropdown-item ps-4 text-muted" href="/shop?category_id=<?= $child['id'] ?>"><?= esc($child['name']) ?></a></li>
                             <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <a class="nav-link" href="<?= esc($menu['url']) ?>" target="<?= esc($menu['target']) ?>">
-                            <?= esc($menu['title']) ?>
-                        </a>
-                    <?php endif; ?>
+                            <?php else: ?>
+                            <li><a class="dropdown-item" href="/shop?category_id=<?= $cat['id'] ?>"><?= esc($cat['name']) ?></a></li>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </ul>
                 </li>
+                <?php endif; ?>
+                <?php elseif (!empty($menu['children'])): ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        <?= esc($menu['title']) ?>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <?php foreach ($menu['children'] as $child): ?>
+                        <li>
+                            <a class="dropdown-item" href="<?= esc($child['url']) ?>" target="<?= esc($child['target']) ?>">
+                                <?= esc($child['title']) ?>
+                            </a>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </li>
+                <?php else: ?>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?= esc($menu['url']) ?>" target="<?= esc($menu['target']) ?>">
+                        <?= esc($menu['title']) ?>
+                    </a>
+                </li>
+                <?php endif; ?>
                 <?php endforeach; ?>
             </ul>
 

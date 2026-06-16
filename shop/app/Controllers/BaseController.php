@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\BannerModel;
+use App\Models\CategoryModel;
 use App\Models\InquiryModel;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
@@ -67,7 +68,9 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'lowStockCount', 'subLeftBanners', 'activePopups', 'cartCount');
+        $categories = $isAdmin ? [] : (new CategoryModel())->getTree();
+
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'lowStockCount', 'subLeftBanners', 'activePopups', 'cartCount', 'categories');
     }
 
     protected function getUserRole(): string
