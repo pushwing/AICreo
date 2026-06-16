@@ -99,30 +99,14 @@
 
             <!-- 상품 구성 -->
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold">상품 구성</div>
+                <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+                    <span>상품 구성</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productPickerModal">
+                        <i class="bi bi-plus-lg me-1"></i>상품 추가
+                    </button>
+                </div>
                 <div class="card-body p-2">
-                    <!-- 검색 -->
-                    <div class="input-group input-group-sm mb-2">
-                        <input type="text" id="prodSearchQ" class="form-control" placeholder="상품명 검색">
-                        <select id="prodSearchCat" class="form-select" style="max-width:120px">
-                            <option value="">전체 카테고리</option>
-                            <?php foreach ($categories as $cat): ?>
-                            <option value="<?= $cat['id'] ?>"><?= esc($cat['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button type="button" class="btn btn-outline-secondary" id="btnProdSearch">검색</button>
-                    </div>
-
-                    <!-- 검색 결과 -->
-                    <div id="searchResults" class="mb-2" style="max-height:220px;overflow-y:auto;display:none">
-                        <table class="table table-sm table-hover mb-0 small align-middle">
-                            <tbody id="searchResultBody"></tbody>
-                        </table>
-                    </div>
-
-                    <!-- 선택된 상품 -->
-                    <div class="small fw-semibold text-muted mb-1">선택된 상품</div>
-                    <div id="selectedProducts" style="max-height:260px;overflow-y:auto">
+                    <div id="selectedProducts" style="max-height:380px;overflow-y:auto">
                         <table class="table table-sm mb-0 small">
                             <tbody id="selectedBody">
                                 <?php foreach ($products as $i => $prod): ?>
@@ -139,6 +123,7 @@
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        <div id="selectedEmpty" class="text-muted small text-center py-3" style="display:none">선택된 상품이 없습니다.</div>
                     </div>
                 </div>
             </div>
@@ -150,6 +135,69 @@
         <a href="/admin/promotions" class="btn btn-outline-secondary">취소</a>
     </div>
 </form>
+
+<!-- 상품 선택 팝업 -->
+<div class="modal fade" id="productPickerModal" tabindex="-1" aria-labelledby="productPickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title fw-semibold" id="productPickerModalLabel">상품 선택</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <!-- 검색 필터 -->
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <input type="text" id="modalSearchQ" class="form-control form-control-sm" placeholder="상품명 검색">
+                    </div>
+                    <div class="col-auto">
+                        <select id="modalSearchCat" class="form-select form-select-sm" style="min-width:130px">
+                            <option value="">전체 카테고리</option>
+                            <?php foreach ($categories as $cat): ?>
+                            <option value="<?= $cat['id'] ?>"><?= esc($cat['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-sm btn-primary" id="btnModalSearch">검색</button>
+                    </div>
+                </div>
+
+                <!-- 전체선택 + 결과 수 -->
+                <div class="d-flex align-items-center gap-2 mb-2 small text-muted" id="modalResultMeta" style="display:none">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="chkSelectAll">
+                        <label class="form-check-label" for="chkSelectAll">전체 선택</label>
+                    </div>
+                    <span id="modalResultCount"></span>
+                </div>
+
+                <!-- 검색 결과 테이블 -->
+                <div style="min-height:300px">
+                    <table class="table table-sm table-hover align-middle small mb-0" id="modalResultTable" style="display:none">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:36px"><input type="checkbox" id="chkSelectAllHead" class="form-check-input"></th>
+                                <th style="width:50px"></th>
+                                <th>상품명</th>
+                                <th style="width:100px" class="text-end">가격</th>
+                                <th style="width:70px" class="text-center">재고</th>
+                                <th style="width:70px" class="text-center">상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalResultBody"></tbody>
+                    </table>
+                    <div id="modalEmptyMsg" class="text-center text-muted py-5 small">검색어를 입력하고 검색 버튼을 누르세요.</div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <span class="me-auto small text-muted"><span id="checkedCount">0</span>개 선택됨</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnAddSelected">선택 추가</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -202,8 +250,13 @@ document.getElementById('btnGenSlug').addEventListener('click', function () {
     document.getElementById('slugInput').value = slug;
 });
 
-// ── 상품 선택 ──────────────────────────────────────────────────────────────────
-const selectedMap = {};  // product_id → {name, sort_order}
+// ── 유틸 ───────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── 선택된 상품 관리 ────────────────────────────────────────────────────────────
+const selectedMap = {};  // product_id(string) → {name, sort_order}
 
 <?php foreach ($products as $i => $prod): ?>
 selectedMap[<?= $prod['id'] ?>] = { name: <?= json_encode($prod['name']) ?>, sort_order: <?= (int) $prod['sort_order'] ?> };
@@ -211,18 +264,25 @@ selectedMap[<?= $prod['id'] ?>] = { name: <?= json_encode($prod['name']) ?>, sor
 
 function renderSelected() {
     const tbody = document.getElementById('selectedBody');
+    const empty = document.getElementById('selectedEmpty');
+    const keys  = Object.keys(selectedMap);
     tbody.innerHTML = '';
-    let order = 0;
-    for (const [id, item] of Object.entries(selectedMap)) {
-        const tr = document.createElement('tr');
+    if (keys.length === 0) {
+        empty.style.display = '';
+        syncJson();
+        return;
+    }
+    empty.style.display = 'none';
+    keys.forEach(id => {
+        const item = selectedMap[id];
+        const tr   = document.createElement('tr');
         tr.dataset.id = id;
         tr.innerHTML = `
-            <td class="text-truncate" style="max-width:120px" title="${escHtml(item.name)}">${escHtml(item.name)}</td>
-            <td style="width:55px"><input type="number" class="form-control form-control-sm sort-input" value="${item.sort_order}" style="width:55px"></td>
+            <td class="text-truncate" style="max-width:130px" title="${escHtml(item.name)}">${escHtml(item.name)}</td>
+            <td style="width:55px"><input type="number" class="form-control form-control-sm sort-input" value="${item.sort_order}" style="width:55px" min="0"></td>
             <td style="width:30px"><button type="button" class="btn btn-sm btn-link text-danger p-0 btn-remove">✕</button></td>`;
         tbody.appendChild(tr);
-        order++;
-    }
+    });
     syncJson();
 
     tbody.querySelectorAll('.sort-input').forEach(input => {
@@ -234,8 +294,7 @@ function renderSelected() {
     });
     tbody.querySelectorAll('.btn-remove').forEach(btn => {
         btn.addEventListener('click', function () {
-            const id = this.closest('tr').dataset.id;
-            delete selectedMap[id];
+            delete selectedMap[this.closest('tr').dataset.id];
             renderSelected();
         });
     });
@@ -248,47 +307,118 @@ function syncJson() {
     document.getElementById('productsJson').value = JSON.stringify(arr);
 }
 
-function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 renderSelected();
 
-document.getElementById('btnProdSearch').addEventListener('click', function () {
-    const q   = document.getElementById('prodSearchQ').value.trim();
-    const cat = document.getElementById('prodSearchCat').value;
-    fetch('/admin/promotions/product-search?q=' + encodeURIComponent(q) + '&category_id=' + encodeURIComponent(cat))
-        .then(r => r.json())
-        .then(data => {
-            const tbody = document.getElementById('searchResultBody');
-            tbody.innerHTML = '';
-            (data.products || []).forEach(p => {
-                const tr = document.createElement('tr');
-                const thumb = p.primary_image
-                    ? `<img src="${escHtml(p.primary_image)}" style="width:36px;height:36px;object-fit:cover;border-radius:4px">`
-                    : `<span class="text-muted" style="display:inline-block;width:36px;height:36px;background:#f0f0f0;border-radius:4px;line-height:36px;text-align:center">-</span>`;
-                tr.innerHTML = `<td style="width:44px">${thumb}</td>
-                    <td class="text-truncate" style="max-width:120px">${escHtml(p.name)}</td>
-                    <td class="text-end text-muted">${Number(p.price).toLocaleString()}원</td>
-                    <td><button type="button" class="btn btn-sm btn-link p-0 text-primary btn-add" data-id="${p.id}" data-name="${escHtml(p.name)}">추가</button></td>`;
-                tbody.appendChild(tr);
-            });
-            document.getElementById('searchResults').style.display = data.products.length ? '' : 'none';
+// ── 상품 선택 모달 ──────────────────────────────────────────────────────────────
+(function () {
+    const modalEl    = document.getElementById('productPickerModal');
+    const searchQ    = document.getElementById('modalSearchQ');
+    const searchCat  = document.getElementById('modalSearchCat');
+    const btnSearch  = document.getElementById('btnModalSearch');
+    const resultTbl  = document.getElementById('modalResultTable');
+    const resultBody = document.getElementById('modalResultBody');
+    const emptyMsg   = document.getElementById('modalEmptyMsg');
+    const chkAllHead = document.getElementById('chkSelectAllHead');
+    const metaBar    = document.getElementById('modalResultMeta');
+    const countSpan  = document.getElementById('checkedCount');
+    const btnAdd     = document.getElementById('btnAddSelected');
 
-            tbody.querySelectorAll('.btn-add').forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const id   = this.dataset.id;
-                    const name = this.dataset.name;
-                    if (! selectedMap[id]) {
-                        selectedMap[id] = { name, sort_order: Object.keys(selectedMap).length };
-                        renderSelected();
-                    }
-                });
-            });
+    let lastResults  = [];
+
+    function updateCheckedCount() {
+        const n = resultBody.querySelectorAll('input[type=checkbox]:checked').length;
+        countSpan.textContent = n;
+        chkAllHead.checked = lastResults.length > 0 && n === lastResults.length;
+        chkAllHead.indeterminate = n > 0 && n < lastResults.length;
+    }
+
+    function renderResults(products) {
+        lastResults = products;
+        resultBody.innerHTML = '';
+        chkAllHead.checked = false;
+        chkAllHead.indeterminate = false;
+        countSpan.textContent = '0';
+
+        if (products.length === 0) {
+            resultTbl.style.display  = 'none';
+            metaBar.style.display    = 'none';
+            emptyMsg.style.display   = '';
+            emptyMsg.textContent     = '검색 결과가 없습니다.';
+            return;
+        }
+
+        emptyMsg.style.display  = 'none';
+        metaBar.style.display   = '';
+        resultTbl.style.display = '';
+
+        products.forEach(p => {
+            const alreadyIn = !!selectedMap[p.id];
+            const thumb = p.primary_image
+                ? `<img src="${escHtml(p.primary_image)}" style="width:40px;height:40px;object-fit:cover;border-radius:4px">`
+                : `<span style="display:inline-block;width:40px;height:40px;background:#f0f0f0;border-radius:4px;line-height:40px;text-align:center;color:#aaa;font-size:18px">·</span>`;
+            const statusBadge = p.status === 'active'
+                ? '<span class="badge bg-success-subtle text-success">판매중</span>'
+                : '<span class="badge bg-secondary-subtle text-secondary">비활성</span>';
+            const tr = document.createElement('tr');
+            if (alreadyIn) tr.classList.add('table-warning');
+            tr.innerHTML = `
+                <td><input type="checkbox" class="form-check-input prod-chk" data-id="${p.id}" data-name="${escHtml(p.name)}" ${alreadyIn ? 'checked disabled' : ''}></td>
+                <td>${thumb}</td>
+                <td class="text-truncate" style="max-width:240px" title="${escHtml(p.name)}">${escHtml(p.name)}</td>
+                <td class="text-end">${Number(p.price).toLocaleString()}원</td>
+                <td class="text-center">${Number(p.stock).toLocaleString()}</td>
+                <td class="text-center">${statusBadge}</td>`;
+            resultBody.appendChild(tr);
         });
-});
-document.getElementById('prodSearchQ').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnProdSearch').click(); }
-});
+
+        resultBody.querySelectorAll('.prod-chk:not([disabled])').forEach(chk => {
+            chk.addEventListener('change', updateCheckedCount);
+        });
+        updateCheckedCount();
+    }
+
+    function doSearch() {
+        const q   = searchQ.value.trim();
+        const cat = searchCat.value;
+        emptyMsg.textContent  = '검색 중...';
+        emptyMsg.style.display = '';
+        resultTbl.style.display = 'none';
+        fetch('/admin/promotions/product-search?q=' + encodeURIComponent(q) + '&category_id=' + encodeURIComponent(cat))
+            .then(r => r.json())
+            .then(data => renderResults(data.products || []));
+    }
+
+    btnSearch.addEventListener('click', doSearch);
+    searchQ.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } });
+
+    chkAllHead.addEventListener('change', function () {
+        resultBody.querySelectorAll('.prod-chk:not([disabled])').forEach(chk => {
+            chk.checked = this.checked;
+        });
+        updateCheckedCount();
+    });
+
+    btnAdd.addEventListener('click', function () {
+        resultBody.querySelectorAll('.prod-chk:not([disabled]):checked').forEach(chk => {
+            const id   = chk.dataset.id;
+            const name = chk.dataset.name;
+            if (!selectedMap[id]) {
+                selectedMap[id] = { name, sort_order: Object.keys(selectedMap).length };
+            }
+        });
+        renderSelected();
+        bootstrap.Modal.getInstance(modalEl).hide();
+    });
+
+    // 모달 열릴 때 검색창 초기화 후 포커스
+    modalEl.addEventListener('shown.bs.modal', function () {
+        searchQ.value = '';
+        searchCat.value = '';
+        renderResults([]);
+        emptyMsg.style.display = '';
+        emptyMsg.textContent = '검색어를 입력하고 검색 버튼을 누르세요.';
+        searchQ.focus();
+    });
+}());
 </script>
 <?= $this->endSection() ?>
