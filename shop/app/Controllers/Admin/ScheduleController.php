@@ -48,21 +48,34 @@ class ScheduleController extends BaseController
         ]);
     }
 
-    public function toggle(string $key): \CodeIgniter\HTTP\RedirectResponse
+    public function toggle(string $key): \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
     {
         $existing = $this->settingModel->where('group', 'schedule')->where('key', $key)->first();
 
         if (! $existing) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => '존재하지 않는 설정 키입니다.']);
+            }
             return redirect()->to('/admin/schedule')->with('error', '존재하지 않는 설정 키입니다.');
         }
 
         $newValue = $existing['value'] === '1' ? '0' : '1';
         $this->settingModel->saveSettings([$key => $newValue]);
 
-        $label  = $existing['label'];
-        $status = $newValue === '1' ? '활성화' : '비활성화';
+        $label   = $existing['label'];
+        $status  = $newValue === '1' ? '활성화' : '비활성화';
+        $message = "{$label} — {$status}되었습니다.";
 
-        return redirect()->to('/admin/schedule')->with('success', "{$label} — {$status}되었습니다.");
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success'    => true,
+                'enabled'    => $newValue === '1',
+                'message'    => $message,
+                'csrf_token' => csrf_hash(),
+            ]);
+        }
+
+        return redirect()->to('/admin/schedule')->with('success', $message);
     }
 
     public function updateCron(string $baseKey): \CodeIgniter\HTTP\RedirectResponse

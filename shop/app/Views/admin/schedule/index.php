@@ -2,6 +2,16 @@
 <?php $pageTitle = '배치 작업 관리' ?>
 <?= $this->section('content') ?>
 
+<!-- 토스트 컨테이너 -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1100">
+    <div id="scheduleToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="scheduleToastBody"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h4 class="mb-0">배치 작업 관리</h4>
@@ -30,8 +40,7 @@
                     <th class="ps-4">작업명</th>
                     <th>커맨드</th>
                     <th>실행 주기</th>
-                    <th class="text-center">상태</th>
-                    <th class="text-center pe-4">작업</th>
+                    <th class="text-center pe-4">활성화</th>
                 </tr>
             </thead>
             <tbody>
@@ -53,27 +62,19 @@
                             <i class="bi bi-pencil-square small"></i>
                         </button>
                     </td>
-                    <td class="text-center">
-                        <?php if ($job['enabled'] === '1'): ?>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">활성</span>
-                        <?php else: ?>
-                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">비활성</span>
-                        <?php endif; ?>
-                    </td>
                     <td class="text-center pe-4">
-                        <form method="post" action="/admin/schedule/<?= esc($job['enabled_key']) ?>/toggle" class="d-inline">
-                            <?= csrf_field() ?>
-                            <?php if ($job['enabled'] === '1'): ?>
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">비활성화</button>
-                            <?php else: ?>
-                                <button type="submit" class="btn btn-sm btn-outline-success">활성화</button>
-                            <?php endif; ?>
-                        </form>
+                        <div class="form-check form-switch d-flex justify-content-center m-0">
+                            <input class="form-check-input schedule-toggle fs-5"
+                                   type="checkbox" role="switch"
+                                   data-key="<?= esc($job['enabled_key']) ?>"
+                                   data-label="<?= esc($job['label']) ?>"
+                                   <?= $job['enabled'] === '1' ? 'checked' : '' ?>>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($jobs)): ?>
-                <tr><td colspan="5" class="text-center text-muted py-4">등록된 배치 작업이 없습니다.</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-4">등록된 배치 작업이 없습니다.</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -203,6 +204,56 @@
 
 <script>
 (function () {
+    const csrfName  = '<?= csrf_token() ?>';
+    let   csrfToken = '<?= csrf_hash() ?>';
+
+    // ── 토스트 ─────────────────────────────────────────────────────────────────
+    const toastEl   = document.getElementById('scheduleToast');
+    const toastBody = document.getElementById('scheduleToastBody');
+    const bsToast   = new bootstrap.Toast(toastEl, { delay: 3000 });
+
+    function showToast(message, type) {
+        toastEl.classList.remove('text-bg-success', 'text-bg-danger');
+        toastEl.classList.add(type === 'success' ? 'text-bg-success' : 'text-bg-danger');
+        toastBody.textContent = message;
+        bsToast.show();
+    }
+
+    // ── 토글 스위치 AJAX ───────────────────────────────────────────────────────
+    document.querySelectorAll('.schedule-toggle').forEach(function (toggle) {
+        toggle.addEventListener('change', async function () {
+            const key          = this.dataset.key;
+            const prevChecked  = ! this.checked;
+            this.disabled      = true;
+
+            const body = new FormData();
+            body.append(csrfName, csrfToken);
+
+            try {
+                const res  = await fetch('/admin/schedule/' + key + '/toggle', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body,
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    csrfToken = data.csrf_token;
+                    showToast(data.message, 'success');
+                } else {
+                    this.checked = prevChecked;
+                    showToast(data.message || '오류가 발생했습니다.', 'error');
+                }
+            } catch (e) {
+                this.checked = prevChecked;
+                showToast('서버와 통신 중 오류가 발생했습니다.', 'error');
+            } finally {
+                this.disabled = false;
+            }
+        });
+    });
+
+    // ── 주기 변경 모달 ─────────────────────────────────────────────────────────
     let currentCommand = '';
 
     const cronModal   = document.getElementById('cronModal');
