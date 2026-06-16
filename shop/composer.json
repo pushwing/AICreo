@@ -3,6 +3,7 @@
         "phpstan/phpstan": "^2.2"
     },
     "require": {
-        "phpoffice/phpspreadsheet": "^5.8"
+        "phpoffice/phpspreadsheet": "^5.8",
+        "codeigniter4/tasks": "^1.0"
     }
 }
