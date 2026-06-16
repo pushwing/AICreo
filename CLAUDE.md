@@ -25,11 +25,11 @@ php spark orders:expire      # Manually expire pending orders older than 30 min
 php spark orders:expire 60   # Expire pending orders older than 60 min
 ```
 
-**Cron (production — order expiry):**
+**Cron (production — 단 1줄 등록):**
 ```
-* * * * * cd /path/to/shop && php spark schedule:run >> /dev/null 2>&1
+* * * * * cd /path/to/shop && php spark tasks:run >> /dev/null 2>&1
 ```
-The scheduler calls `orders:expire` every 5 minutes (`Config/Scheduler.php`).
+`Config/Tasks.php`가 `settings` 테이블에서 활성화된 잡을 읽어 등록. 활성화·주기는 `/admin/schedule`에서 관리.
 
 ## Initial Setup
 
