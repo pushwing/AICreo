@@ -381,7 +381,7 @@ class ProductController extends BaseController
     public function categories(): string
     {
         return $this->render('admin/products/categories', [
-            'tree' => $this->categoryModel->getTree(),
+            'tree' => $this->categoryModel->getTreeDirect(),
         ]);
     }
 
@@ -439,6 +439,58 @@ class ProductController extends BaseController
 
         $this->categoryModel->delete($id);
         return redirect()->to('/admin/products/categories')->with('success', '삭제되었습니다.');
+    }
+
+    public function categoryMove(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $direction = $this->request->getPost('direction');
+        $current   = $this->categoryModel->find($id);
+        if (! $current || ! in_array($direction, ['up', 'down'], true)) {
+            return $this->response->setJSON(['ok' => false]);
+        }
+
+        $db = db_connect();
+        $builder = $db->table('categories');
+
+        if ($current['parent_id'] === null) {
+            $builder->where('parent_id IS NULL', null, false);
+        } else {
+            $builder->where('parent_id', $current['parent_id']);
+        }
+
+        // sort_order 중복 대비: id를 보조 정렬 키로 사용
+        $siblings = $builder->orderBy('sort_order', 'ASC')->orderBy('id', 'ASC')
+                            ->get()->getResultArray();
+
+        $currentIdx = null;
+        foreach ($siblings as $i => $s) {
+            if ((int) $s['id'] === $id) { $currentIdx = $i; break; }
+        }
+
+        if ($currentIdx === null) {
+            return $this->response->setJSON(['ok' => false]);
+        }
+
+        $swapIdx = $direction === 'up' ? $currentIdx - 1 : $currentIdx + 1;
+
+        if ($swapIdx < 0 || $swapIdx >= count($siblings)) {
+            return $this->response->setJSON(['ok' => false]);
+        }
+
+        // 배열에서 위치 교환 후 sort_order 재정규화 (0, 1, 2, …)
+        [$siblings[$currentIdx], $siblings[$swapIdx]] = [$siblings[$swapIdx], $siblings[$currentIdx]];
+
+        foreach ($siblings as $i => $s) {
+            $this->categoryModel->update((int) $s['id'], ['sort_order' => $i]);
+        }
+
+        return $this->response->setJSON(['ok' => true]);
+    }
+
+    public function categoryPublish(): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $this->categoryModel->clearCache();
+        return redirect()->to('/admin/products/categories')->with('success', '카테고리가 쇼핑몰에 적용되었습니다.');
     }
 
     // ── 이미지 삭제 (Ajax) ────────────────────────────────────────────────────
