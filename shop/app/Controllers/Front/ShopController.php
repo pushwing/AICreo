@@ -10,6 +10,7 @@ use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
 use App\Models\ProductReviewModel;
 use App\Models\ProductSkuModel;
+use App\Models\PromotionModel;
 use App\Models\RestockAlertModel;
 use App\Models\WishlistModel;
 
@@ -49,11 +50,14 @@ class ShopController extends BaseController
         $discountedProducts = $this->productModel->getDiscounted(8);
         $this->imageModel->attachPrimaryImages($discountedProducts);
 
+        $promotions = (new PromotionModel())->getActiveFrontList();
+
         return $this->render('shop/home', [
             'mainTopBanners'     => $bannerModel->getActiveByPosition('main_top'),
             'mainBotBanners'     => $bannerModel->getActiveByPosition('main_bottom'),
             'newProducts'        => $newProducts,
             'discountedProducts' => $discountedProducts,
+            'promotions'         => $promotions,
         ]);
     }
 
