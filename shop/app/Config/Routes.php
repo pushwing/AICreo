@@ -70,6 +70,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'menus',              'Admin\MenuController::index');
     $routes->post('menus',              'Admin\MenuController::store');
     $routes->post('menus/(:num)/edit',  'Admin\MenuController::update/$1');
+    $routes->post('menus/(:num)/move',  'Admin\MenuController::move/$1');
     $routes->post('menus/(:num)/delete','Admin\MenuController::delete/$1');
 
     // 미디어 라이브러리
