@@ -9,17 +9,27 @@
             <div class="card-header bg-white"><strong>현재 메뉴</strong></div>
             <table class="table table-hover mb-0 small">
                 <thead class="table-light">
-                    <tr><th>순서</th><th>제목</th><th>URL</th><th>상위</th><th>상태</th><th></th></tr>
+                    <tr><th>순서</th><th>제목</th><th>URL</th><th>상태</th><th></th></tr>
                 </thead>
                 <tbody>
                     <?php foreach ($menus as $m): ?>
-                    <tr>
-                        <td><?= $m['sort_order'] ?></td>
+                    <tr data-id="<?= $m['id'] ?>">
+                        <td class="text-center" style="width:80px">
+                            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm p-0 px-1 btn-move"
+                                    data-id="<?= $m['id'] ?>" data-dir="up" title="위로">▲</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary btn-sm p-0 px-1 btn-move"
+                                    data-id="<?= $m['id'] ?>" data-dir="down" title="아래로">▼</button>
+                        </td>
                         <td><?= $m['parent_id'] ? '&nbsp;&nbsp;└ ' : '' ?><?= esc($m['title']) ?></td>
-                        <td><code><?= esc($m['url']) ?></code></td>
-                        <td><?= $m['parent_id'] ?: '-' ?></td>
-                        <td><?= $m['is_active'] ? '<span class="badge bg-success">활성</span>' : '<span class="badge bg-secondary">비활성</span>' ?></td>
                         <td>
+                            <?php if ($m['url'] === '#categories'): ?>
+                            <span class="badge bg-info text-dark">카테고리 드롭다운</span>
+                            <?php else: ?>
+                            <code><?= esc($m['url']) ?></code>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= $m['is_active'] ? '<span class="badge bg-success">활성</span>' : '<span class="badge bg-secondary">비활성</span>' ?></td>
+                        <td style="white-space:nowrap">
                             <button class="btn btn-xs btn-outline-secondary btn-sm"
                                     onclick="fillEditForm(<?= htmlspecialchars(json_encode($m)) ?>)">수정</button>
                             <form method="post" action="/admin/menus/<?= $m['id'] ?>/delete" class="d-inline" onsubmit="return confirm('삭제?')">
@@ -37,7 +47,13 @@
     <!-- 추가/수정 폼 -->
     <div class="col-lg-5">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white"><strong id="formTitle">메뉴 추가</strong></div>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong id="formTitle">메뉴 추가</strong>
+                <button type="button" class="btn btn-sm btn-outline-info" id="btnAddCategoryMenu"
+                        title="카테고리 드롭다운 메뉴 항목을 빠르게 추가합니다">
+                    <i class="bi bi-tag me-1"></i>카테고리 메뉴
+                </button>
+            </div>
             <div class="card-body">
                 <form method="post" id="menuForm" action="/admin/menus">
                     <?= csrf_field() ?>
@@ -99,5 +115,36 @@ function resetForm() {
     document.getElementById('menuForm').action = '/admin/menus';
     document.getElementById('menuForm').reset();
 }
+
+// 카테고리 메뉴 빠른 추가
+document.getElementById('btnAddCategoryMenu').addEventListener('click', function () {
+    resetForm();
+    document.getElementById('mTitle').value = '카테고리';
+    document.getElementById('mUrl').value   = '#categories';
+    document.getElementById('mSort').value  = 0;
+    document.getElementById('mTitle').focus();
+});
+
+// ▲/▼ 순서 이동
+const csrfName  = '<?= csrf_token() ?>';
+let   csrfToken = '<?= csrf_hash() ?>';
+
+document.querySelectorAll('.btn-move').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const id  = this.dataset.id;
+        const dir = this.dataset.dir;
+        fetch('/admin/menus/' + id + '/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: csrfName + '=' + encodeURIComponent(csrfToken) + '&direction=' + dir,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                location.reload();
+            }
+        });
+    });
+});
 </script>
 <?= $this->endSection() ?>
