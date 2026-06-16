@@ -202,7 +202,7 @@ class UserController extends BaseController
     {
         $db   = \Config\Database::connect();
         $rows = $db->table('point_logs')
-            ->select('type, amount, balance_after, description, created_at')
+            ->select('type, amount, note, created_at')
             ->where('user_id', $id)
             ->orderBy('id', 'DESC')
             ->limit(50)
@@ -219,7 +219,7 @@ class UserController extends BaseController
     {
         $db   = \Config\Database::connect();
         $rows = $db->table('user_coupons uc')
-            ->select('uc.id, c.name, c.code, uc.is_used, uc.used_at, uc.expires_at, uc.created_at')
+            ->select('uc.id, c.name, c.code, uc.status, uc.used_at, c.expires_at, uc.created_at')
             ->join('coupons c', 'c.id = uc.coupon_id')
             ->where('uc.user_id', $id)
             ->orderBy('uc.id', 'DESC')
