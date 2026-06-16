@@ -28,12 +28,7 @@ class CartController extends BaseController
     {
         $userId = (int) session()->get('user_id');
 
-        $sessionCart = session()->get('cart') ?? [];
-        if ($sessionCart) {
-            $stockMap = $this->buildSessionStockMap($sessionCart);
-            $this->cartModel->mergeSession($userId, $sessionCart, $stockMap);
-            session()->remove('cart');
-        }
+        $this->cartModel->mergeAndClear($userId);
 
         $items = $this->cartModel->getByUser($userId);
 
@@ -44,38 +39,6 @@ class CartController extends BaseController
      * 세션 장바구니의 재고 맵 구성 (SKU/상품 구분)
      * 반환: ['productId_skuId' => stock, ...]
      */
-    private function buildSessionStockMap(array $sessionCart): array
-    {
-        $productIds = [];
-        $skuIds     = [];
-        foreach ($sessionCart as $key => $_) {
-            [$pid, $sid] = CartModel::parseSessionKey((string) $key);
-            $productIds[] = $pid;
-            if ($sid) $skuIds[] = $sid;
-        }
-        $productIds = array_unique($productIds);
-        $skuIds     = array_unique($skuIds);
-
-        $productStocks = [];
-        if ($productIds) {
-            $rows = $this->productModel->whereIn('id', $productIds)->findAll();
-            $productStocks = array_column($rows, 'stock', 'id');
-        }
-
-        $skuStocks = [];
-        if ($skuIds) {
-            $rows = $this->skuModel->whereIn('id', $skuIds)->findAll();
-            $skuStocks = array_column($rows, 'stock', 'id');
-        }
-
-        $stockMap = [];
-        foreach ($sessionCart as $key => $_) {
-            [$pid, $sid] = CartModel::parseSessionKey((string) $key);
-            $stockMap[$key] = $sid ? (int) ($skuStocks[$sid] ?? 0) : (int) ($productStocks[$pid] ?? 0);
-        }
-        return $stockMap;
-    }
-
     /**
      * POST /cart/add — 장바구니 담기 (로그인·비로그인 모두 허용)
      * 로그인: DB, 비로그인: 세션

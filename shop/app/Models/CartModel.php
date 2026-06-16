@@ -163,6 +163,51 @@ class CartModel extends Model
         }
     }
 
+    /**
+     * 로그인 직후 호출 — 세션 카트를 DB 카트로 병합하고 세션을 비웁니다.
+     * 재고를 직접 조회하므로 외부 모델 의존 없이 사용 가능합니다.
+     */
+    public function mergeAndClear(int $userId): void
+    {
+        $sessionCart = session()->get('cart') ?? [];
+        if (empty($sessionCart)) return;
+
+        $productIds = [];
+        $skuIds     = [];
+        foreach ($sessionCart as $key => $_) {
+            [$pid, $sid] = self::parseSessionKey((string) $key);
+            $productIds[] = $pid;
+            if ($sid) $skuIds[] = $sid;
+        }
+
+        $productStocks = [];
+        if ($productIds) {
+            $rows = $this->db->table('products')
+                ->select('id, stock')
+                ->whereIn('id', array_unique($productIds))
+                ->get()->getResultArray();
+            $productStocks = array_column($rows, 'stock', 'id');
+        }
+
+        $skuStocks = [];
+        if ($skuIds) {
+            $rows = $this->db->table('product_skus')
+                ->select('id, stock')
+                ->whereIn('id', array_unique($skuIds))
+                ->get()->getResultArray();
+            $skuStocks = array_column($rows, 'stock', 'id');
+        }
+
+        $stockMap = [];
+        foreach ($sessionCart as $key => $_) {
+            [$pid, $sid] = self::parseSessionKey((string) $key);
+            $stockMap[$key] = $sid ? (int) ($skuStocks[$sid] ?? 0) : (int) ($productStocks[$pid] ?? 0);
+        }
+
+        $this->mergeSession($userId, $sessionCart, $stockMap);
+        session()->remove('cart');
+    }
+
     /** 세션 키 "productId_skuId" 파싱 */
     public static function parseSessionKey(string $key): array
     {
