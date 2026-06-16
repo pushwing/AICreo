@@ -116,7 +116,7 @@ class GradeService
     }
 
     /**
-     * 등급 변경 DB 반영 + 보너스 포인트 지급 + 로그
+     * 등급 변경 DB 반영 + 보너스 포인트 지급 + 로그 + 승급 쿠폰 발급
      */
     public function applyUpgrade(int $userId, string $newGrade, array $settings): void
     {
@@ -146,6 +146,46 @@ class GradeService
         }
 
         $this->db->transComplete();
+
+        // 승급 쿠폰 발급 (트랜잭션 밖 — 실패해도 승급은 유지)
+        $this->issueGradeCoupon($userId, $newGrade, $settings, $now);
+    }
+
+    /**
+     * 등급 승급 쿠폰 발급 — 설정에 coupon_grade_{grade}_id 가 있을 때만 발급
+     */
+    public function issueGradeCoupon(int $userId, string $grade, array $settings, string $now = ''): void
+    {
+        if ($now === '') $now = date('Y-m-d H:i:s');
+
+        $couponId = (int) ($settings['coupon_grade_' . $grade . '_id'] ?? 0);
+        if ($couponId <= 0) return;
+
+        $coupon = $this->db->table('coupons')->where('id', $couponId)->where('is_active', 1)->get()->getRowArray();
+        if (! $coupon) return;
+
+        // 중복 발급 방지 — 같은 쿠폰이 이미 issued 상태로 있으면 스킵
+        $exists = $this->db->table('user_coupons')
+            ->where('user_id', $userId)
+            ->where('coupon_id', $couponId)
+            ->where('status', 'issued')
+            ->countAllResults();
+        if ($exists > 0) return;
+
+        // total_qty 체크
+        if ($coupon['total_qty'] !== null && (int) $coupon['used_count'] >= (int) $coupon['total_qty']) return;
+
+        $this->db->table('user_coupons')->insert([
+            'user_id'    => $userId,
+            'coupon_id'  => $couponId,
+            'source'     => 'admin',
+            'status'     => 'issued',
+            'issued_at'  => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        log_message('info', "[GradeService] user_id={$userId} 승급쿠폰 발급 coupon_id={$couponId} grade={$grade}");
     }
 
     /**
