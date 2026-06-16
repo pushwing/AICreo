@@ -265,6 +265,57 @@ final class OrderExcelExportTest extends CIUnitTestCase
         $this->assertNotContains($preparingNum, $numbers, 'paid 필터에 preparing 주문 미포함');
     }
 
+    public function testTrackingExportExcludesOrdersWithTrackingNumber(): void
+    {
+        $db = db_connect();
+
+        // 송장 입력 완료된 주문
+        $withTracking = $this->prefix . 'TRK01';
+        $id = $this->insertOrder('preparing', $withTracking);
+        $db->table('orders')->where('id', $id)->update([
+            'tracking_company' => 'CJ대한통운',
+            'tracking_number'  => '1234567890',
+        ]);
+
+        // 송장 미입력 주문
+        $noTracking = $this->prefix . 'TRK02';
+        $this->insertOrder('preparing', $noTracking);
+
+        $rows = $db->table('orders o')
+            ->select('o.order_number')
+            ->whereIn('o.status', ['paid', 'preparing', 'shipped'])
+            ->groupStart()
+                ->where('o.tracking_number IS NULL')
+                ->orWhere('o.tracking_number', '')
+            ->groupEnd()
+            ->get()->getResultArray();
+
+        $numbers = array_column($rows, 'order_number');
+        $this->assertNotContains($withTracking, $numbers, '송장 입력 완료 주문은 제외돼야 한다');
+        $this->assertContains($noTracking, $numbers, '송장 미입력 주문은 포함돼야 한다');
+    }
+
+    public function testTrackingExportExcludesOrdersWithEmptyStringTracking(): void
+    {
+        // tracking_number = '' (빈 문자열)도 미입력으로 간주해 포함돼야 한다
+        $db = db_connect();
+        $orderNumber = $this->prefix . 'TRK03';
+        $id = $this->insertOrder('paid', $orderNumber);
+        $db->table('orders')->where('id', $id)->update(['tracking_number' => '']);
+
+        $rows = $db->table('orders o')
+            ->select('o.order_number')
+            ->whereIn('o.status', ['paid', 'preparing', 'shipped'])
+            ->groupStart()
+                ->where('o.tracking_number IS NULL')
+                ->orWhere('o.tracking_number', '')
+            ->groupEnd()
+            ->get()->getResultArray();
+
+        $numbers = array_column($rows, 'order_number');
+        $this->assertContains($orderNumber, $numbers, 'tracking_number 빈 문자열은 미입력으로 간주해 포함');
+    }
+
     public function testTrackingExportCsvLineFormat(): void
     {
         $orderId = $this->insertOrder('preparing');
