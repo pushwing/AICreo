@@ -435,6 +435,12 @@ class OrderController extends BaseController
             $builder->whereIn('o.status', ['paid', 'preparing', 'shipped']);
         }
 
+        // 송장 미입력 주문만 포함
+        $builder->groupStart()
+                ->where('o.tracking_number IS NULL')
+                ->orWhere('o.tracking_number', '')
+                ->groupEnd();
+
         $orders = $builder->get()->getResultArray();
 
         $statusLabels = self::STATUS_LABELS;
