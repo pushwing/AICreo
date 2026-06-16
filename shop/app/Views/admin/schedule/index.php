@@ -40,6 +40,7 @@
                     <th class="ps-4">작업명</th>
                     <th>커맨드</th>
                     <th>실행 주기</th>
+                    <th class="text-center">상태</th>
                     <th class="text-center pe-4">활성화</th>
                 </tr>
             </thead>
@@ -62,6 +63,15 @@
                             <i class="bi bi-pencil-square small"></i>
                         </button>
                     </td>
+                    <td class="text-center">
+                        <?php if ($job['enabled'] === '1'): ?>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 schedule-badge"
+                                  data-key="<?= esc($job['enabled_key']) ?>">활성</span>
+                        <?php else: ?>
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 schedule-badge"
+                                  data-key="<?= esc($job['enabled_key']) ?>">비활성</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="text-center pe-4">
                         <div class="form-check form-switch d-flex justify-content-center m-0">
                             <input class="form-check-input schedule-toggle fs-5"
@@ -74,7 +84,7 @@
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($jobs)): ?>
-                <tr><td colspan="4" class="text-center text-muted py-4">등록된 배치 작업이 없습니다.</td></tr>
+                <tr><td colspan="5" class="text-center text-muted py-4">등록된 배치 작업이 없습니다.</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -239,6 +249,16 @@
 
                 if (data.success) {
                     csrfToken = data.csrf_token;
+                    const badge = document.querySelector('.schedule-badge[data-key="' + key + '"]');
+                    if (badge) {
+                        if (data.enabled) {
+                            badge.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-1 schedule-badge';
+                            badge.textContent = '활성';
+                        } else {
+                            badge.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 schedule-badge';
+                            badge.textContent = '비활성';
+                        }
+                    }
                     showToast(data.message, 'success');
                 } else {
                     this.checked = prevChecked;
