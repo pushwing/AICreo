@@ -175,34 +175,34 @@
                     <table class="table table-sm table-bordered small mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>크론 (매분)</th>
-                                <th>스케줄러 실행</th>
-                                <th>DB 설정 확인</th>
-                                <th>결과</th>
+                                <th>① 크론 트리거 (매분)</th>
+                                <th>② 스케줄러 초기화</th>
+                                <th>③ 주기 도달 확인</th>
+                                <th>④ 결과</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td><code>schedule:run</code> 호출</td>
-                                <td>활성화된 잡만 등록</td>
-                                <td>설정된 주기 도달 여부 확인</td>
-                                <td>주기 미달이면 스킵, 도달 시 실행</td>
+                                <td><code>tasks:run</code> 호출</td>
+                                <td>DB에서 활성화된 잡만 읽어 등록</td>
+                                <td>설정된 크론 표현식과 현재 시각 비교</td>
+                                <td>주기 미달이면 스킵, 도달 시 커맨드 실행</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <p class="text-muted small mt-2 mb-0">
-                    주기·활성화 변경은 이 페이지에서만 하면 됩니다. 크론탭 재편집 불필요.
+                    활성화·주기 변경은 이 페이지에서만 하면 됩니다. 크론탭 재편집 불필요.
                 </p>
 
                 <hr class="my-4">
 
                 <h6 class="mb-2 fw-semibold">새 배치 작업 추가 시 체크리스트</h6>
                 <ol class="small text-muted mb-0 ps-3">
-                    <li class="mb-1"><code>app/Commands/</code>에 커맨드 클래스 작성, <code>run()</code> 첫 줄에 활성화 가드 추가</li>
+                    <li class="mb-1"><code>app/Commands/</code>에 커맨드 클래스 작성</li>
                     <li class="mb-1">마이그레이션으로 <code>settings</code> 테이블에 <code>_enabled</code>, <code>_cron</code> 키 추가</li>
-                    <li class="mb-1"><code>ScheduleController::JOB_COMMANDS</code> 및 <code>Scheduler::JOB_COMMANDS</code> 상수에 매핑 등록</li>
-                    <li>크론탭 재등록 불필요 (기존 <code>schedule:run</code> 항목이 자동 처리)</li>
+                    <li class="mb-1"><code>ScheduleController::JOB_COMMANDS</code> 및 <code>Config/Tasks::JOB_COMMANDS</code> 상수에 매핑 등록</li>
+                    <li>크론탭 재등록 불필요 — 기존 <code>tasks:run</code> 항목이 자동으로 처리</li>
                 </ol>
 
             </div>
