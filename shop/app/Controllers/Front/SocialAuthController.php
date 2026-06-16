@@ -5,6 +5,7 @@ namespace App\Controllers\Front;
 use App\Controllers\BaseController;
 use App\Libraries\GradeService;
 use App\Libraries\OAuth\OAuthFactory;
+use App\Models\CartModel;
 use App\Models\UserModel;
 
 class SocialAuthController extends BaseController
@@ -97,6 +98,9 @@ class SocialAuthController extends BaseController
         ]);
 
         $this->userModel->updateLastLogin($user['id']);
+
+        // 비로그인 세션 카트를 DB 카트로 병합
+        (new CartModel())->mergeAndClear((int) $user['id']);
 
         return redirect()->to(session()->getTempdata('redirect_url') ?? '/');
     }
