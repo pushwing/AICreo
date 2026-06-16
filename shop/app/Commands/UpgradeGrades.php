@@ -17,6 +17,11 @@ class UpgradeGrades extends BaseCommand
     {
         $db       = \Config\Database::connect();
         $settings = (new SettingModel())->getAllAsMap();
+
+        if (! (bool) ($settings['schedule_grades_upgrade_enabled'] ?? 1)) {
+            CLI::write('[grades:upgrade] 비활성화됨 — 스킵', 'yellow');
+            return;
+        }
         $service  = new GradeService();
         $upgraded = 0;
         $checked  = 0;
