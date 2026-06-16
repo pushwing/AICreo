@@ -192,9 +192,10 @@
                        + ' onclick="toggleFeatured(' + p.data.id + ', this)" title="기획전 토글">'
                        + (on ? '<i class=\'bi bi-star-fill\'></i>' : '<i class=\'bi bi-star\'></i>') + '</button>';
               }},
-            { headerName: '', width: 120, sortable: false, filter: false, resizable: false,
+            { headerName: '', width: 155, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', gap: '4px' },
               cellRenderer: function(p) {
-                  return '<a href="/admin/products/' + p.data.id + '/edit" class="btn btn-sm btn-outline-secondary">수정</a> '
+                  return '<a href="/admin/products/' + p.data.id + '/edit" class="btn btn-sm btn-outline-secondary">수정</a>'
                        + '<button class="btn btn-sm btn-outline-danger" onclick="doDelete(' + p.data.id + ')">삭제</button>';
               }},
         ],
