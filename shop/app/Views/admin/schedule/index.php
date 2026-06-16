@@ -5,7 +5,7 @@
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h4 class="mb-0">배치 작업 관리</h4>
-        <p class="text-muted small mb-0 mt-1">스케줄러에 등록된 자동 실행 작업을 활성화 / 비활성화합니다.</p>
+        <p class="text-muted small mb-0 mt-1">스케줄러에 등록된 자동 실행 작업의 활성화 및 실행 주기를 설정합니다.</p>
     </div>
 </div>
 
@@ -28,27 +28,42 @@
             <thead class="table-light">
                 <tr>
                     <th class="ps-4">작업명</th>
-                    <th>키</th>
+                    <th>커맨드</th>
+                    <th>실행 주기</th>
                     <th class="text-center">상태</th>
-                    <th class="text-center pe-4">토글</th>
+                    <th class="text-center pe-4">작업</th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach ($jobs as $job): ?>
                 <tr>
                     <td class="ps-4 fw-semibold"><?= esc($job['label']) ?></td>
-                    <td><code class="text-secondary small"><?= esc($job['key']) ?></code></td>
+                    <td><code class="text-secondary small"><?= esc($job['command']) ?></code></td>
+                    <td>
+                        <span class="font-monospace small text-body"><?= esc($job['cron'] ?: '—') ?></span>
+                        <button type="button"
+                                class="btn btn-link btn-sm p-0 ms-1 text-muted"
+                                data-bs-toggle="modal"
+                                data-bs-target="#cronModal"
+                                data-base-key="<?= esc($job['base_key']) ?>"
+                                data-command="<?= esc($job['command']) ?>"
+                                data-label="<?= esc($job['label']) ?>"
+                                data-cron="<?= esc($job['cron']) ?>"
+                                title="주기 변경">
+                            <i class="bi bi-pencil-square small"></i>
+                        </button>
+                    </td>
                     <td class="text-center">
-                        <?php if ($job['value'] === '1'): ?>
+                        <?php if ($job['enabled'] === '1'): ?>
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">활성</span>
                         <?php else: ?>
                             <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">비활성</span>
                         <?php endif; ?>
                     </td>
                     <td class="text-center pe-4">
-                        <form method="post" action="/admin/schedule/<?= esc($job['key']) ?>/toggle" class="d-inline">
+                        <form method="post" action="/admin/schedule/<?= esc($job['enabled_key']) ?>/toggle" class="d-inline">
                             <?= csrf_field() ?>
-                            <?php if ($job['value'] === '1'): ?>
+                            <?php if ($job['enabled'] === '1'): ?>
                                 <button type="submit" class="btn btn-sm btn-outline-secondary">비활성화</button>
                             <?php else: ?>
                                 <button type="submit" class="btn btn-sm btn-outline-success">활성화</button>
@@ -58,13 +73,64 @@
                 </tr>
             <?php endforeach; ?>
             <?php if (empty($jobs)): ?>
-                <tr><td colspan="4" class="text-center text-muted py-4">등록된 배치 작업이 없습니다.</td></tr>
+                <tr><td colspan="5" class="text-center text-muted py-4">등록된 배치 작업이 없습니다.</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
 
+<!-- 실행 주기 변경 모달 -->
+<div class="modal fade" id="cronModal" tabindex="-1" aria-labelledby="cronModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cronModalLabel">실행 주기 변경</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="cronForm" action="">
+                <?= csrf_field() ?>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3" id="modalJobLabel"></p>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-2">프리셋</label>
+                        <div class="d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="* * * * *">매분</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="*/5 * * * *">5분마다</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="*/10 * * * *">10분마다</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="*/15 * * * *">15분마다</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="*/30 * * * *">30분마다</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 * * * *">매시간</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 0 * * *">매일 자정</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 1 * * *">매일 01시</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 2 * * *">매일 02시</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 3 * * *">매일 03시</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 2 * * 1">매주 월요일</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-cron="0 2 * * 0">매주 일요일</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="cronInput">크론 표현식</label>
+                        <input type="text" class="form-control font-monospace" id="cronInput" name="cron"
+                               placeholder="*/5 * * * *" required>
+                        <div class="form-text">분 &nbsp;시 &nbsp;일 &nbsp;월 &nbsp;요일 &nbsp;(0=일요일 ~ 6=토요일)</div>
+                    </div>
+
+                    <div>
+                        <label class="form-label small fw-semibold">크론탭 등록 예시</label>
+                        <pre class="bg-dark text-light rounded p-2 small mb-0" id="cronPreview"></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="submit" class="btn btn-sm btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <div class="mt-4">
     <div class="card border-0 shadow-sm">
@@ -78,19 +144,17 @@
             <div class="card-body pt-0 pb-4 px-4">
 
                 <p class="text-muted small mt-3 mb-2">
-                    이 페이지의 활성/비활성 설정은 실제 크론이 서버에 등록되어 있어야 동작합니다.<br>
-                    아래 단계에 따라 서버에 크론을 <strong>최초 1회</strong> 등록해 주세요.
+                    이 페이지의 활성/비활성·주기 설정은 실제 크론이 서버에 등록되어 있어야 동작합니다.<br>
+                    아래 단계에 따라 서버에 크론을 등록하고, 주기 변경 시 재등록하세요.
                 </p>
 
                 <h6 class="mt-4 mb-2 fw-semibold">1단계 — 크론탭 편집기 열기</h6>
                 <pre class="bg-dark text-light rounded p-3 small mb-0">crontab -e</pre>
 
-                <h6 class="mt-4 mb-2 fw-semibold">2단계 — 스케줄러 실행 항목 추가</h6>
-                <pre class="bg-dark text-light rounded p-3 small mb-0">* * * * * cd /path/to/shop &amp;&amp; php spark schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</pre>
-                <p class="text-muted small mt-2 mb-0">
-                    <code>/path/to/shop</code> 을 실제 프로젝트 경로로 변경하세요. (예: <code>/var/www/html/shop</code>)<br>
-                    1분마다 실행되며, 각 배치의 주기는 <code>app/Config/Scheduler.php</code> 에서 관리합니다.
-                </p>
+                <h6 class="mt-4 mb-2 fw-semibold">2단계 — 각 배치 작업 등록</h6>
+                <p class="text-muted small mb-2"><code>/path/to/shop</code>을 실제 프로젝트 경로로 변경하세요.</p>
+                <pre class="bg-dark text-light rounded p-3 small mb-0"><?php foreach ($jobs as $job): ?><?= esc($job['cron'] ?: '* * * * *') ?> cd /path/to/shop && php spark <?= esc($job['command']) ?> >> /dev/null 2>&1
+<?php endforeach; ?></pre>
 
                 <h6 class="mt-4 mb-2 fw-semibold">3단계 — 등록 확인</h6>
                 <pre class="bg-dark text-light rounded p-3 small mb-0">crontab -l</pre>
@@ -103,39 +167,78 @@
                         <thead class="table-light">
                             <tr>
                                 <th>크론</th>
-                                <th>스케줄러</th>
-                                <th>커맨드</th>
-                                <th>이 페이지 설정</th>
+                                <th>커맨드 실행</th>
+                                <th>활성화 확인</th>
+                                <th>결과</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td><code>schedule:run</code> 매분 실행</td>
-                                <td><code>Scheduler.php</code> 주기 확인</td>
-                                <td>해당 커맨드 호출</td>
-                                <td>비활성이면 커맨드 내부에서 스킵</td>
+                                <td>설정 주기마다 실행</td>
+                                <td><code>php spark {커맨드}</code></td>
+                                <td>DB 설정 확인</td>
+                                <td>비활성이면 스킵, 활성이면 처리</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <p class="text-muted small mt-2 mb-0">
-                    크론은 항상 <code>schedule:run</code> 하나만 등록합니다.
-                    개별 작업의 실행 주기는 <code>Scheduler.php</code>, 실행 여부는 이 페이지에서 제어합니다.
+                    주기를 변경한 경우 크론탭도 함께 업데이트해야 합니다.
                 </p>
 
                 <hr class="my-4">
 
                 <h6 class="mb-2 fw-semibold">새 배치 작업 추가 시 체크리스트</h6>
                 <ol class="small text-muted mb-0 ps-3">
-                    <li class="mb-1"><code>app/Commands/</code> 에 커맨드 클래스 작성, <code>run()</code> 첫 줄에 활성화 가드 추가</li>
-                    <li class="mb-1"><code>app/Config/Scheduler.php</code> 에 실행 주기 등록</li>
-                    <li class="mb-1">마이그레이션으로 <code>settings</code> 테이블에 <code>group=schedule</code> 키 추가 (초기값 <code>1</code>)</li>
-                    <li>크론 재등록 불필요 — 기존 <code>schedule:run</code> 크론이 자동 인식</li>
+                    <li class="mb-1"><code>app/Commands/</code>에 커맨드 클래스 작성, <code>run()</code> 첫 줄에 활성화 가드 추가</li>
+                    <li class="mb-1">마이그레이션으로 <code>settings</code> 테이블에 <code>_enabled</code>, <code>_cron</code> 키 추가</li>
+                    <li class="mb-1"><code>ScheduleController::JOB_COMMANDS</code> 상수에 매핑 등록</li>
+                    <li>서버 크론탭에 새 커맨드 등록</li>
                 </ol>
 
             </div>
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    let currentCommand = '';
+
+    const cronModal   = document.getElementById('cronModal');
+    const cronInput   = document.getElementById('cronInput');
+    const cronPreview = document.getElementById('cronPreview');
+    const cronForm    = document.getElementById('cronForm');
+    const modalLabel  = document.getElementById('modalJobLabel');
+
+    function updatePreview(cron) {
+        cronPreview.textContent = (cron || '* * * * *') +
+            ' cd /path/to/shop && php spark ' + currentCommand + ' >> /dev/null 2>&1';
+    }
+
+    cronModal.addEventListener('show.bs.modal', function (e) {
+        const btn      = e.relatedTarget;
+        currentCommand = btn.dataset.command;
+        const cron     = btn.dataset.cron;
+
+        modalLabel.textContent = btn.dataset.label;
+        cronInput.value        = cron;
+        cronForm.action        = '/admin/schedule/' + btn.dataset.baseKey + '/cron';
+        updatePreview(cron);
+    });
+
+    cronInput.addEventListener('input', function () {
+        updatePreview(this.value.trim());
+    });
+
+    document.querySelectorAll('.preset-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const cron = this.dataset.cron;
+            cronInput.value = cron;
+            updatePreview(cron);
+        });
+    });
+}());
+</script>
 
 <?= $this->endSection() ?>
