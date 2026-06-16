@@ -182,7 +182,7 @@
                   + '<td class="' + (p.amount > 0 ? 'text-success' : 'text-danger') + '">'
                   + sign + parseInt(p.amount).toLocaleString() + 'P</td>'
                   + '<td>' + parseInt(p.balance_after).toLocaleString() + 'P</td>'
-                  + '<td>' + (p.description || '') + '</td>'
+                  + '<td>' + (p.note || '') + '</td>'
                   + '<td>' + p.created_at.slice(0, 10) + '</td></tr>';
         });
         return html + '</tbody></table>';
@@ -194,7 +194,7 @@
                  + '<th>쿠폰명</th><th>코드</th><th>사용</th><th>만료일</th></tr></thead><tbody>';
         data.forEach(function (c) {
             html += '<tr><td>' + c.name + '</td><td><code>' + c.code + '</code></td>'
-                  + '<td>' + (c.is_used == 1 ? '<span class="text-muted">사용됨</span>' : '<span class="text-success">미사용</span>') + '</td>'
+                  + '<td>' + (c.status === 'used' ? '<span class="text-muted">사용됨</span>' : '<span class="text-success">미사용</span>') + '</td>'
                   + '<td>' + (c.expires_at ? c.expires_at.slice(0, 10) : '—') + '</td></tr>';
         });
         return html + '</tbody></table>';
