@@ -112,10 +112,11 @@
                       ? '<span class="badge bg-success">활성</span>'
                       : '<span class="badge bg-secondary">비활성</span>';
               }},
-            { headerName: '', width: 160, sortable: false, filter: false, resizable: false,
+            { headerName: '', width: 205, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', gap: '4px' },
               cellRenderer: function(p) {
-                  return '<a href="/admin/coupons/' + p.data.id + '/issue" class="btn btn-sm btn-outline-info">발급</a> '
-                       + '<a href="/admin/coupons/' + p.data.id + '/edit" class="btn btn-sm btn-outline-secondary">수정</a> '
+                  return '<a href="/admin/coupons/' + p.data.id + '/issue" class="btn btn-sm btn-outline-info">발급</a>'
+                       + '<a href="/admin/coupons/' + p.data.id + '/edit" class="btn btn-sm btn-outline-secondary">수정</a>'
                        + '<button class="btn btn-sm btn-outline-danger" onclick="doDeactivate(' + p.data.id + ')">비활성화</button>';
               }},
         ],
