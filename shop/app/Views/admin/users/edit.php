@@ -131,4 +131,106 @@
     </div>
 </div>
 
+<!-- 회원 활동 탭 -->
+<div class="mt-4" style="max-width:800px">
+    <ul class="nav nav-tabs" id="memberTabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-tab="orders">주문 내역</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-tab="points">포인트 내역</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-tab="coupons">보유 쿠폰</button>
+        </li>
+    </ul>
+    <div class="border border-top-0 rounded-bottom p-3 bg-white" id="tabContent">
+        <div class="text-muted small text-center py-3">탭을 클릭하면 데이터를 불러옵니다.</div>
+    </div>
+</div>
+
+<?= $this->section('scripts') ?>
+<script>
+(function () {
+    var memberId  = <?= (int) $member['id'] ?>;
+    var loadedTab = null;
+
+    function renderOrders(data) {
+        if (!data.length) return '<p class="text-muted small mb-0">주문 내역이 없습니다.</p>';
+        var STATUS = {paid:'결제완료',preparing:'배송준비',shipped:'배송중',delivered:'배송완료',
+                      cancelled:'취소',awaiting_payment:'입금대기',pending:'주문대기',expired:'만료',
+                      refund_requested:'환불요청',refunded:'환불완료',return_requested:'반품요청',return_approved:'반품승인'};
+        var html = '<table class="table table-sm small mb-0"><thead><tr>'
+                 + '<th>주문번호</th><th>상태</th><th>결제금액</th><th>주문일</th></tr></thead><tbody>';
+        data.forEach(function (o) {
+            html += '<tr><td><a href="/admin/orders/' + o.id + '" class="text-decoration-none">' + o.order_number + '</a></td>'
+                  + '<td>' + (STATUS[o.status] || o.status) + '</td>'
+                  + '<td>' + parseInt(o.payable_amount).toLocaleString() + '원</td>'
+                  + '<td>' + o.created_at.slice(0, 10) + '</td></tr>';
+        });
+        return html + '</tbody></table>';
+    }
+
+    function renderPoints(res) {
+        var html = '<p class="small mb-2">현재 잔액: <strong>' + (res.balance || 0).toLocaleString() + 'P</strong></p>';
+        if (!res.data.length) return html + '<p class="text-muted small mb-0">포인트 내역이 없습니다.</p>';
+        html += '<table class="table table-sm small mb-0"><thead><tr>'
+              + '<th>구분</th><th>금액</th><th>잔액</th><th>내용</th><th>날짜</th></tr></thead><tbody>';
+        res.data.forEach(function (p) {
+            var sign = p.amount > 0 ? '+' : '';
+            html += '<tr><td>' + p.type + '</td>'
+                  + '<td class="' + (p.amount > 0 ? 'text-success' : 'text-danger') + '">'
+                  + sign + parseInt(p.amount).toLocaleString() + 'P</td>'
+                  + '<td>' + parseInt(p.balance_after).toLocaleString() + 'P</td>'
+                  + '<td>' + (p.description || '') + '</td>'
+                  + '<td>' + p.created_at.slice(0, 10) + '</td></tr>';
+        });
+        return html + '</tbody></table>';
+    }
+
+    function renderCoupons(data) {
+        if (!data.length) return '<p class="text-muted small mb-0">보유 쿠폰이 없습니다.</p>';
+        var html = '<table class="table table-sm small mb-0"><thead><tr>'
+                 + '<th>쿠폰명</th><th>코드</th><th>사용</th><th>만료일</th></tr></thead><tbody>';
+        data.forEach(function (c) {
+            html += '<tr><td>' + c.name + '</td><td><code>' + c.code + '</code></td>'
+                  + '<td>' + (c.is_used == 1 ? '<span class="text-muted">사용됨</span>' : '<span class="text-success">미사용</span>') + '</td>'
+                  + '<td>' + (c.expires_at ? c.expires_at.slice(0, 10) : '—') + '</td></tr>';
+        });
+        return html + '</tbody></table>';
+    }
+
+    function loadTab(tab) {
+        if (loadedTab === tab) return;
+        loadedTab = tab;
+        document.getElementById('tabContent').innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></div>';
+
+        fetch('/admin/users/' + memberId + '/tab/' + tab)
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var html = '';
+                if (tab === 'orders')  html = renderOrders(res.data);
+                if (tab === 'points')  html = renderPoints(res);
+                if (tab === 'coupons') html = renderCoupons(res.data);
+                document.getElementById('tabContent').innerHTML = html;
+            })
+            .catch(function () {
+                document.getElementById('tabContent').innerHTML = '<p class="text-danger small">데이터를 불러오지 못했습니다.</p>';
+            });
+    }
+
+    document.querySelectorAll('#memberTabs .nav-link').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('#memberTabs .nav-link').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            loadTab(btn.dataset.tab);
+        });
+    });
+
+    // 기본 탭 자동 로드
+    loadTab('orders');
+})();
+</script>
+<?= $this->endSection() ?>
+
 <?= $this->endSection() ?>

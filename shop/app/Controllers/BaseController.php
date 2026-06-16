@@ -6,6 +6,7 @@ use App\Models\BannerModel;
 use App\Models\InquiryModel;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
+use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
 use App\Models\SettingModel;
 use CodeIgniter\Controller;
@@ -37,12 +38,18 @@ class BaseController extends Controller
             'loggedIn' => (bool) session()->get('user_id'),
         ];
 
-        // 관리자용: 미읽음 문의 수, 미답변 상품 문의 수
+        // 관리자용: 미읽음 문의 수, 미답변 상품 문의 수, 재고 부족 상품 수
         $unreadInquiries  = 0;
         $unansweredQna    = 0;
+        $lowStockCount    = 0;
         if ($authUser['role'] === 'admin') {
-            $unreadInquiries = (new InquiryModel())->getUnreadCount();
-            $unansweredQna   = (new ProductQnaModel())->getUnansweredCount();
+            $unreadInquiries   = (new InquiryModel())->getUnreadCount();
+            $unansweredQna     = (new ProductQnaModel())->getUnansweredCount();
+            $lowStockThreshold = (int) ($settings['stock_alert_threshold'] ?? 5);
+            $lowStockCount     = (new ProductModel())
+                ->where('stock <=', $lowStockThreshold)
+                ->where('status !=', 'hidden')
+                ->countAllResults();
         }
 
         // 장바구니 수 (로그인 회원만)
@@ -60,7 +67,7 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'subLeftBanners', 'activePopups', 'cartCount');
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'lowStockCount', 'subLeftBanners', 'activePopups', 'cartCount');
     }
 
     protected function getUserRole(): string

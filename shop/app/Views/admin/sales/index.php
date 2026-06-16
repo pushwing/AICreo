@@ -3,6 +3,10 @@
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <h4 class="fw-bold mb-0">매출 관리</h4>
+    <a href="/admin/sales/export?from=<?= esc($from) ?>&to=<?= esc($to) ?>&keyword=<?= esc($keyword) ?>"
+       class="btn btn-success btn-sm">
+        <i class="bi bi-file-earmark-excel me-1"></i>엑셀 다운로드
+    </a>
 </div>
 
 <!-- ─── 검색 / 필터 ──────────────────────────────────────────────────────── -->
