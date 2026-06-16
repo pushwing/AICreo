@@ -87,6 +87,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 배치 작업 관리
     $routes->get( 'schedule',                    'Admin\ScheduleController::index');
     $routes->post('schedule/(:segment)/toggle',  'Admin\ScheduleController::toggle/$1');
+    $routes->post('schedule/(:segment)/cron',    'Admin\ScheduleController::updateCron/$1');
 
     // 전체 게시물 관리
     $routes->get( 'posts/json',          'Admin\PostController::json');
