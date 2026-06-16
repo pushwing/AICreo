@@ -155,17 +155,15 @@
             <div class="card-body pt-0 pb-4 px-4">
 
                 <p class="text-muted small mt-3 mb-2">
-                    이 페이지의 활성/비활성·주기 설정은 실제 크론이 서버에 등록되어 있어야 동작합니다.<br>
-                    아래 단계에 따라 서버에 크론을 등록하고, 주기 변경 시 재등록하세요.
+                    크론탭에 <strong>단 1줄</strong>만 등록하면 됩니다. 활성화·주기 변경은 이 페이지에서만 관리하세요 — 크론탭 재편집 불필요.
                 </p>
 
                 <h6 class="mt-4 mb-2 fw-semibold">1단계 — 크론탭 편집기 열기</h6>
                 <pre class="bg-dark text-light rounded p-3 small mb-0">crontab -e</pre>
 
-                <h6 class="mt-4 mb-2 fw-semibold">2단계 — 각 배치 작업 등록</h6>
+                <h6 class="mt-4 mb-2 fw-semibold">2단계 — 스케줄러 실행 등록 (1줄)</h6>
                 <p class="text-muted small mb-2"><code>/path/to/shop</code>을 실제 프로젝트 경로로 변경하세요.</p>
-                <pre class="bg-dark text-light rounded p-3 small mb-0"><?php foreach ($jobs as $job): ?><?= esc($job['cron'] ?: '* * * * *') ?> cd /path/to/shop && php spark <?= esc($job['command']) ?> >> /dev/null 2>&1
-<?php endforeach; ?></pre>
+                <pre class="bg-dark text-light rounded p-3 small mb-0">* * * * * cd /path/to/shop && php spark tasks:run >> /dev/null 2>&1</pre>
 
                 <h6 class="mt-4 mb-2 fw-semibold">3단계 — 등록 확인</h6>
                 <pre class="bg-dark text-light rounded p-3 small mb-0">crontab -l</pre>
@@ -177,24 +175,24 @@
                     <table class="table table-sm table-bordered small mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>크론</th>
-                                <th>커맨드 실행</th>
-                                <th>활성화 확인</th>
+                                <th>크론 (매분)</th>
+                                <th>스케줄러 실행</th>
+                                <th>DB 설정 확인</th>
                                 <th>결과</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>설정 주기마다 실행</td>
-                                <td><code>php spark {커맨드}</code></td>
-                                <td>DB 설정 확인</td>
-                                <td>비활성이면 스킵, 활성이면 처리</td>
+                                <td><code>schedule:run</code> 호출</td>
+                                <td>활성화된 잡만 등록</td>
+                                <td>설정된 주기 도달 여부 확인</td>
+                                <td>주기 미달이면 스킵, 도달 시 실행</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 <p class="text-muted small mt-2 mb-0">
-                    주기를 변경한 경우 크론탭도 함께 업데이트해야 합니다.
+                    주기·활성화 변경은 이 페이지에서만 하면 됩니다. 크론탭 재편집 불필요.
                 </p>
 
                 <hr class="my-4">
@@ -203,8 +201,8 @@
                 <ol class="small text-muted mb-0 ps-3">
                     <li class="mb-1"><code>app/Commands/</code>에 커맨드 클래스 작성, <code>run()</code> 첫 줄에 활성화 가드 추가</li>
                     <li class="mb-1">마이그레이션으로 <code>settings</code> 테이블에 <code>_enabled</code>, <code>_cron</code> 키 추가</li>
-                    <li class="mb-1"><code>ScheduleController::JOB_COMMANDS</code> 상수에 매핑 등록</li>
-                    <li>서버 크론탭에 새 커맨드 등록</li>
+                    <li class="mb-1"><code>ScheduleController::JOB_COMMANDS</code> 및 <code>Scheduler::JOB_COMMANDS</code> 상수에 매핑 등록</li>
+                    <li>크론탭 재등록 불필요 (기존 <code>schedule:run</code> 항목이 자동 처리)</li>
                 </ol>
 
             </div>
