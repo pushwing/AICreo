@@ -6,9 +6,11 @@
 <!-- 일괄 처리용 히든 폼 -->
 <form id="bulkForm" method="post" action="/admin/products/bulk">
     <?= csrf_field() ?>
-    <input type="hidden" name="action" id="bulkAction">
-    <input type="hidden" name="status" id="bulkStatusVal">
-    <input type="hidden" name="stock"  id="bulkStockVal">
+    <input type="hidden" name="action"         id="bulkAction">
+    <input type="hidden" name="status"         id="bulkStatusVal">
+    <input type="hidden" name="stock"          id="bulkStockVal">
+    <input type="hidden" name="discount_type"  id="bulkDiscountType">
+    <input type="hidden" name="discount_value" id="bulkDiscountVal">
 </form>
 
 <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
@@ -56,6 +58,18 @@
             <input id="bulkStockInput" type="number" min="0" class="form-control form-control-sm"
                    style="width:80px" placeholder="0">
             <button class="btn btn-sm btn-outline-primary" onclick="submitBulk('stock')">설정</button>
+        </div>
+        <div class="vr"></div>
+        <div class="d-flex align-items-center gap-1">
+            <span class="small text-muted">할인:</span>
+            <select id="discountTypeSel" class="form-select form-select-sm" style="width:80px">
+                <option value="percent">%</option>
+                <option value="fixed">정액</option>
+                <option value="clear">해제</option>
+            </select>
+            <input id="discountValueInput" type="number" min="0" class="form-control form-control-sm"
+                   style="width:70px" placeholder="0">
+            <button class="btn btn-sm btn-outline-warning" onclick="submitBulk('price_discount')">적용</button>
         </div>
         <div class="vr"></div>
         <button class="btn btn-sm btn-outline-danger" onclick="submitBulk('delete')">
@@ -266,6 +280,16 @@
             var s = document.getElementById('bulkStockInput').value.trim();
             if (s === '' || parseInt(s, 10) < 0) { alert('재고 수량을 올바르게 입력해주세요.'); return; }
             document.getElementById('bulkStockVal').value = s;
+        }
+        if (action === 'price_discount') {
+            var dtype = document.getElementById('discountTypeSel').value;
+            document.getElementById('bulkDiscountType').value = dtype;
+            if (dtype !== 'clear') {
+                var dval = document.getElementById('discountValueInput').value.trim();
+                if (dval === '' || parseInt(dval, 10) < 0) { alert('할인 값을 입력해주세요.'); return; }
+                document.getElementById('bulkDiscountVal').value = dval;
+            }
+            if (!confirm(selected.length + '개 상품 할인가를 ' + (dtype === 'clear' ? '초기화' : '변경') + '하시겠습니까?')) return;
         }
         if (action === 'delete') {
             if (!confirm(selected.length + '개 상품을 삭제하시겠습니까?')) return;

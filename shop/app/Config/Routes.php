@@ -92,11 +92,14 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 회원 관리
     $routes->get( 'users/json',                 'Admin\UserController::json');
     $routes->get( 'users',                      'Admin\UserController::index');
-    $routes->get( 'users/(:num)/edit',          'Admin\UserController::edit/$1');
-    $routes->post('users/(:num)/edit',          'Admin\UserController::update/$1');
-    $routes->post('users/(:num)/delete',        'Admin\UserController::delete/$1');
-    $routes->post('users/(:num)/verify',        'Admin\UserController::manualVerify/$1');
-    $routes->post('users/(:num)/resend-verify', 'Admin\UserController::resendVerify/$1');
+    $routes->get( 'users/(:num)/edit',            'Admin\UserController::edit/$1');
+    $routes->post('users/(:num)/edit',            'Admin\UserController::update/$1');
+    $routes->post('users/(:num)/delete',          'Admin\UserController::delete/$1');
+    $routes->post('users/(:num)/verify',          'Admin\UserController::manualVerify/$1');
+    $routes->post('users/(:num)/resend-verify',   'Admin\UserController::resendVerify/$1');
+    $routes->get( 'users/(:num)/tab/orders',      'Admin\UserController::tabOrders/$1');
+    $routes->get( 'users/(:num)/tab/points',      'Admin\UserController::tabPoints/$1');
+    $routes->get( 'users/(:num)/tab/coupons',     'Admin\UserController::tabCoupons/$1');
 
     // 문의 수신함
     $routes->get( 'inquiries',              'Admin\InquiryController::index');
@@ -127,7 +130,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'inventory/(:num)/logs',            'Admin\InventoryController::logs/$1');
 
     // 매출 관리
-    $routes->get('sales', 'Admin\SalesController::index');
+    $routes->get('sales',        'Admin\SalesController::index');
+    $routes->get('sales/export', 'Admin\SalesController::exportExcel');
 
     // 쿠폰 관리
     $routes->get( 'coupons/json',               'Admin\CouponController::json');

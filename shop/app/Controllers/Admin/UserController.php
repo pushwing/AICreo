@@ -183,5 +183,51 @@ class UserController extends BaseController
         return redirect()->back()->with('success', '인증 메일을 재발송했습니다.');
     }
 
+    /** GET /admin/users/:id/tab/orders */
+    public function tabOrders(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $db   = \Config\Database::connect();
+        $rows = $db->table('orders')
+            ->select('id, order_number, status, total_amount, payable_amount, created_at')
+            ->where('user_id', $id)
+            ->orderBy('id', 'DESC')
+            ->limit(30)
+            ->get()->getResultArray();
+
+        return $this->response->setJSON(['data' => $rows]);
+    }
+
+    /** GET /admin/users/:id/tab/points */
+    public function tabPoints(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $db   = \Config\Database::connect();
+        $rows = $db->table('point_logs')
+            ->select('type, amount, balance_after, description, created_at')
+            ->where('user_id', $id)
+            ->orderBy('id', 'DESC')
+            ->limit(50)
+            ->get()->getResultArray();
+
+        $row     = \Config\Database::connect()->table('users')->select('point_balance')->where('id', $id)->get()->getRowArray();
+        $balance = $row ? (int) $row['point_balance'] : 0;
+
+        return $this->response->setJSON(['data' => $rows, 'balance' => $balance]);
+    }
+
+    /** GET /admin/users/:id/tab/coupons */
+    public function tabCoupons(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $db   = \Config\Database::connect();
+        $rows = $db->table('user_coupons uc')
+            ->select('uc.id, c.name, c.code, uc.is_used, uc.used_at, uc.expires_at, uc.created_at')
+            ->join('coupons c', 'c.id = uc.coupon_id')
+            ->where('uc.user_id', $id)
+            ->orderBy('uc.id', 'DESC')
+            ->limit(50)
+            ->get()->getResultArray();
+
+        return $this->response->setJSON(['data' => $rows]);
+    }
+
 }
 

@@ -97,7 +97,7 @@
         </button>
         <div class="collapse <?= $inShop ? 'show' : '' ?>" id="sec-shop">
             <div class="nav-subgroup">상품</div>
-            <a href="/admin/products"            class="nav-sublink <?= str_starts_with($uri, 'admin/products') && ! str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-bag me-2"></i>상품 관리</a>
+            <a href="/admin/products"            class="nav-sublink <?= str_starts_with($uri, 'admin/products') && ! str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-bag me-2"></i>상품 관리<?php if (($lowStockCount ?? 0) > 0): ?><span class="badge bg-warning text-dark ms-1" style="font-size:.65rem"><?= $lowStockCount ?></span><?php endif; ?></a>
             <a href="/admin/products/categories" class="nav-sublink <?= str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-tags me-2"></i>카테고리 관리</a>
             <a href="/admin/promotions"          class="nav-sublink <?= str_starts_with($uri, 'admin/promotions') ? 'active' : '' ?>"><i class="bi bi-megaphone me-2"></i>기획전 관리</a>
             <a href="/admin/suppliers"           class="nav-sublink <?= str_starts_with($uri, 'admin/suppliers')  ? 'active' : '' ?>"><i class="bi bi-truck me-2"></i>매입처 관리</a>

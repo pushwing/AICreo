@@ -130,6 +130,35 @@ class ProductController extends BaseController
                 }
                 return redirect()->back()->with('success', count($ids) . '개 상품 재고가 변경되었습니다.');
 
+            case 'price_discount':
+                $discountType  = $this->request->getPost('discount_type');
+                $discountValue = $this->request->getPost('discount_value');
+
+                if ($discountType === 'clear') {
+                    $db->table('products')
+                       ->whereIn('id', $ids)
+                       ->update(['discount_price' => null, 'updated_at' => date('Y-m-d H:i:s')]);
+                    return redirect()->back()->with('success', count($ids) . '개 상품 할인가가 초기화되었습니다.');
+                }
+
+                if (! in_array($discountType, ['percent', 'fixed'], true)
+                    || ! is_numeric($discountValue)
+                    || (int) $discountValue < 0) {
+                    return redirect()->back()->with('error', '올바른 할인 값을 입력해주세요.');
+                }
+
+                $discountValue = (int) $discountValue;
+                foreach ($ids as $id) {
+                    $product = $this->productModel->find($id);
+                    if (! $product) continue;
+                    $price         = (int) $product['price'];
+                    $discountPrice = $discountType === 'percent'
+                        ? (int) round($price * (1 - $discountValue / 100))
+                        : max(0, $price - $discountValue);
+                    $this->productModel->update($id, ['discount_price' => $discountPrice, 'updated_at' => date('Y-m-d H:i:s')]);
+                }
+                return redirect()->back()->with('success', count($ids) . '개 상품에 할인가가 적용되었습니다.');
+
             case 'delete':
                 foreach ($ids as $id) {
                     $this->productModel->delete($id);
