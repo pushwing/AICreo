@@ -395,15 +395,26 @@ class ProductController extends BaseController
 
     public function unassigned(): string
     {
-        $db      = db_connect();
-        $perPage = 50;
-        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $db             = db_connect();
+        $perPage        = 50;
+        $page           = max(1, (int) ($this->request->getGet('page') ?? 1));
+        $onlyUnassigned = (bool) $this->request->getGet('only_unassigned');
+        $keyword        = trim((string) ($this->request->getGet('keyword') ?? ''));
 
         $builder = $db->table('products')
-            ->select('products.id, products.name, products.price, products.stock, products.status, products.created_at')
+            ->select("products.id, products.name, products.price, products.stock, products.status, products.created_at,
+                (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order, c.id SEPARATOR ', ')
+                 FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+                 WHERE pc.product_id = products.id) AS category_names")
             ->where('products.deleted_at IS NULL')
-            ->where("NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id)", null, false)
             ->orderBy('products.id', 'DESC');
+
+        if ($onlyUnassigned) {
+            $builder->where("NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id)", null, false);
+        }
+        if ($keyword !== '') {
+            $builder->like('products.name', $keyword);
+        }
 
         $total      = (clone $builder)->countAllResults();
         $offset     = ($page - 1) * $perPage;
@@ -412,14 +423,22 @@ class ProductController extends BaseController
 
         $this->imageModel->attachPrimaryImages($items);
 
+        $unassignedCount = (int) $db->table('products')
+            ->where('deleted_at IS NULL')
+            ->where("NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id)", null, false)
+            ->countAllResults();
+
         return $this->render('admin/products/unassigned', [
-            'items'       => $items,
-            'total'       => $total,
-            'totalPages'  => $totalPages,
-            'currentPage' => $page,
-            'perPage'     => $perPage,
-            'tree'        => $this->categoryModel->getTree(),
-            'statuses'    => ProductModel::STATUSES,
+            'items'           => $items,
+            'total'           => $total,
+            'totalPages'      => $totalPages,
+            'currentPage'     => $page,
+            'perPage'         => $perPage,
+            'onlyUnassigned'  => $onlyUnassigned,
+            'keyword'         => $keyword,
+            'unassignedCount' => $unassignedCount,
+            'tree'            => $this->categoryModel->getTree(),
+            'statuses'        => ProductModel::STATUSES,
         ]);
     }
 

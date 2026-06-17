@@ -117,6 +117,38 @@ final class UnassignedProductTest extends CIUnitTestCase
     }
 
     /**
+     * ProductController::unassigned() 전체 조회 (only_unassigned=false)
+     */
+    private function fetchAllIds(string $keyword = ''): array
+    {
+        $db      = db_connect();
+        $builder = $db->table('products')
+            ->select('products.id')
+            ->like('products.name', $this->prefix, 'after')
+            ->where('products.deleted_at IS NULL', null, false)
+            ->orderBy('products.id', 'DESC');
+        if ($keyword !== '') {
+            $builder->like('products.name', $keyword);
+        }
+        return array_map(fn($r) => (int) $r['id'], $builder->get()->getResultArray());
+    }
+
+    /**
+     * category_names 포함 전체 조회
+     */
+    private function fetchWithCategoryNames(array $ids): array
+    {
+        $db = db_connect();
+        return $db->table('products')
+            ->select("products.id,
+                (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order, c.id SEPARATOR ', ')
+                 FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+                 WHERE pc.product_id = products.id) AS category_names")
+            ->whereIn('products.id', $ids)
+            ->get()->getResultArray();
+    }
+
+    /**
      * ProductController::assignCategory() 와 동일한 머지 로직
      */
     private function runAssignCategory(array $productIds, array $categoryIds): void
@@ -278,5 +310,70 @@ final class UnassignedProductTest extends CIUnitTestCase
         $after = $this->fetchUnassignedIds();
         $this->assertNotContains($id1, $after, '배정된 상품은 사라져야 한다');
         $this->assertContains($id2, $after, '배정 안 된 상품은 여전히 미분류 목록에 있어야 한다');
+    }
+
+    // ── 전체 조회 (only_unassigned=false) ────────────────────────────────────
+
+    public function testAllProductsReturnedWithoutFilter(): void
+    {
+        $idUnassigned = $this->insertProduct();
+        $idAssigned   = $this->insertProduct();
+        $catId        = $this->insertCategory();
+        $this->productModel->setCategories($idAssigned, [$catId]);
+
+        $ids = $this->fetchAllIds();
+
+        $this->assertContains($idUnassigned, $ids, '미분류 상품도 전체 목록에 나타나야 한다');
+        $this->assertContains($idAssigned,   $ids, '배정된 상품도 전체 목록에 나타나야 한다');
+    }
+
+    public function testKeywordFilterNarrowsResults(): void
+    {
+        $match    = $this->insertProduct(['name' => $this->prefix . 'FINDME_' . uniqid()]);
+        $noMatch  = $this->insertProduct(['name' => $this->prefix . 'OTHER_'  . uniqid()]);
+
+        $ids = $this->fetchAllIds('FINDME_');
+
+        $this->assertContains($match,   $ids, '키워드에 일치하는 상품이 포함되어야 한다');
+        $this->assertNotContains($noMatch, $ids, '키워드에 맞지 않는 상품은 제외되어야 한다');
+    }
+
+    // ── category_names 필드 ───────────────────────────────────────────────────
+
+    public function testCategoryNamesPopulatedAfterAssignment(): void
+    {
+        $id    = $this->insertProduct();
+        $catId = $this->insertCategory();
+        $catName = db_connect()->table('categories')->where('id', $catId)->get()->getRowArray()['name'];
+
+        $this->productModel->setCategories($id, [$catId]);
+
+        $rows = $this->fetchWithCategoryNames([$id]);
+        $this->assertSame($catName, $rows[0]['category_names'],
+            '배정 후 category_names 에 카테고리명이 표시되어야 한다');
+    }
+
+    public function testCategoryNamesNullWhenNoCategory(): void
+    {
+        $id   = $this->insertProduct();
+        $rows = $this->fetchWithCategoryNames([$id]);
+
+        $this->assertNull($rows[0]['category_names'],
+            '카테고리 없는 상품의 category_names 는 NULL 이어야 한다');
+    }
+
+    public function testCategoryNamesContainsMultipleCategories(): void
+    {
+        $id    = $this->insertProduct();
+        $cat1  = $this->insertCategory();
+        $cat2  = $this->insertCategory();
+        $this->productModel->setCategories($id, [$cat1, $cat2]);
+
+        $rows  = $this->fetchWithCategoryNames([$id]);
+        $names = $rows[0]['category_names'];
+
+        $this->assertNotEmpty($names);
+        $this->assertStringContainsString(',', $names,
+            '여러 카테고리가 있으면 GROUP_CONCAT 으로 쉼표 구분되어야 한다');
     }
 }
