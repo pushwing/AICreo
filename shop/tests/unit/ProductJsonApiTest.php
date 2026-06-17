@@ -72,9 +72,11 @@ final class ProductJsonApiTest extends CIUnitTestCase
     {
         $db      = db_connect();
         $builder = $db->table('products')
-            ->select('products.id, products.name, products.slug, products.price, products.discount_price,
-                      products.stock, products.status, products.created_at, categories.name AS category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select("products.id, products.name, products.slug, products.price, products.discount_price,
+                      products.stock, products.status, products.created_at,
+                      (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order, c.id SEPARATOR ', ')
+                       FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+                       WHERE pc.product_id = products.id) AS category_name")
             ->where('products.deleted_at IS NULL')
             ->orderBy('products.id', 'DESC');
 

@@ -34,6 +34,7 @@ final class ProductSearchFilterTest extends CIUnitTestCase
     {
         $db = db_connect();
         if ($this->cleanup['products'] !== []) {
+            $db->table('product_categories')->whereIn('product_id', $this->cleanup['products'])->delete();
             $db->table('products')->whereIn('id', $this->cleanup['products'])->delete();
         }
         if ($this->cleanup['categories'] !== []) {
@@ -65,7 +66,6 @@ final class ProductSearchFilterTest extends CIUnitTestCase
     {
         $db = db_connect();
         $db->table('products')->insert([
-            'category_id'    => $catId,
             'name'           => $name ?: 'SF상품-' . uniqid(),
             'slug'           => 'sf-prod-' . uniqid(),
             'price'          => $price,
@@ -79,6 +79,7 @@ final class ProductSearchFilterTest extends CIUnitTestCase
             'updated_at'     => date('Y-m-d H:i:s'),
         ]);
         $id = (int) $db->insertID();
+        $db->table('product_categories')->insert(['product_id' => $id, 'category_id' => $catId]);
         $this->cleanup['products'][] = $id;
         return $id;
     }
