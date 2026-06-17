@@ -29,6 +29,12 @@
         <?php endif; ?>
     </button>
     <div class="ms-auto d-flex gap-2">
+        <a href="/admin/products/unassigned" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-folder-x me-1"></i>미분류
+            <?php if (($unassignedCount ?? 0) > 0): ?>
+            <span class="badge bg-warning text-dark ms-1"><?= number_format($unassignedCount) ?></span>
+            <?php endif; ?>
+        </a>
         <a href="/admin/products/categories" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-tags me-1"></i>카테고리
         </a>

@@ -48,6 +48,12 @@ class ProductController extends BaseController
             ->where('deleted_at IS NULL', null, false)
             ->countAllResults();
 
+        $db = db_connect();
+        $unassignedCount = (int) $db->table('products')
+            ->where('deleted_at IS NULL')
+            ->where("NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id)", null, false)
+            ->countAllResults();
+
         return $this->render('admin/products/list', array_merge($result, [
             'statuses'          => ProductModel::STATUSES,
             'keyword'           => $params['keyword'],
@@ -55,6 +61,7 @@ class ProductController extends BaseController
             'curStock'          => $params['stock'],
             'lowStockThreshold' => $lowStockThreshold,
             'lowStockCount'     => $lowStockCount,
+            'unassignedCount'   => $unassignedCount,
         ]));
     }
 
@@ -382,6 +389,61 @@ class ProductController extends BaseController
 
         $this->productModel->delete($id);
         return redirect()->to('/admin/products')->with('success', '삭제되었습니다.');
+    }
+
+    // ── 미분류 상품 일괄 카테고리 배정 ───────────────────────────────────────────
+
+    public function unassigned(): string
+    {
+        $db      = db_connect();
+        $perPage = 50;
+        $page    = max(1, (int) ($this->request->getGet('page') ?? 1));
+
+        $builder = $db->table('products')
+            ->select('products.id, products.name, products.price, products.stock, products.status, products.created_at')
+            ->where('products.deleted_at IS NULL')
+            ->where("NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = products.id)", null, false)
+            ->orderBy('products.id', 'DESC');
+
+        $total      = (clone $builder)->countAllResults();
+        $offset     = ($page - 1) * $perPage;
+        $items      = $builder->limit($perPage, $offset)->get()->getResultArray();
+        $totalPages = (int) ceil($total / $perPage);
+
+        $this->imageModel->attachPrimaryImages($items);
+
+        return $this->render('admin/products/unassigned', [
+            'items'       => $items,
+            'total'       => $total,
+            'totalPages'  => $totalPages,
+            'currentPage' => $page,
+            'perPage'     => $perPage,
+            'tree'        => $this->categoryModel->getTree(),
+            'statuses'    => ProductModel::STATUSES,
+        ]);
+    }
+
+    public function assignCategory(): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $productIds  = array_values(array_filter(array_map('intval', (array) $this->request->getPost('product_ids'))));
+        $categoryIds = array_values(array_filter(array_map('intval', (array) $this->request->getPost('category_ids'))));
+
+        if (empty($productIds)) {
+            return redirect()->back()->with('error', '상품을 선택해주세요.');
+        }
+        if (empty($categoryIds)) {
+            return redirect()->back()->with('error', '카테고리를 선택해주세요.');
+        }
+
+        foreach ($productIds as $pid) {
+            // 기존 카테고리에 추가 (덮어쓰지 않고 병합)
+            $existing = $this->productModel->getCategories($pid);
+            $merged   = array_unique(array_merge($existing, $categoryIds));
+            $this->productModel->setCategories($pid, $merged);
+        }
+
+        return redirect()->to('/admin/products/unassigned')
+            ->with('success', count($productIds) . '개 상품에 카테고리가 적용되었습니다.');
     }
 
     // ── 카테고리 CRUD ─────────────────────────────────────────────────────────
