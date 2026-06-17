@@ -36,7 +36,7 @@ final class ScheduleTasksConfigTest extends CIUnitTestCase
         parent::setUp();
         cache()->delete('site_settings');
 
-        // 원본 값 보존
+        // 원본 값 보존 후 전체 비활성화 — 테스트 간 간섭 방지
         $db = db_connect();
         foreach (self::JOBS as $base) {
             foreach (['_enabled', '_cron'] as $suffix) {
@@ -47,7 +47,9 @@ final class ScheduleTasksConfigTest extends CIUnitTestCase
                     $this->savedValues[$base . $suffix] = $row['value'];
                 }
             }
+            $db->table('settings')->where('key', $base . '_enabled')->update(['value' => '0']);
         }
+        cache()->delete('site_settings');
     }
 
     protected function tearDown(): void
