@@ -60,6 +60,7 @@ final class ProductCopyTest extends CIUnitTestCase
             $db->table('product_images')->whereIn('product_id', $this->cleanup['products'])->delete();
         }
         if ($this->cleanup['products'] !== []) {
+            $db->table('product_categories')->whereIn('product_id', $this->cleanup['products'])->delete();
             $db->table('products')->whereIn('id', $this->cleanup['products'])->delete();
         }
         $this->cleanup = array_fill_keys(array_keys($this->cleanup), []);
@@ -155,7 +156,6 @@ final class ProductCopyTest extends CIUnitTestCase
         $newSlug = $model->generateSlug($newName);
 
         $newId = (int) $model->insert([
-            'category_id'    => $product['category_id'],
             'supplier_id'    => $product['supplier_id'],
             'name'           => $newName,
             'slug'           => $newSlug,
@@ -172,6 +172,9 @@ final class ProductCopyTest extends CIUnitTestCase
             'updated_at'     => $now,
         ]);
         $this->cleanup['products'][] = $newId;
+
+        // 카테고리 복사
+        $model->setCategories($newId, $model->getCategories($sourceId));
 
         foreach ($db->table('product_images')->where('product_id', $sourceId)->get()->getResultArray() as $img) {
             $db->table('product_images')->insert([

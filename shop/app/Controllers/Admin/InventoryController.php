@@ -29,8 +29,9 @@ class InventoryController extends BaseController
 
         $db      = \Config\Database::connect();
         $builder = $db->table('products')
-            ->select('products.*, categories.name as category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select("products.*, (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order, c.id SEPARATOR ', ')
+                FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+                WHERE pc.product_id = products.id) AS category_name")
             ->where('products.deleted_at IS NULL');
 
         if ($keyword) {

@@ -13,7 +13,7 @@ class ProductModel extends Model
     protected $useTimestamps  = true;
     protected $useSoftDeletes = true;
     protected $allowedFields  = [
-        'category_id', 'supplier_id', 'name', 'slug', 'price', 'cost_price', 'discount_price',
+        'supplier_id', 'name', 'slug', 'price', 'cost_price', 'discount_price',
         'stock', 'status', 'description', 'shipping_type', 'shipping_fee', 'free_threshold',
     ];
 
@@ -28,6 +28,38 @@ class ProductModel extends Model
         'fixed'       => '고정 배송비',
         'conditional' => '조건부 무료',
     ];
+
+    private const CAT_NAME_SQL = '(SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order, c.id SEPARATOR \', \')
+        FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+        WHERE pc.product_id = products.id) AS category_name';
+
+    /**
+     * 상품에 카테고리 배열을 저장 (기존 연결 전부 교체)
+     */
+    public function setCategories(int $productId, array $categoryIds): void
+    {
+        $db = $this->db;
+        $db->table('product_categories')->where('product_id', $productId)->delete();
+
+        foreach (array_unique(array_filter(array_map('intval', $categoryIds))) as $cid) {
+            $db->table('product_categories')->insert([
+                'product_id'  => $productId,
+                'category_id' => $cid,
+            ]);
+        }
+    }
+
+    /**
+     * 상품의 카테고리 ID 배열 반환
+     */
+    public function getCategories(int $productId): array
+    {
+        $rows = $this->db->table('product_categories')
+            ->select('category_id')
+            ->where('product_id', $productId)
+            ->get()->getResultArray();
+        return array_map('intval', array_column($rows, 'category_id'));
+    }
 
     /**
      * 프론트 상품 목록: 숨김 제외, 검색·카테고리·정렬 지원
@@ -44,9 +76,8 @@ class ProductModel extends Model
         $onlyDiscount = ! empty($params['only_discount']);
 
         $builder = $this->db->table('products')
-            ->select('products.*, categories.name as category_name,
+            ->select('products.*, ' . self::CAT_NAME_SQL . ',
                 EXISTS(SELECT 1 FROM product_options WHERE product_id = products.id) AS has_options')
-            ->join('categories', 'categories.id = products.category_id', 'left')
             ->where('products.deleted_at IS NULL')
             ->whereIn('products.status', ['on_sale', 'sold_out']);
 
@@ -61,13 +92,12 @@ class ProductModel extends Model
                 ->where('parent_id', $categoryId)
                 ->get()->getResultArray();
 
-            if ($subIds) {
-                $ids = array_column($subIds, 'id');
-                $ids[] = $categoryId;
-                $builder->whereIn('products.category_id', $ids);
-            } else {
-                $builder->where('products.category_id', $categoryId);
-            }
+            $ids = array_column($subIds, 'id');
+            $ids[] = $categoryId;
+
+            $inList = implode(',', array_map('intval', $ids));
+            $builder->where("EXISTS (SELECT 1 FROM product_categories pc2
+                WHERE pc2.product_id = products.id AND pc2.category_id IN ({$inList}))", null, false);
         }
 
         if ($priceMin !== null) {
@@ -102,8 +132,7 @@ class ProductModel extends Model
         $page      = max(1, (int) ($params['page'] ?? 1));
 
         $builder = $this->db->table('products')
-            ->select('products.*, categories.name as category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select('products.*, ' . self::CAT_NAME_SQL)
             ->where('products.deleted_at IS NULL');
 
         if ($keyword) {
@@ -124,8 +153,7 @@ class ProductModel extends Model
     public function getLatest(int $limit = 8): array
     {
         return $this->db->table('products')
-            ->select('products.*, categories.name as category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select('products.*, ' . self::CAT_NAME_SQL)
             ->where('products.deleted_at IS NULL')
             ->whereIn('products.status', ['on_sale', 'sold_out'])
             ->orderBy('products.id', 'DESC')
@@ -136,8 +164,7 @@ class ProductModel extends Model
     public function getDiscounted(int $limit = 8): array
     {
         return $this->db->table('products')
-            ->select('products.*, categories.name as category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select('products.*, ' . self::CAT_NAME_SQL)
             ->where('products.deleted_at IS NULL')
             ->where('products.status', 'on_sale')
             ->where('products.discount_price IS NOT NULL')
@@ -149,8 +176,7 @@ class ProductModel extends Model
     public function getFeatured(int $limit = 8): array
     {
         return $this->db->table('products')
-            ->select('products.*, categories.name as category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select('products.*, ' . self::CAT_NAME_SQL)
             ->where('products.deleted_at IS NULL')
             ->whereIn('products.status', ['on_sale', 'sold_out'])
             ->where('products.is_featured', 1)
