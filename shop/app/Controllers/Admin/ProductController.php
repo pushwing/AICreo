@@ -63,9 +63,11 @@ class ProductController extends BaseController
     {
         $db        = \Config\Database::connect();
         $rows      = $db->table('products')
-            ->select('products.id, products.name, products.slug, products.price, products.discount_price,
-                      products.stock, products.status, products.is_featured, products.created_at, categories.name AS category_name')
-            ->join('categories', 'categories.id = products.category_id', 'left')
+            ->select("products.id, products.name, products.slug, products.price, products.discount_price,
+                      products.stock, products.status, products.is_featured, products.created_at,
+                      (SELECT GROUP_CONCAT(c.name ORDER BY c.sort_order, c.id SEPARATOR ', ')
+                       FROM product_categories pc JOIN categories c ON c.id = pc.category_id
+                       WHERE pc.product_id = products.id) AS category_name")
             ->where('products.deleted_at IS NULL')
             ->orderBy('products.id', 'DESC')
             ->get()->getResultArray();
@@ -219,6 +221,7 @@ class ProductController extends BaseController
     {
         return $this->render('admin/products/form', [
             'product'        => null,
+            'categoryIds'    => [],
             'images'         => [],
             'tree'           => $this->categoryModel->getTree(),
             'statuses'       => ProductModel::STATUSES,
@@ -237,6 +240,7 @@ class ProductController extends BaseController
         $data = $this->collectData();
         $id   = $this->productModel->insert($data);
 
+        $this->handleCategories($id);
         $this->handleImages($id);
         $this->handleOptions($id);
 
@@ -250,6 +254,7 @@ class ProductController extends BaseController
 
         return $this->render('admin/products/form', [
             'product'        => $product,
+            'categoryIds'    => $this->productModel->getCategories($id),
             'images'         => $this->imageModel->getByProduct($id),
             'tree'           => $this->categoryModel->getTree(),
             'statuses'       => ProductModel::STATUSES,
@@ -271,6 +276,7 @@ class ProductController extends BaseController
         $wasOutOfStock = (int) $product['stock'] === 0 || $product['status'] === 'sold_out';
 
         $this->productModel->update($id, $this->collectData($id));
+        $this->handleCategories($id);
         $this->handleImages($id);
         $this->handleOptions($id);
 
@@ -310,7 +316,6 @@ class ProductController extends BaseController
         $newSlug = $this->productModel->generateSlug($newName);
 
         $newId = $this->productModel->insert([
-            'category_id'    => $product['category_id'],
             'supplier_id'    => $product['supplier_id'],
             'name'           => $newName,
             'slug'           => $newSlug,
@@ -326,6 +331,9 @@ class ProductController extends BaseController
             'created_at'     => $now,
             'updated_at'     => $now,
         ]);
+
+        // 카테고리 복사
+        $this->productModel->setCategories($newId, $this->productModel->getCategories($id));
 
         // 이미지 복사 (media_id 참조만 공유, 파일 복사 없음)
         foreach ($db->table('product_images')->where('product_id', $id)->get()->getResultArray() as $img) {
@@ -428,7 +436,7 @@ class ProductController extends BaseController
 
     public function categoryDelete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
-        $hasProducts = $this->productModel->withDeleted()->where('category_id', $id)->countAllResults();
+        $hasProducts = db_connect()->table('product_categories')->where('category_id', $id)->countAllResults();
         if ($hasProducts) {
             return redirect()->to('/admin/products/categories')->with('error', '해당 카테고리에 상품이 있어 삭제할 수 없습니다.');
         }
@@ -526,7 +534,6 @@ class ProductController extends BaseController
         $slug = $this->request->getPost('slug') ?: $this->productModel->generateSlug($name, $productId);
 
         return [
-            'category_id'    => $this->request->getPost('category_id') ?: null,
             'supplier_id'    => $this->request->getPost('supplier_id') ?: null,
             'name'           => $name,
             'slug'           => $slug,
@@ -540,6 +547,12 @@ class ProductController extends BaseController
             'shipping_fee'   => (int) $this->request->getPost('shipping_fee'),
             'free_threshold' => (int) $this->request->getPost('free_threshold'),
         ];
+    }
+
+    private function handleCategories(int $productId): void
+    {
+        $ids = array_filter(array_map('intval', (array) $this->request->getPost('category_ids')));
+        $this->productModel->setCategories($productId, array_values($ids));
     }
 
     private function handleOptions(int $productId): void

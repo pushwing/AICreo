@@ -124,7 +124,11 @@ class PromotionController extends BaseController
                     ->orLike('products.description', $q)
                     ->groupEnd();
         }
-        if ($catId) $builder->where('products.category_id', (int) $catId);
+        if ($catId) {
+            $catId = (int) $catId;
+            $builder->where("EXISTS (SELECT 1 FROM product_categories pc2
+                WHERE pc2.product_id = products.id AND pc2.category_id = {$catId})", null, false);
+        }
 
         $products = $builder->orderBy('products.id', 'DESC')->limit(30)->get()->getResultArray();
 

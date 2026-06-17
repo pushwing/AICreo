@@ -39,6 +39,7 @@ final class QuickCartProductListTest extends CIUnitTestCase
             $db->table('product_options')->whereIn('id', $this->cleanup['product_options'])->delete();
         }
         if ($this->cleanup['products'] !== []) {
+            $db->table('product_categories')->whereIn('product_id', $this->cleanup['products'])->delete();
             $db->table('products')->whereIn('id', $this->cleanup['products'])->delete();
         }
         if ($this->cleanup['categories'] !== []) {
@@ -71,7 +72,6 @@ final class QuickCartProductListTest extends CIUnitTestCase
     {
         $db = db_connect();
         $db->table('products')->insert([
-            'category_id'    => $categoryId,
             'name'           => 'QL상품-' . uniqid(),
             'slug'           => 'ql-prod-' . uniqid(),
             'price'          => 10000,
@@ -84,6 +84,7 @@ final class QuickCartProductListTest extends CIUnitTestCase
             'updated_at'     => date('Y-m-d H:i:s'),
         ]);
         $id = (int) $db->insertID();
+        $db->table('product_categories')->insert(['product_id' => $id, 'category_id' => $categoryId]);
         $this->cleanup['products'][] = $id;
         return $id;
     }

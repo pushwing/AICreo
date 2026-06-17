@@ -30,23 +30,41 @@
                     <div class="mb-3">
                         <label class="form-label">카테고리</label>
                         <?php
-                        $curCatId = old('category_id', $product['category_id'] ?? '');
+                        $oldCatIds = old('category_ids', $categoryIds ?? []);
+                        $oldCatIds = array_map('intval', (array) $oldCatIds);
                         ?>
-                        <select name="category_id" class="form-select">
-                            <option value="">카테고리 없음</option>
+                        <div class="border rounded p-2" style="max-height:200px;overflow-y:auto">
+                            <?php if (empty($tree)): ?>
+                            <span class="text-muted small">등록된 카테고리가 없습니다.</span>
+                            <?php endif; ?>
                             <?php foreach ($tree as $parent): ?>
-                            <option value="<?= $parent['id'] ?>"
-                                    <?= $curCatId == $parent['id'] ? 'selected' : '' ?>>
-                                <?= esc($parent['name']) ?>
-                            </option>
-                            <?php foreach ($parent['children'] as $child): ?>
-                            <option value="<?= $child['id'] ?>"
-                                    <?= $curCatId == $child['id'] ? 'selected' : '' ?>>
-                                &nbsp;&nbsp;— <?= esc($child['name']) ?>
-                            </option>
+                            <div class="mb-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="category_ids[]"
+                                           value="<?= $parent['id'] ?>"
+                                           id="cat_<?= $parent['id'] ?>"
+                                           <?= in_array((int)$parent['id'], $oldCatIds) ? 'checked' : '' ?>>
+                                    <label class="form-check-label fw-semibold" for="cat_<?= $parent['id'] ?>">
+                                        <?= esc($parent['name']) ?>
+                                    </label>
+                                </div>
+                                <?php foreach ($parent['children'] as $child): ?>
+                                <div class="form-check ms-3">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="category_ids[]"
+                                           value="<?= $child['id'] ?>"
+                                           id="cat_<?= $child['id'] ?>"
+                                           <?= in_array((int)$child['id'], $oldCatIds) ? 'checked' : '' ?>>
+                                    <label class="form-check-label text-muted" for="cat_<?= $child['id'] ?>">
+                                        — <?= esc($child['name']) ?>
+                                    </label>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
                             <?php endforeach; ?>
-                            <?php endforeach; ?>
-                        </select>
+                        </div>
+                        <div class="form-text">여러 카테고리를 선택할 수 있습니다.</div>
                     </div>
                 </div>
             </div>
