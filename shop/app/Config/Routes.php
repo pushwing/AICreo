@@ -127,6 +127,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/image/(:num)/delete',            'Admin\ProductController::imageDelete/$1');
     $routes->get( 'products/unassigned',                     'Admin\ProductController::unassigned');
     $routes->post('products/assign-category',               'Admin\ProductController::assignCategory');
+    $routes->post('products/suggest-category',              'Admin\ProductController::suggestCategory');
     $routes->get( 'products/categories',                     'Admin\ProductController::categories');
     $routes->post('products/categories',                     'Admin\ProductController::categoryStore');
     $routes->post('products/categories/publish',             'Admin\ProductController::categoryPublish');
