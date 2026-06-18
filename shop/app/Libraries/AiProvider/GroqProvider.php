@@ -12,7 +12,7 @@ class GroqProvider implements AiProviderInterface
     public function __construct()
     {
         $settings     = model('SettingModel')->getAllAsMap();
-        $this->apiKey = $settings['groq_api_key'] ?? env('GROQ_API_KEY', '');
+        $this->apiKey = ($settings['groq_api_key'] ?? '') ?: env('GROQ_API_KEY', '');
     }
 
     public function suggestCategories(string $name, string $description, array $tree): array
