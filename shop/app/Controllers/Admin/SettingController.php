@@ -230,6 +230,8 @@ class SettingController extends BaseController
 
         if ($group === 'api') {
             $save = [
+                'groq_api_key'                 => trim($postData['groq_api_key'] ?? ''),
+                'anthropic_api_key'            => trim($postData['anthropic_api_key'] ?? ''),
                 'naver_shopping_client_id'     => trim($postData['naver_shopping_client_id'] ?? ''),
                 'naver_shopping_client_secret' => trim($postData['naver_shopping_client_secret'] ?? ''),
             ];

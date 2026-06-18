@@ -11,7 +11,8 @@ class ClaudeProvider implements AiProviderInterface
 
     public function __construct()
     {
-        $this->apiKey = env('ANTHROPIC_API_KEY', '');
+        $settings     = model('SettingModel')->getAllAsMap();
+        $this->apiKey = $settings['anthropic_api_key'] ?? env('ANTHROPIC_API_KEY', '');
     }
 
     public function suggestCategories(string $name, string $description, array $tree): array

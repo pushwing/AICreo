@@ -23,6 +23,47 @@
 <form method="post" action="/admin/settings/api" style="max-width:600px">
     <?= csrf_field() ?>
 
+    <!-- AI 제공자 선택 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-stars me-2 text-primary"></i>AI 기능 설정
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">AI 제공자</label>
+                <select name="ai_provider" class="form-select form-select-sm">
+                    <?php
+                    $currentProvider = $settings['ai_provider'] ?? (getenv('AI_PROVIDER') ?: 'groq');
+                    ?>
+                    <option value="groq"   <?= $currentProvider === 'groq'   ? 'selected' : '' ?>>Groq (llama3 — 무료·빠름)</option>
+                    <option value="claude" <?= $currentProvider === 'claude' ? 'selected' : '' ?>>Claude (Haiku — 고품질)</option>
+                </select>
+                <div class="form-text">상품 카테고리 추천·설명 생성·문의 답변에 사용됩니다.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Groq API Key</label>
+                <input type="password" name="groq_api_key" class="form-control form-control-sm"
+                       value="<?= esc($settings['groq_api_key'] ?? '') ?>"
+                       placeholder="gsk_..." autocomplete="new-password">
+                <div class="form-text">
+                    <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>에서 무료 발급
+                </div>
+            </div>
+            <div class="mb-0">
+                <label class="form-label small fw-semibold">Anthropic (Claude) API Key</label>
+                <input type="password" name="anthropic_api_key" class="form-control form-control-sm"
+                       value="<?= esc($settings['anthropic_api_key'] ?? '') ?>"
+                       placeholder="sk-ant-..." autocomplete="new-password">
+                <div class="form-text">
+                    <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>에서 발급
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-0 text-end p-3">
+            <button type="submit" class="btn btn-primary btn-sm px-4">저장</button>
+        </div>
+    </div>
+
     <!-- 네이버 쇼핑 검색 API -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white fw-semibold">

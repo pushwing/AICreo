@@ -10,7 +10,10 @@ class AiCategoryAdvisor
 {
     public static function create(): AiProviderInterface
     {
-        return match (env('AI_PROVIDER', 'groq')) {
+        $settings = model('SettingModel')->getAllAsMap();
+        $provider = $settings['ai_provider'] ?? env('AI_PROVIDER', 'groq');
+
+        return match ($provider) {
             'claude' => new ClaudeProvider(),
             default  => new GroqProvider(),
         };
