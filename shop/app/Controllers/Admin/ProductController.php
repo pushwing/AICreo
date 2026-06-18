@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\AiCategoryAdvisor;
 use App\Libraries\Mailer;
 use App\Libraries\MediaUploader;
 use App\Models\CategoryModel;
@@ -465,6 +466,29 @@ class ProductController extends BaseController
             ->with('success', count($productIds) . '개 상품에 카테고리가 적용되었습니다.');
     }
 
+    /** POST /admin/products/suggest-category — AI 카테고리 추천 (AJAX) */
+    public function suggestCategory(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $name        = trim((string) $this->request->getPost('name'));
+        $description = trim((string) $this->request->getPost('description'));
+
+        if ($name === '') {
+            return $this->response->setJSON(['error' => '상품명을 먼저 입력해주세요.'])->setStatusCode(422);
+        }
+
+        try {
+            $ids = AiCategoryAdvisor::create()->suggestCategories(
+                $name,
+                $description,
+                $this->categoryModel->getTree()
+            );
+            return $this->response->setJSON(['category_ids' => $ids]);
+        } catch (\Throwable $e) {
+            log_message('error', 'AiCategoryAdvisor: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => 'AI 추천 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
+    }
+
     // ── 카테고리 CRUD ─────────────────────────────────────────────────────────
 
     public function categories(): string
@@ -541,7 +565,7 @@ class ProductController extends BaseController
         $db = db_connect();
         $builder = $db->table('categories');
 
-        if ($current['parent_id'] === null) {
+        if (empty($current['parent_id'])) {
             $builder->where('parent_id IS NULL', null, false);
         } else {
             $builder->where('parent_id', $current['parent_id']);

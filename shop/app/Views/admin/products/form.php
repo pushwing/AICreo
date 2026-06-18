@@ -64,7 +64,13 @@
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        <div class="form-text">여러 카테고리를 선택할 수 있습니다.</div>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <span class="form-text mb-0">여러 카테고리를 선택할 수 있습니다.</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" id="btnAiSuggest">
+                                <i class="bi bi-stars me-1"></i>AI 추천
+                            </button>
+                        </div>
+                        <div id="aiSuggestMsg" class="form-text text-primary d-none"></div>
                     </div>
                 </div>
             </div>
@@ -521,6 +527,65 @@ document.getElementById('productForm').addEventListener('submit', function () {
     if (optionGroups.length > 0) {
         const totalStock = skuList.reduce(function (sum, s) { return sum + (parseInt(s.stock) || 0); }, 0);
         document.querySelector('input[name="stock"]').value = totalStock;
+    }
+});
+
+// AI 카테고리 추천
+document.getElementById('btnAiSuggest').addEventListener('click', async function () {
+    const name = document.querySelector('input[name="name"]').value.trim();
+    const desc = tinymce.get('description') ? tinymce.get('description').getContent({format:'text'}) : (document.querySelector('textarea[name="description"]')?.value ?? '');
+    const msg  = document.getElementById('aiSuggestMsg');
+
+    if (!name) {
+        msg.textContent = '상품명을 먼저 입력해주세요.';
+        msg.className   = 'form-text text-danger';
+        msg.classList.remove('d-none');
+        return;
+    }
+
+    this.disabled   = true;
+    this.innerHTML  = '<span class="spinner-border spinner-border-sm me-1"></span>추천 중…';
+    msg.classList.add('d-none');
+
+    try {
+        const res  = await fetch('/admin/products/suggest-category', {
+            method : 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+            body   : new URLSearchParams({
+                name       : name,
+                description: desc,
+                '<?= csrf_token() ?>': '<?= csrf_hash() ?>',
+            }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            msg.textContent = data.error;
+            msg.className   = 'form-text text-danger';
+            msg.classList.remove('d-none');
+            return;
+        }
+
+        // 기존 체크 해제 후 추천 카테고리 선택
+        document.querySelectorAll('input[name="category_ids[]"]').forEach(cb => cb.checked = false);
+        let matched = 0;
+        (data.category_ids ?? []).forEach(id => {
+            const cb = document.getElementById('cat_' + id);
+            if (cb) { cb.checked = true; matched++; }
+        });
+
+        msg.textContent = matched > 0
+            ? `AI가 ${matched}개 카테고리를 추천했습니다.`
+            : '적합한 카테고리를 찾지 못했습니다.';
+        msg.className = 'form-text ' + (matched > 0 ? 'text-primary' : 'text-warning');
+        msg.classList.remove('d-none');
+    } catch (e) {
+        msg.textContent = '네트워크 오류가 발생했습니다.';
+        msg.className   = 'form-text text-danger';
+        msg.classList.remove('d-none');
+    } finally {
+        this.disabled  = false;
+        this.innerHTML = '<i class="bi bi-stars me-1"></i>AI 추천';
     }
 });
 </script>

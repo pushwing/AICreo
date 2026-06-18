@@ -59,7 +59,7 @@ class MenuController extends BaseController
         $db      = db_connect();
         $builder = $db->table('menus');
 
-        if ($current['parent_id'] === null) {
+        if (empty($current['parent_id'])) {
             $builder->where('parent_id IS NULL', null, false);
         } else {
             $builder->where('parent_id', $current['parent_id']);
