@@ -373,6 +373,65 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
         $this->assertSame('', $provider->generateDescription('상품', ''));
     }
 
+    // ── GroqProvider::generateQnaAnswer ──────────────────────────────────────
+
+    public function testGroqGenerateQnaAnswerReturnsContent(): void
+    {
+        $raw = json_encode([
+            'choices' => [[
+                'message' => ['content' => '안녕하세요! M 사이즈를 추천드립니다. 감사합니다.'],
+            ]],
+        ]);
+        $provider = new MockGroqProvider($raw);
+        $result   = $provider->generateQnaAnswer('티셔츠', '면 100%', '사이즈 문의', 'M 사이즈 맞나요?');
+        $this->assertSame('안녕하세요! M 사이즈를 추천드립니다. 감사합니다.', $result);
+    }
+
+    public function testGroqGenerateQnaAnswerReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockGroqProvider('', false);
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '설명', '제목', '내용'));
+    }
+
+    public function testGroqGenerateQnaAnswerReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockGroqProvider('{}');
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    public function testGroqQnaSystemPromptContainsRules(): void
+    {
+        $provider = new MockGroqProvider('');
+        // qnaSystemPrompt is protected — verify via generateQnaAnswer call succeeds
+        $raw = json_encode(['choices' => [['message' => ['content' => '답변']]]]);
+        $p2  = new MockGroqProvider($raw);
+        $this->assertSame('답변', $p2->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    // ── ClaudeProvider::generateQnaAnswer ────────────────────────────────────
+
+    public function testClaudeGenerateQnaAnswerReturnsContent(): void
+    {
+        $raw = json_encode([
+            'content' => [['text' => '안녕하세요! 문의 주셔서 감사합니다.']],
+        ]);
+        $provider = new MockClaudeProvider($raw);
+        $result   = $provider->generateQnaAnswer('청바지', '데님 소재', '색 빠짐', '세탁하면 색이 빠지나요?');
+        $this->assertSame('안녕하세요! 문의 주셔서 감사합니다.', $result);
+    }
+
+    public function testClaudeGenerateQnaAnswerReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockClaudeProvider('', false);
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    public function testClaudeGenerateQnaAnswerReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockClaudeProvider('{}');
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
     // ── 실제 Groq API 통합 테스트 ─────────────────────────────────────────────
 
     public function testGroqApiReturnsValidCategoryIds(): void

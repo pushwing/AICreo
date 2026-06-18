@@ -22,4 +22,15 @@ interface AiProviderInterface
      * @return string              생성된 HTML 설명 (실패 시 빈 문자열)
      */
     public function generateDescription(string $name, string $description): string;
+
+    /**
+     * 상품 문의에 대한 답변 초안을 생성해 반환한다.
+     *
+     * @param  string $productName        상품명
+     * @param  string $productDescription 상품 설명 (참고용)
+     * @param  string $questionTitle      문의 제목
+     * @param  string $questionContent    문의 내용
+     * @return string                     생성된 답변 텍스트 (실패 시 빈 문자열)
+     */
+    public function generateQnaAnswer(string $productName, string $productDescription, string $questionTitle, string $questionContent): string;
 }
