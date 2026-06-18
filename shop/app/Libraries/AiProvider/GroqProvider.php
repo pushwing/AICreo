@@ -114,7 +114,8 @@ PROMPT;
         }
 
         $data = json_decode($raw, true);
-        return $data['choices'][0]['message']['content'] ?? '';
+        $text = $data['choices'][0]['message']['content'] ?? '';
+        return $text !== '' ? $this->convertToHtml($text) : '';
     }
 
     public function generateQnaAnswer(string $productName, string $productDescription, string $questionTitle, string $questionContent): string
@@ -157,17 +158,79 @@ PROMPT;
 
     protected function descriptionSystemPrompt(): string
     {
-        return <<<PROMPT
+        return <<<'PROMPT'
 당신은 쇼핑몰 상품 설명 작성 전문가입니다.
 상품명과 기존 설명을 참고하여 고객의 구매욕을 자극하는 매력적인 상품 설명을 한국어로 작성하세요.
 
+[중요] 출력은 반드시 HTML만 사용하세요. 마크다운 문법은 절대 사용하지 마세요.
+허용 태그: <p> <strong> <ul> <li> <br>
+금지 문법: ** ## -- ``` _ (마크다운 볼드·헤딩·리스트·코드블록 모두 금지)
+
+올바른 출력 예시:
+<p>이 상품은 <strong>고품질 면 소재</strong>로 제작된 티셔츠입니다.</p>
+<ul>
+<li>세탁기 세탁 가능한 편리함</li>
+<li>통기성이 뛰어나 사계절 착용 가능</li>
+</ul>
+<p>일상복으로 완벽한 선택입니다.</p>
+
 규칙:
-- HTML 형식으로 작성하되 <p>, <strong>, <ul>, <li>, <br> 태그만 사용
 - 상품의 특징과 장점을 명확하게 강조
 - 자연스럽고 설득력 있는 문체 사용
 - 300~500자 내외로 간결하게 작성
-- 마크다운(**, ##, ``` 등)은 절대 사용하지 마세요
 PROMPT;
+    }
+
+    private function convertToHtml(string $text): string
+    {
+        // 코드블록 제거
+        $text = preg_replace('/```[\s\S]*?```/', '', $text);
+
+        // **bold** / __bold__ → <strong>
+        $text = preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $text);
+        $text = preg_replace('/__(.+?)__/u',     '<strong>$1</strong>', $text);
+
+        $lines      = explode("\n", $text);
+        $result     = [];
+        $listItems  = [];
+
+        $flushList = function () use (&$listItems, &$result) {
+            if ($listItems) {
+                $result[]  = '<ul>' . implode('', array_map(fn ($i) => "<li>{$i}</li>", $listItems)) . '</ul>';
+                $listItems = [];
+            }
+        };
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') { $flushList(); continue; }
+
+            // ## 헤딩 → <p><strong>
+            if (preg_match('/^#{1,3}\s+(.+)/u', $line, $m)) {
+                $flushList();
+                $result[] = '<p><strong>' . $m[1] . '</strong></p>';
+                continue;
+            }
+
+            // - 또는 * 리스트 항목
+            if (preg_match('/^[-*]\s+(.+)/u', $line, $m)) {
+                $listItems[] = $m[1];
+                continue;
+            }
+
+            $flushList();
+
+            // 이미 HTML 태그가 있으면 그대로
+            if (preg_match('/<(p|ul|li|strong|br)[^>]*>/i', $line)) {
+                $result[] = $line;
+            } else {
+                $result[] = "<p>{$line}</p>";
+            }
+        }
+
+        $flushList();
+
+        return implode("\n", array_filter($result));
     }
 
     protected function callApi(string $payload, int $timeout = 15): string|false
