@@ -489,6 +489,28 @@ class ProductController extends BaseController
         }
     }
 
+    /** POST /admin/products/generate-description — AI 상품 설명 생성 (AJAX) */
+    public function generateDescription(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $name        = trim((string) $this->request->getPost('name'));
+        $description = trim((string) $this->request->getPost('description'));
+
+        if ($name === '') {
+            return $this->response->setJSON(['error' => '상품명을 먼저 입력해주세요.'])->setStatusCode(422);
+        }
+
+        try {
+            $generated = AiCategoryAdvisor::create()->generateDescription($name, $description);
+            if ($generated === '') {
+                return $this->response->setJSON(['error' => 'AI 응답이 비어있습니다. 잠시 후 다시 시도해주세요.'])->setStatusCode(500);
+            }
+            return $this->response->setJSON(['description' => $generated]);
+        } catch (\Throwable $e) {
+            log_message('error', 'AiDescriptionGenerator: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => 'AI 설명 생성 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
+    }
+
     // ── 카테고리 CRUD ─────────────────────────────────────────────────────────
 
     public function categories(): string
