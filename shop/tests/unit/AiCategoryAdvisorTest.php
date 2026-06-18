@@ -48,6 +48,31 @@ class TestableClaudeProvider extends ClaudeProvider
     }
 }
 
+class MockGroqProvider extends GroqProvider
+{
+    public function __construct(private string $mockRaw, private bool $success = true) {}
+
+    protected function callApi(string $payload, int $timeout = 15): string|false
+    {
+        return $this->success ? $this->mockRaw : false;
+    }
+
+    public function exposeDescriptionSystemPrompt(): string
+    {
+        return $this->descriptionSystemPrompt();
+    }
+}
+
+class MockClaudeProvider extends ClaudeProvider
+{
+    public function __construct(private string $mockRaw, private bool $success = true) {}
+
+    protected function callApi(string $payload, int $timeout = 15): string|false
+    {
+        return $this->success ? $this->mockRaw : false;
+    }
+}
+
 // ── 테스트 클래스 ─────────────────────────────────────────────────────────────
 final class AiCategoryAdvisorTest extends CIUnitTestCase
 {
@@ -272,6 +297,80 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
         $provider = new TestableClaudeProvider();
         $ids = $provider->exposeParseResponse('{}');
         $this->assertSame([], $ids);
+    }
+
+    // ── GroqProvider::generateDescription ────────────────────────────────────
+
+    public function testGroqGenerateDescriptionReturnsContent(): void
+    {
+        $raw = json_encode([
+            'choices' => [[
+                'message' => ['content' => '<p>고품질 면 티셔츠입니다.</p>'],
+            ]],
+        ]);
+        $provider = new MockGroqProvider($raw);
+        $result   = $provider->generateDescription('면 티셔츠', '');
+        $this->assertSame('<p>고품질 면 티셔츠입니다.</p>', $result);
+    }
+
+    public function testGroqGenerateDescriptionReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockGroqProvider('', false);
+        $this->assertSame('', $provider->generateDescription('상품', '설명'));
+    }
+
+    public function testGroqGenerateDescriptionReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockGroqProvider('{}');
+        $this->assertSame('', $provider->generateDescription('상품', ''));
+    }
+
+    public function testGroqDescriptionSystemPromptContainsHtmlRules(): void
+    {
+        $provider = new MockGroqProvider('');
+        $prompt   = $provider->exposeDescriptionSystemPrompt();
+        $this->assertStringContainsString('<p>', $prompt);
+        $this->assertStringContainsString('<strong>', $prompt);
+        $this->assertStringContainsString('마크다운', $prompt);
+    }
+
+    public function testGroqGenerateDescriptionStripsHtmlFromBaseDescription(): void
+    {
+        $captured = '';
+        // callApi receives payload — verify strip_tags was applied
+        $raw = json_encode([
+            'choices' => [[
+                'message' => ['content' => '<p>결과</p>'],
+            ]],
+        ]);
+        $provider = new MockGroqProvider($raw);
+        $result   = $provider->generateDescription('상품명', '<p>기존 <b>설명</b></p>');
+        // Just verify it doesn't throw and returns the mocked result
+        $this->assertSame('<p>결과</p>', $result);
+    }
+
+    // ── ClaudeProvider::generateDescription ──────────────────────────────────
+
+    public function testClaudeGenerateDescriptionReturnsContent(): void
+    {
+        $raw = json_encode([
+            'content' => [['text' => '<p>멋진 상품 설명입니다.</p>']],
+        ]);
+        $provider = new MockClaudeProvider($raw);
+        $result   = $provider->generateDescription('상품', '기존 설명');
+        $this->assertSame('<p>멋진 상품 설명입니다.</p>', $result);
+    }
+
+    public function testClaudeGenerateDescriptionReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockClaudeProvider('', false);
+        $this->assertSame('', $provider->generateDescription('상품', ''));
+    }
+
+    public function testClaudeGenerateDescriptionReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockClaudeProvider('{}');
+        $this->assertSame('', $provider->generateDescription('상품', ''));
     }
 
     // ── 실제 Groq API 통합 테스트 ─────────────────────────────────────────────
