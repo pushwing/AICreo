@@ -63,7 +63,7 @@ PROMPT;
         return $this->parseResponse($response);
     }
 
-    private function flattenTree(array $tree): string
+    protected function flattenTree(array $tree): string
     {
         $lines = [];
         foreach ($tree as $parent) {
@@ -75,7 +75,7 @@ PROMPT;
         return implode("\n", $lines);
     }
 
-    private function parseResponse(string $raw): array
+    protected function parseResponse(string $raw): array
     {
         $data    = json_decode($raw, true);
         $content = $data['content'][0]['text'] ?? '';

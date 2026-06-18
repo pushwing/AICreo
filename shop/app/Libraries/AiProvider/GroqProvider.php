@@ -52,7 +52,7 @@ class GroqProvider implements AiProviderInterface
         return $this->parseResponse($response);
     }
 
-    private function systemPrompt(array $tree): string
+    protected function systemPrompt(array $tree): string
     {
         $list = $this->flattenTree($tree);
         return <<<PROMPT
@@ -67,13 +67,13 @@ class GroqProvider implements AiProviderInterface
 PROMPT;
     }
 
-    private function buildPrompt(string $name, string $description, array $tree): string
+    protected function buildPrompt(string $name, string $description, array $tree): string
     {
         $desc = mb_substr(strip_tags($description), 0, 500);
         return "상품명: {$name}\n상품 설명: {$desc}";
     }
 
-    private function flattenTree(array $tree): string
+    protected function flattenTree(array $tree): string
     {
         $lines = [];
         foreach ($tree as $parent) {
@@ -85,7 +85,7 @@ PROMPT;
         return implode("\n", $lines);
     }
 
-    private function parseResponse(string $raw): array
+    protected function parseResponse(string $raw): array
     {
         $data = json_decode($raw, true);
         $content = $data['choices'][0]['message']['content'] ?? '';
