@@ -14,7 +14,7 @@ class ProductModel extends Model
     protected $useSoftDeletes = true;
     protected $allowedFields  = [
         'supplier_id', 'name', 'slug', 'price', 'cost_price', 'discount_price',
-        'stock', 'status', 'description', 'shipping_type', 'shipping_fee', 'free_threshold',
+        'stock', 'status', 'is_featured', 'description', 'shipping_type', 'shipping_fee', 'free_threshold',
     ];
 
     public const STATUSES = [

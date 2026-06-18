@@ -1,0 +1,169 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined method App\\Models\\InquiryModel\:\:countAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\PostModel\:\:countAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\UserModel\:\:countAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Controllers/Admin/DashboardController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\InquiryModel\:\:countAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Controllers/Admin/InquiryController.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\MediaModel\:\:countAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Controllers/Admin/MediaController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, order_number\: string, status\: string, total_product_price\: string, shipping_fee\: string, total_amount\: string, coupon_id\: string, coupon_discount_amount\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Offset ''tracking_number'' on array\{user_id\: int, order_number\: string, status\: string, total_product_price\: string, shipping_fee\: string, total_amount\: string, coupon_id\: string, coupon_discount_amount\: string, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/OrderController.php
+
+		-
+			message: '#^Offset ''author_name'' on \*NEVER\* on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Offset ''board_name'' on array\{board_id\: string, user_id\: int, title\: string, content\: string, author_name\: string, author_password\: string, is_notice\: string, is_secret\: string, \.\.\.\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Offset ''board_slug'' on array\{board_id\: string, user_id\: int, title\: string, content\: string, author_name\: string, author_password\: string, is_notice\: string, is_secret\: string, \.\.\.\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{board_id\: string, user_id\: int, title\: string, content\: string, author_name\: string, author_password\: string, is_notice\: string, is_secret\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Offset ''user_nickname'' does not exist on array\{board_id\: string, user_id\: int, title\: string, content\: string, author_name\: string, author_password\: string, is_notice\: string, is_secret\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Admin/PostController.php
+
+		-
+			message: '#^Offset ''social_provider'' does not exist on list\<array\{username\: string, email\: string, password\: string, nickname\: string, role\: string, grade\: string, is_active\: string, last_login\: string, \.\.\.\}\>\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Front/AuthController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, order_number\: string, status\: string, total_product_price\: string, shipping_fee\: string, total_amount\: string, coupon_id\: string, coupon_discount_amount\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Front/MyPageController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, receiver_name\: string, receiver_phone\: string, zipcode\: string, address1\: string, address2\: string, is_default\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Front/MyPageController.php
+
+		-
+			message: '#^Property App\\Controllers\\Front\\MyPageController\:\:\$userCouponModel is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Controllers/Front/MyPageController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, order_number\: string, status\: ''awaiting_payment''\|''paid'', total_product_price\: string, shipping_fee\: string, total_amount\: string, coupon_id\: string, coupon_discount_amount\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Front/OrderController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, order_number\: string, status\: ''paid'', total_product_price\: string, shipping_fee\: string, total_amount\: string, coupon_id\: string, coupon_discount_amount\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Controllers/Front/OrderController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{supplier_id\: string, name\: string, slug\: string, price\: string, cost_price\: string, discount_price\: string, stock\: int, status\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 6
+			path: app/Controllers/Front/ShopController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{supplier_id\: string, name\: string, slug\: string, price\: string, cost_price\: string, discount_price\: string, stock\: string, status\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 7
+			path: app/Controllers/Front/ShopController.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{username\: string, email\: string, password\: string, nickname\: string, role\: string, grade\: string, is_active\: string, last_login\: string, \.\.\.\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 4
+			path: app/Controllers/Front/SocialAuthController.php
+
+		-
+			message: '#^Offset ''doc''\|''docx''\|''gif''\|''hwp''\|''jpeg''\|''jpg''\|''pdf''\|''png''\|''ppt''\|''pptx''\|''txt''\|''webp''\|''xls''\|''xlsx''\|''zip'' on array\{jpg\: array\{''image/jpeg''\}, jpeg\: array\{''image/jpeg''\}, png\: array\{''image/png''\}, gif\: array\{''image/gif''\}, webp\: array\{''image/webp''\}, pdf\: array\{''application/pdf''\}, doc\: array\{''application/msword''\}, docx\: array\{''application/vnd…''\}, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Libraries/FileUploader.php
+
+		-
+			message: '#^Variable \$allowedMimes in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.variable
+			count: 1
+			path: app/Libraries/FileUploader.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: app/Models/BannerModel.php
+
+		-
+			message: '#^Offset ''file_path'' does not exist on array\{product_id\: string, media_id\: string, is_primary\: string, sort_order\: string, created_at\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 3
+			path: app/Models/ProductImageModel.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{group\: string, key\: string, value\: string, label\: string, type\: string, updated_at\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Models/SettingModel.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, receiver_name\: string, receiver_phone\: string, zipcode\: string, address1\: string, address2\: string, is_default\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 2
+			path: app/Models/ShippingAddressModel.php
+
+		-
+			message: '#^Offset ''id'' does not exist on array\{user_id\: int, product_id\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Models/WishlistModel.php
