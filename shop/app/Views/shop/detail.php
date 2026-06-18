@@ -462,7 +462,7 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
 
 </div>
 
-<?= $this->view('themes/default/components/recently_viewed', ['recentProducts' => $recentProducts ?? []]) ?>
+<?= view('themes/default/components/recently_viewed', ['recentProducts' => $recentProducts ?? []]) ?>
 
 <?= $this->endSection() ?>
 
