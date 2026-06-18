@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Exceptions\AiKeyMissingException;
 use App\Libraries\AiCategoryAdvisor;
 use App\Libraries\Mailer;
 use App\Libraries\NaverShoppingProvider;
@@ -485,6 +486,11 @@ class ProductController extends BaseController
                 $this->categoryModel->getTree()
             );
             return $this->response->setJSON(['category_ids' => $ids]);
+        } catch (AiKeyMissingException $e) {
+            return $this->response->setJSON([
+                'error'     => $e->getMessage(),
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
         } catch (\Throwable $e) {
             log_message('error', 'AiCategoryAdvisor: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 추천 중 오류가 발생했습니다.'])->setStatusCode(500);
@@ -608,6 +614,11 @@ class ProductController extends BaseController
                 return $this->response->setJSON(['error' => 'AI 응답이 비어있습니다. 잠시 후 다시 시도해주세요.'])->setStatusCode(500);
             }
             return $this->response->setJSON(['description' => $generated]);
+        } catch (AiKeyMissingException $e) {
+            return $this->response->setJSON([
+                'error'     => $e->getMessage(),
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
         } catch (\Throwable $e) {
             log_message('error', 'AiDescriptionGenerator: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 설명 생성 중 오류가 발생했습니다.'])->setStatusCode(500);

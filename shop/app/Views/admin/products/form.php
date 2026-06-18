@@ -644,8 +644,9 @@ document.getElementById('btnAiSuggest').addEventListener('click', async function
         const data = await res.json();
 
         if (data.error) {
-            msg.textContent = data.error;
-            msg.className   = 'form-text text-danger';
+            const link = data.setup_url ? ` <a href="${data.setup_url}">설정 바로가기 →</a>` : '';
+            msg.innerHTML = data.error + link;
+            msg.className = 'form-text text-danger';
             msg.classList.remove('d-none');
             return;
         }
@@ -715,7 +716,8 @@ async function callGenerateDescription(baseDescription) {
         const data = await res.json();
 
         if (data.error) {
-            document.getElementById('aiDescResult').innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+            const link = data.setup_url ? ` <a href="${data.setup_url}">설정 바로가기 →</a>` : '';
+            document.getElementById('aiDescResult').innerHTML = `<div class="alert alert-danger mb-0">${data.error}${link}</div>`;
             status.textContent = '오류';
             status.className   = 'badge bg-danger';
             return;
