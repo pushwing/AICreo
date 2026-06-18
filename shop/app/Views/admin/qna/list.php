@@ -91,8 +91,15 @@
                             <?php else: ?>
                             <form method="post" action="/admin/qna/<?= $qna['id'] ?>/answer">
                                 <?= csrf_field() ?>
-                                <label class="form-label fw-semibold small">답변 작성</label>
-                                <textarea name="answer" class="form-control form-control-sm mb-2"
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label fw-semibold small mb-0">답변 작성</label>
+                                    <button type="button" class="btn btn-sm btn-outline-info btn-ai-answer"
+                                            data-qna-id="<?= $qna['id'] ?>">
+                                        <i class="bi bi-stars me-1"></i>AI 답변 생성
+                                    </button>
+                                </div>
+                                <textarea name="answer" id="answer-<?= $qna['id'] ?>"
+                                          class="form-control form-control-sm mb-2"
                                           rows="3" placeholder="답변 내용을 입력하세요" required></textarea>
                                 <button class="btn btn-sm btn-success">답변 등록</button>
                             </form>
@@ -125,4 +132,41 @@
 </nav>
 <?php endif; ?>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+document.querySelectorAll('.btn-ai-answer').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+        const qnaId   = this.dataset.qnaId;
+        const textarea = document.getElementById('answer-' + qnaId);
+        const original = this.innerHTML;
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>생성 중…';
+
+        try {
+            const res  = await fetch('/admin/qna/' + qnaId + '/suggest-answer', {
+                method : 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+                body   : new URLSearchParams({'<?= csrf_token() ?>': '<?= csrf_hash() ?>'}),
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            textarea.value = data.answer ?? '';
+            textarea.focus();
+        } catch (e) {
+            alert('네트워크 오류가 발생했습니다.');
+        } finally {
+            this.disabled  = false;
+            this.innerHTML = original;
+        }
+    });
+});
+</script>
 <?= $this->endSection() ?>

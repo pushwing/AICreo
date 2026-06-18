@@ -122,6 +122,40 @@ PROMPT;
         return $data['content'][0]['text'] ?? '';
     }
 
+    public function generateQnaAnswer(string $productName, string $productDescription, string $questionTitle, string $questionContent): string
+    {
+        $cleanDesc = mb_substr(strip_tags($productDescription), 0, 500);
+
+        $systemPrompt = <<<PROMPT
+당신은 쇼핑몰 고객 서비스 담당자입니다.
+상품 문의에 대해 친절하고 전문적인 답변을 한국어로 작성하세요.
+
+규칙:
+- 인사말로 시작하고 감사 인사로 마무리
+- 문의 내용에 직접적으로 답변
+- 확실하지 않은 정보는 "확인 후 안내드리겠습니다"로 처리
+- 2~4문장의 간결한 답변
+- 일반 텍스트로 작성 (HTML·마크다운 사용 금지)
+PROMPT;
+
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 400,
+            'system'     => $systemPrompt,
+            'messages'   => [
+                ['role' => 'user', 'content' => "상품명: {$productName}\n상품 설명: {$cleanDesc}\n\n문의 제목: {$questionTitle}\n문의 내용: {$questionContent}"],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 20);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return $data['content'][0]['text'] ?? '';
+    }
+
     protected function callApi(string $payload, int $timeout = 15): string|false
     {
         $ch = curl_init(self::API_URL);
