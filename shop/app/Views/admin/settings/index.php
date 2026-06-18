@@ -15,6 +15,9 @@
     <li class="nav-item">
         <a class="nav-link" href="/admin/settings/oauth">소셜 로그인</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" href="/admin/settings/api">외부 API</a>
+    </li>
 </ul>
 
 <div class="card border-0 shadow-sm" style="max-width:600px">

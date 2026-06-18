@@ -2,8 +2,6 @@
 
 namespace App\Libraries;
 
-use Config\Naver;
-
 class NaverShoppingProvider
 {
     private string $clientId;
@@ -12,9 +10,9 @@ class NaverShoppingProvider
 
     public function __construct()
     {
-        $config             = config(Naver::class);
-        $this->clientId     = $config->clientId;
-        $this->clientSecret = $config->clientSecret;
+        $settings           = model('SettingModel')->getAllAsMap();
+        $this->clientId     = $settings['naver_shopping_client_id']     ?? '';
+        $this->clientSecret = $settings['naver_shopping_client_secret'] ?? '';
     }
 
     /**
