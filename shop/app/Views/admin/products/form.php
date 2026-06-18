@@ -282,6 +282,9 @@
                 </div>
                 <?php endif; ?>
 
+                <!-- 네이버 검색에서 임포트된 이미지 미리보기 -->
+                <div id="naverImportedImages" class="row g-2 mb-2"></div>
+
                 <div class="mb-2">
                     <label class="form-label small fw-semibold">이미지 추가</label>
                     <input type="file" name="images[]" class="form-control form-control-sm"
@@ -840,7 +843,8 @@ async function execNaverSearch(append) {
             col.innerHTML = `
                 <div class="card h-100 border naver-item" style="cursor:pointer"
                      data-title="${item.title.replace(/"/g,'&quot;')}"
-                     data-price="${price}">
+                     data-price="${price}"
+                     data-image="${item.image.replace(/"/g,'&quot;')}">
                     <img src="${item.image}" class="card-img-top" style="height:140px;object-fit:cover"
                          onerror="this.src='/favicon.ico'">
                     <div class="card-body p-2">
@@ -875,22 +879,65 @@ async function execNaverSearch(append) {
     }
 }
 
-document.getElementById('naverSearchResults').addEventListener('click', function (e) {
+document.getElementById('naverSearchResults').addEventListener('click', async function (e) {
     const applyBtn = e.target.closest('.btn-naver-apply');
     if (!applyBtn) return;
 
-    const card  = applyBtn.closest('.naver-item');
-    const title = card.dataset.title;
-    const price = parseInt(card.dataset.price, 10);
+    const card     = applyBtn.closest('.naver-item');
+    const title    = card.dataset.title;
+    const price    = parseInt(card.dataset.price, 10);
+    const imageUrl = card.dataset.image;
 
-    document.querySelector('input[name="name"]').value  = title;
+    // 상품명·가격 채우기
+    document.querySelector('input[name="name"]').value = title;
     if (price > 0) document.querySelector('input[name="price"]').value = price;
-
-    // 슬러그 자동 생성 트리거
-    const nameInput = document.querySelector('input[name="name"]');
-    nameInput.dispatchEvent(new Event('input'));
+    document.querySelector('input[name="name"]').dispatchEvent(new Event('input'));
 
     naverModal.hide();
+
+    // 이미지 임포트
+    if (imageUrl) {
+        const preview   = document.getElementById('naverImportedImages');
+        const tempId    = 'naverImg_' + Date.now();
+        const col       = document.createElement('div');
+        col.className   = 'col-6';
+        col.id          = tempId;
+        col.innerHTML   = `<div class="position-relative">
+            <div class="d-flex align-items-center justify-content-center bg-light border rounded"
+                 style="width:100%;aspect-ratio:1">
+                <div class="spinner-border spinner-border-sm text-secondary"></div>
+            </div>
+            <div class="form-text text-center small mt-1">이미지 가져오는 중…</div>
+        </div>`;
+        preview.appendChild(col);
+
+        try {
+            const res  = await fetch('/admin/products/import-image', {
+                method : 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+                body   : new URLSearchParams({'<?= csrf_token() ?>': '<?= csrf_hash() ?>', url: imageUrl}),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                col.innerHTML = `<div class="position-relative">
+                    <img src="${data.url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:2px solid #198754">
+                    <span class="badge bg-success position-absolute" style="top:4px;left:4px">네이버</span>
+                    <button type="button" class="btn btn-danger btn-sm position-absolute"
+                            style="top:4px;right:4px;padding:2px 6px"
+                            onclick="this.closest('.col-6').remove()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                    <input type="hidden" name="imported_media_ids[]" value="${data.media_id}" form="productForm">
+                </div>
+                <div class="form-text text-center small mt-1 text-success">이미지 저장 완료</div>`;
+            } else {
+                col.innerHTML = `<div class="alert alert-warning p-2 small mb-0">이미지 가져오기 실패<br><button type="button" class="btn btn-sm btn-link p-0" onclick="this.closest('.col-6').remove()">닫기</button></div>`;
+            }
+        } catch (e) {
+            col.remove();
+        }
+    }
 });
 </script>
 <?= $this->endSection() ?>
