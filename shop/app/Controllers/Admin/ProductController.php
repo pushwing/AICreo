@@ -500,6 +500,18 @@ class ProductController extends BaseController
             return $this->response->setJSON(['error' => '검색어를 입력해주세요.'])->setStatusCode(422);
         }
 
+        $settings     = model('SettingModel')->getAllAsMap();
+        $clientId     = $settings['naver_shopping_client_id']     ?? '';
+        $clientSecret = $settings['naver_shopping_client_secret'] ?? '';
+
+        if ($clientId === '' || $clientSecret === '') {
+            return $this->response->setJSON([
+                'error'      => 'API 키가 설정되지 않았습니다.',
+                'setup_url'  => '/admin/settings/api',
+                'setup_msg'  => '설정 > 외부 API에서 네이버 클라이언트 ID/Secret을 먼저 등록해주세요.',
+            ])->setStatusCode(422);
+        }
+
         $display = 10;
         $start   = ($page - 1) * $display + 1;
 
