@@ -13,7 +13,12 @@
 
             <!-- 기본 정보 -->
             <div class="card mb-3">
-                <div class="card-header fw-semibold">기본 정보</div>
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>기본 정보</span>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="btnNaverSearch">
+                        <i class="bi bi-search me-1"></i>네이버 상품 검색
+                    </button>
+                </div>
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">상품명 <span class="text-danger">*</span></label>
@@ -277,12 +282,40 @@
                 </div>
                 <?php endif; ?>
 
+                <!-- 네이버 검색에서 임포트된 이미지 미리보기 -->
+                <div id="naverImportedImages" class="row g-2 mb-2"></div>
+
                 <div class="mb-2">
                     <label class="form-label small fw-semibold">이미지 추가</label>
                     <input type="file" name="images[]" class="form-control form-control-sm"
                            accept=".jpg,.jpeg,.png,.gif,.webp" multiple form="productForm">
                     <div class="form-text">jpg, jpeg, png, gif, webp / 최대 5MB / 여러 파일 선택 가능</div>
                     <div class="form-text">첫 번째 업로드된 이미지가 대표 이미지가 됩니다.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 네이버 쇼핑 검색 모달 -->
+<div class="modal fade" id="naverSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-search me-2"></i>네이버 쇼핑 상품 검색</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" id="naverKeyword" class="form-control" placeholder="검색어를 입력하세요 (예: 남성 반팔 티셔츠)">
+                    <button class="btn btn-success" id="btnNaverSearchExec">
+                        <i class="bi bi-search me-1"></i>검색
+                    </button>
+                </div>
+                <div id="naverSearchStatus" class="text-muted small mb-2 d-none"></div>
+                <div id="naverSearchResults" class="row g-2"></div>
+                <div class="d-flex justify-content-center mt-3 d-none" id="naverSearchMore">
+                    <button class="btn btn-outline-secondary btn-sm" id="btnNaverSearchMore">더 보기</button>
                 </div>
             </div>
         </div>
@@ -611,8 +644,9 @@ document.getElementById('btnAiSuggest').addEventListener('click', async function
         const data = await res.json();
 
         if (data.error) {
-            msg.textContent = data.error;
-            msg.className   = 'form-text text-danger';
+            const link = data.setup_url ? ` <a href="${data.setup_url}">설정 바로가기 →</a>` : '';
+            msg.innerHTML = data.error + link;
+            msg.className = 'form-text text-danger';
             msg.classList.remove('d-none');
             return;
         }
@@ -682,7 +716,8 @@ async function callGenerateDescription(baseDescription) {
         const data = await res.json();
 
         if (data.error) {
-            document.getElementById('aiDescResult').innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+            const link = data.setup_url ? ` <a href="${data.setup_url}">설정 바로가기 →</a>` : '';
+            document.getElementById('aiDescResult').innerHTML = `<div class="alert alert-danger mb-0">${data.error}${link}</div>`;
             status.textContent = '오류';
             status.className   = 'badge bg-danger';
             return;
@@ -725,6 +760,186 @@ document.getElementById('btnUseOriginalDesc').addEventListener('click', function
         document.getElementById('editor').value = aiDescOriginalContent;
     }
     aiDescModal.hide();
+});
+
+// ── 네이버 쇼핑 상품 검색 ─────────────────────────────────────────────────────
+const naverModal    = new bootstrap.Modal(document.getElementById('naverSearchModal'));
+let   naverPage     = 1;
+let   naverKeyword  = '';
+
+document.getElementById('btnNaverSearch').addEventListener('click', function () {
+    document.getElementById('naverKeyword').value = document.querySelector('input[name="name"]').value.trim();
+    document.getElementById('naverSearchResults').innerHTML = '';
+    document.getElementById('naverSearchMore').classList.add('d-none');
+    document.getElementById('naverSearchStatus').classList.add('d-none');
+    naverModal.show();
+});
+
+document.getElementById('btnNaverSearchExec').addEventListener('click', function () {
+    naverPage    = 1;
+    naverKeyword = document.getElementById('naverKeyword').value.trim();
+    document.getElementById('naverSearchResults').innerHTML = '';
+    document.getElementById('naverSearchMore').classList.add('d-none');
+    execNaverSearch(false);
+});
+
+document.getElementById('naverKeyword').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnNaverSearchExec').click(); }
+});
+
+document.getElementById('btnNaverSearchMore').addEventListener('click', function () {
+    naverPage++;
+    execNaverSearch(true);
+});
+
+async function execNaverSearch(append) {
+    const status = document.getElementById('naverSearchStatus');
+    const btn    = document.getElementById('btnNaverSearchExec');
+
+    if (!naverKeyword) {
+        status.textContent = '검색어를 입력해주세요.';
+        status.className   = 'text-danger small mb-2';
+        status.classList.remove('d-none');
+        return;
+    }
+
+    btn.disabled    = true;
+    status.textContent = '검색 중…';
+    status.className   = 'text-muted small mb-2';
+    status.classList.remove('d-none');
+
+    try {
+        const res  = await fetch('/admin/products/naver-search?' + new URLSearchParams({q: naverKeyword, page: naverPage}), {
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            const alertClass = data.setup_msg ? 'alert-warning' : 'alert-danger';
+            const icon       = data.setup_msg ? 'bi-exclamation-triangle-fill' : 'bi-x-circle-fill';
+            const extra      = data.setup_msg
+                ? `<a href="${data.setup_url}" target="_blank" class="alert-link ms-1">설정 바로가기 →</a>`
+                : '';
+            document.getElementById('naverSearchResults').innerHTML =
+                `<div class="col-12"><div class="alert ${alertClass} mb-0">
+                    <i class="bi ${icon} me-2"></i>${data.setup_msg || data.error}${extra}
+                </div></div>`;
+            status.textContent = data.error;
+            status.className   = 'text-danger small mb-2';
+            return;
+        }
+
+        const container = document.getElementById('naverSearchResults');
+        if (!append) container.innerHTML = '';
+
+        if (!data.items || data.items.length === 0) {
+            status.textContent = '검색 결과가 없습니다.';
+            status.className   = 'text-muted small mb-2';
+            return;
+        }
+
+        data.items.forEach(function (item) {
+            const price = parseInt(item.lprice, 10);
+            const col   = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3';
+            col.innerHTML = `
+                <div class="card h-100 border naver-item" style="cursor:pointer"
+                     data-title="${item.title.replace(/"/g,'&quot;')}"
+                     data-price="${price}"
+                     data-image="${item.image.replace(/"/g,'&quot;')}">
+                    <img src="${item.image}" class="card-img-top" style="height:140px;object-fit:cover"
+                         onerror="this.src='/favicon.ico'">
+                    <div class="card-body p-2">
+                        <div class="small fw-semibold lh-sm mb-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                            ${item.title}
+                        </div>
+                        <div class="text-danger fw-bold small">${price ? price.toLocaleString() + '원' : '가격 미정'}</div>
+                        <div class="text-muted" style="font-size:0.7rem">${item.mallName || item.brand}</div>
+                    </div>
+                    <div class="card-footer p-1 text-center">
+                        <button type="button" class="btn btn-sm btn-success w-100 btn-naver-apply">적용</button>
+                    </div>
+                </div>`;
+            container.appendChild(col);
+        });
+
+        status.textContent = `총 ${data.total.toLocaleString()}건 중 ${naverPage * 10}건 표시`;
+        status.className   = 'text-muted small mb-2';
+
+        const moreBtn = document.getElementById('naverSearchMore');
+        if (data.total > naverPage * 10) {
+            moreBtn.classList.remove('d-none');
+        } else {
+            moreBtn.classList.add('d-none');
+        }
+
+    } catch (e) {
+        status.textContent = '네트워크 오류가 발생했습니다.';
+        status.className   = 'text-danger small mb-2';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('naverSearchResults').addEventListener('click', async function (e) {
+    const applyBtn = e.target.closest('.btn-naver-apply');
+    if (!applyBtn) return;
+
+    const card     = applyBtn.closest('.naver-item');
+    const title    = card.dataset.title;
+    const price    = parseInt(card.dataset.price, 10);
+    const imageUrl = card.dataset.image;
+
+    // 상품명·가격 채우기
+    document.querySelector('input[name="name"]').value = title;
+    if (price > 0) document.querySelector('input[name="price"]').value = price;
+    document.querySelector('input[name="name"]').dispatchEvent(new Event('input'));
+
+    naverModal.hide();
+
+    // 이미지 임포트
+    if (imageUrl) {
+        const preview   = document.getElementById('naverImportedImages');
+        const tempId    = 'naverImg_' + Date.now();
+        const col       = document.createElement('div');
+        col.className   = 'col-6';
+        col.id          = tempId;
+        col.innerHTML   = `<div class="position-relative">
+            <div class="d-flex align-items-center justify-content-center bg-light border rounded"
+                 style="width:100%;aspect-ratio:1">
+                <div class="spinner-border spinner-border-sm text-secondary"></div>
+            </div>
+            <div class="form-text text-center small mt-1">이미지 가져오는 중…</div>
+        </div>`;
+        preview.appendChild(col);
+
+        try {
+            const res  = await fetch('/admin/products/import-image', {
+                method : 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+                body   : new URLSearchParams({'<?= csrf_token() ?>': '<?= csrf_hash() ?>', url: imageUrl}),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                col.innerHTML = `<div class="position-relative">
+                    <img src="${data.url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:2px solid #198754">
+                    <span class="badge bg-success position-absolute" style="top:4px;left:4px">네이버</span>
+                    <button type="button" class="btn btn-danger btn-sm position-absolute"
+                            style="top:4px;right:4px;padding:2px 6px"
+                            onclick="this.closest('.col-6').remove()">
+                        <i class="bi bi-x"></i>
+                    </button>
+                    <input type="hidden" name="imported_media_ids[]" value="${data.media_id}" form="productForm">
+                </div>
+                <div class="form-text text-center small mt-1 text-success">이미지 저장 완료</div>`;
+            } else {
+                col.innerHTML = `<div class="alert alert-warning p-2 small mb-0">이미지 가져오기 실패<br><button type="button" class="btn btn-sm btn-link p-0" onclick="this.closest('.col-6').remove()">닫기</button></div>`;
+            }
+        } catch (e) {
+            col.remove();
+        }
+    }
 });
 </script>
 <?= $this->endSection() ?>

@@ -3,8 +3,11 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Exceptions\AiKeyMissingException;
 use App\Libraries\AiCategoryAdvisor;
 use App\Libraries\Mailer;
+use App\Libraries\NaverShoppingProvider;
+use App\Models\MediaModel;
 use App\Libraries\MediaUploader;
 use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
@@ -483,9 +486,115 @@ class ProductController extends BaseController
                 $this->categoryModel->getTree()
             );
             return $this->response->setJSON(['category_ids' => $ids]);
+        } catch (AiKeyMissingException $e) {
+            return $this->response->setJSON([
+                'error'     => $e->getMessage(),
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
         } catch (\Throwable $e) {
             log_message('error', 'AiCategoryAdvisor: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 추천 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
+    }
+
+    /** POST /admin/products/import-image — 외부 URL 이미지 다운로드 → 미디어 라이브러리 저장 (AJAX) */
+    public function importImage(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $url = trim((string) $this->request->getPost('url'));
+
+        if ($url === '' || ! preg_match('#^https?://#i', $url)) {
+            return $this->response->setJSON(['error' => '유효하지 않은 URL입니다.'])->setStatusCode(422);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 3,
+        ]);
+        $raw      = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $mimeType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+
+        if ($raw === false || $httpCode !== 200) {
+            return $this->response->setJSON(['error' => '이미지 다운로드에 실패했습니다.'])->setStatusCode(500);
+        }
+
+        $mimeType = strtolower(explode(';', $mimeType)[0]);
+        $extMap   = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+        $ext      = $extMap[$mimeType] ?? null;
+
+        if (! $ext) {
+            // URL 확장자로 fallback
+            $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+            $ext = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']) ? ($ext === 'jpeg' ? 'jpg' : $ext) : null;
+        }
+
+        if (! $ext) {
+            return $this->response->setJSON(['error' => '지원하지 않는 이미지 형식입니다.'])->setStatusCode(422);
+        }
+
+        $subDir     = date('Y/m');
+        $uploadPath = FCPATH . "uploads/media/{$subDir}";
+        if (! is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+
+        $storedName   = bin2hex(random_bytes(16)) . ".{$ext}";
+        $relativePath = "uploads/media/{$subDir}/{$storedName}";
+        $fullPath     = FCPATH . $relativePath;
+
+        if (file_put_contents($fullPath, $raw) === false) {
+            return $this->response->setJSON(['error' => '이미지 저장에 실패했습니다.'])->setStatusCode(500);
+        }
+
+        $mediaId = (new MediaModel())->insert([
+            'original_name' => $storedName,
+            'stored_name'   => $storedName,
+            'file_path'     => $relativePath,
+            'file_size'     => strlen($raw),
+            'mime_type'     => $mimeType ?: "image/{$ext}",
+            'alt'           => '',
+        ]);
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'media_id' => $mediaId,
+            'url'      => base_url($relativePath),
+        ]);
+    }
+
+    /** GET /admin/products/naver-search — 네이버 쇼핑 상품 검색 (AJAX) */
+    public function naverSearch(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $keyword = trim((string) $this->request->getGet('q'));
+        $page    = max(1, (int) $this->request->getGet('page'));
+
+        if ($keyword === '') {
+            return $this->response->setJSON(['error' => '검색어를 입력해주세요.'])->setStatusCode(422);
+        }
+
+        $settings     = model('SettingModel')->getAllAsMap();
+        $clientId     = $settings['naver_shopping_client_id']     ?? '';
+        $clientSecret = $settings['naver_shopping_client_secret'] ?? '';
+
+        if ($clientId === '' || $clientSecret === '') {
+            return $this->response->setJSON([
+                'error'      => 'API 키가 설정되지 않았습니다.',
+                'setup_url'  => '/admin/settings/api',
+                'setup_msg'  => '설정 > 외부 API에서 네이버 클라이언트 ID/Secret을 먼저 등록해주세요.',
+            ])->setStatusCode(422);
+        }
+
+        $display = 10;
+        $start   = ($page - 1) * $display + 1;
+
+        try {
+            $result = (new NaverShoppingProvider())->search($keyword, $display, $start);
+            return $this->response->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'NaverShopping: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => '검색 중 오류가 발생했습니다.'])->setStatusCode(500);
         }
     }
 
@@ -505,6 +614,11 @@ class ProductController extends BaseController
                 return $this->response->setJSON(['error' => 'AI 응답이 비어있습니다. 잠시 후 다시 시도해주세요.'])->setStatusCode(500);
             }
             return $this->response->setJSON(['description' => $generated]);
+        } catch (AiKeyMissingException $e) {
+            return $this->response->setJSON([
+                'error'     => $e->getMessage(),
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
         } catch (\Throwable $e) {
             log_message('error', 'AiDescriptionGenerator: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 설명 생성 중 오류가 발생했습니다.'])->setStatusCode(500);
@@ -703,6 +817,21 @@ class ProductController extends BaseController
         $files      = $this->request->getFiles();
         $newImages  = $files['images'] ?? [];
         $existCount = $this->imageModel->where('product_id', $productId)->countAllResults();
+
+        // 네이버 검색 등 외부 임포트 이미지 (media_id 직접 지정)
+        $importedIds = array_values(array_filter(
+            array_map('intval', (array) $this->request->getPost('imported_media_ids'))
+        ));
+        foreach ($importedIds as $mediaId) {
+            $this->imageModel->insert([
+                'product_id' => $productId,
+                'media_id'   => $mediaId,
+                'is_primary' => $existCount === 0 ? 1 : 0,
+                'sort_order' => $existCount,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+            $existCount++;
+        }
 
         foreach ($newImages as $file) {
             if (! $file->isValid() || $file->hasMoved()) continue;
