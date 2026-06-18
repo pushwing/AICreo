@@ -169,7 +169,12 @@
 
             <!-- 상품 상세 -->
             <div class="card mb-3">
-                <div class="card-header fw-semibold">상품 상세 내용</div>
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>상품 상세 내용</span>
+                    <button type="button" class="btn btn-sm btn-outline-info" id="btnAiGenerateDesc">
+                        <i class="bi bi-stars me-1"></i>AI 설명 생성
+                    </button>
+                </div>
                 <div class="card-body">
                     <?php
                         $desc = old('description', $product['description'] ?? '');
@@ -278,6 +283,52 @@
                            accept=".jpg,.jpeg,.png,.gif,.webp" multiple form="productForm">
                     <div class="form-text">jpg, jpeg, png, gif, webp / 최대 5MB / 여러 파일 선택 가능</div>
                     <div class="form-text">첫 번째 업로드된 이미지가 대표 이미지가 됩니다.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI 상품 설명 생성 모달 -->
+<div class="modal fade" id="aiDescModal" tabindex="-1" aria-labelledby="aiDescModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiDescModalLabel">
+                    <i class="bi bi-stars me-2 text-info"></i>AI 상품 설명 생성
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 text-muted fw-semibold">현재 설명</h6>
+                            <span class="badge bg-secondary">이전</span>
+                        </div>
+                        <div id="aiDescOriginal" class="border rounded p-3 bg-light" style="min-height:320px; max-height:520px; overflow-y:auto;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 text-info fw-semibold">AI 생성 설명</h6>
+                            <span id="aiDescStatus" class="badge bg-secondary d-none">생성 중...</span>
+                        </div>
+                        <div id="aiDescResult" class="border rounded p-3" style="min-height:320px; max-height:520px; overflow-y:auto;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" id="btnUseOriginalDesc">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>이전 내용 사용
+                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" id="btnRegenerateDesc" disabled>
+                        <i class="bi bi-arrow-repeat me-1"></i>다시 생성
+                    </button>
+                    <button type="button" class="btn btn-info text-white" id="btnApplyAiDesc" disabled>
+                        <i class="bi bi-check-lg me-1"></i>AI 설명 적용
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">닫기</button>
                 </div>
             </div>
         </div>
@@ -587,6 +638,93 @@ document.getElementById('btnAiSuggest').addEventListener('click', async function
         this.disabled  = false;
         this.innerHTML = '<i class="bi bi-stars me-1"></i>AI 추천';
     }
+});
+
+// ── AI 상품 설명 생성 ──────────────────────────────────────────────────────────
+let aiDescOriginalContent = '';
+let aiDescLastGenerated   = '';
+const aiDescModalEl       = document.getElementById('aiDescModal');
+const aiDescModal         = new bootstrap.Modal(aiDescModalEl);
+
+document.getElementById('btnAiGenerateDesc').addEventListener('click', function () {
+    const editor = tinymce.get('editor');
+    aiDescOriginalContent = editor ? editor.getContent() : (document.getElementById('editor')?.value ?? '');
+
+    document.getElementById('aiDescOriginal').innerHTML = aiDescOriginalContent || '<em class="text-muted">내용 없음</em>';
+    document.getElementById('aiDescResult').innerHTML   = '<div class="d-flex justify-content-center align-items-center" style="min-height:200px"><div class="spinner-border text-info" role="status"><span class="visually-hidden">생성 중...</span></div></div>';
+    document.getElementById('btnApplyAiDesc').disabled    = true;
+    document.getElementById('btnRegenerateDesc').disabled = true;
+
+    aiDescModal.show();
+    callGenerateDescription(aiDescOriginalContent);
+});
+
+async function callGenerateDescription(baseDescription) {
+    const name   = document.querySelector('input[name="name"]').value.trim();
+    const status = document.getElementById('aiDescStatus');
+
+    status.textContent = '생성 중...';
+    status.className   = 'badge bg-warning text-dark';
+    status.classList.remove('d-none');
+    document.getElementById('btnRegenerateDesc').disabled = true;
+    document.getElementById('btnApplyAiDesc').disabled    = true;
+
+    try {
+        const res  = await fetch('/admin/products/generate-description', {
+            method : 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+            body   : new URLSearchParams({
+                name       : name,
+                description: baseDescription,
+                '<?= csrf_token() ?>': '<?= csrf_hash() ?>',
+            }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            document.getElementById('aiDescResult').innerHTML = `<div class="alert alert-danger mb-0">${data.error}</div>`;
+            status.textContent = '오류';
+            status.className   = 'badge bg-danger';
+            return;
+        }
+
+        aiDescLastGenerated = data.description ?? '';
+        document.getElementById('aiDescResult').innerHTML     = aiDescLastGenerated || '<em class="text-muted">내용 없음</em>';
+        document.getElementById('btnApplyAiDesc').disabled    = false;
+        document.getElementById('btnRegenerateDesc').disabled = false;
+        status.textContent = '생성 완료';
+        status.className   = 'badge bg-success';
+
+    } catch (e) {
+        document.getElementById('aiDescResult').innerHTML = '<div class="alert alert-danger mb-0">네트워크 오류가 발생했습니다.</div>';
+        status.textContent = '오류';
+        status.className   = 'badge bg-danger';
+    }
+}
+
+document.getElementById('btnRegenerateDesc').addEventListener('click', function () {
+    document.getElementById('aiDescResult').innerHTML = '<div class="d-flex justify-content-center align-items-center" style="min-height:200px"><div class="spinner-border text-info" role="status"></div></div>';
+    callGenerateDescription(aiDescOriginalContent);
+});
+
+document.getElementById('btnApplyAiDesc').addEventListener('click', function () {
+    const editor = tinymce.get('editor');
+    if (editor) {
+        editor.setContent(aiDescLastGenerated);
+    } else {
+        document.getElementById('editor').value = aiDescLastGenerated;
+    }
+    aiDescModal.hide();
+});
+
+document.getElementById('btnUseOriginalDesc').addEventListener('click', function () {
+    const editor = tinymce.get('editor');
+    if (editor) {
+        editor.setContent(aiDescOriginalContent);
+    } else {
+        document.getElementById('editor').value = aiDescOriginalContent;
+    }
+    aiDescModal.hide();
 });
 </script>
 <?= $this->endSection() ?>
