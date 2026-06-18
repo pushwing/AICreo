@@ -50,10 +50,13 @@ class TestableClaudeProvider extends ClaudeProvider
 
 class MockGroqProvider extends GroqProvider
 {
+    public string $lastPayload = '';
+
     public function __construct(private string $mockRaw, private bool $success = true) {}
 
     protected function callApi(string $payload, int $timeout = 15): string|false
     {
+        $this->lastPayload = $payload;
         return $this->success ? $this->mockRaw : false;
     }
 
@@ -65,10 +68,13 @@ class MockGroqProvider extends GroqProvider
 
 class MockClaudeProvider extends ClaudeProvider
 {
+    public string $lastPayload = '';
+
     public function __construct(private string $mockRaw, private bool $success = true) {}
 
     protected function callApi(string $payload, int $timeout = 15): string|false
     {
+        $this->lastPayload = $payload;
         return $this->success ? $this->mockRaw : false;
     }
 }
@@ -336,17 +342,39 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
 
     public function testGroqGenerateDescriptionStripsHtmlFromBaseDescription(): void
     {
-        $captured = '';
-        // callApi receives payload — verify strip_tags was applied
-        $raw = json_encode([
-            'choices' => [[
-                'message' => ['content' => '<p>결과</p>'],
-            ]],
-        ]);
+        $raw      = json_encode(['choices' => [['message' => ['content' => '<p>결과</p>']]]]);
         $provider = new MockGroqProvider($raw);
-        $result   = $provider->generateDescription('상품명', '<p>기존 <b>설명</b></p>');
-        // Just verify it doesn't throw and returns the mocked result
-        $this->assertSame('<p>결과</p>', $result);
+        $provider->generateDescription('상품명', '<p>기존 <b>설명</b></p>');
+
+        $payload = json_decode($provider->lastPayload, true);
+        $content = $payload['messages'][1]['content'];
+        $this->assertStringNotContainsString('<p>', $content);
+        $this->assertStringNotContainsString('<b>', $content);
+        $this->assertStringContainsString('기존 설명', $content);
+    }
+
+    public function testGroqGenerateDescriptionTruncatesAt1000Chars(): void
+    {
+        $raw      = json_encode(['choices' => [['message' => ['content' => 'ok']]]]);
+        $provider = new MockGroqProvider($raw);
+        $longDesc = str_repeat('가', 2000);
+        $provider->generateDescription('상품', $longDesc);
+
+        $payload = json_decode($provider->lastPayload, true);
+        $content = $payload['messages'][1]['content'];
+        $this->assertLessThanOrEqual(1060, mb_strlen($content));
+    }
+
+    public function testClaudeGenerateDescriptionTruncatesAt1000Chars(): void
+    {
+        $raw      = json_encode(['content' => [['text' => 'ok']]]);
+        $provider = new MockClaudeProvider($raw);
+        $longDesc = str_repeat('나', 2000);
+        $provider->generateDescription('상품', $longDesc);
+
+        $payload = json_decode($provider->lastPayload, true);
+        $content = $payload['messages'][0]['content'];
+        $this->assertLessThanOrEqual(1060, mb_strlen($content));
     }
 
     // ── ClaudeProvider::generateDescription ──────────────────────────────────
@@ -371,6 +399,101 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
     {
         $provider = new MockClaudeProvider('{}');
         $this->assertSame('', $provider->generateDescription('상품', ''));
+    }
+
+    // ── GroqProvider::generateQnaAnswer ──────────────────────────────────────
+
+    public function testGroqGenerateQnaAnswerReturnsContent(): void
+    {
+        $raw = json_encode([
+            'choices' => [[
+                'message' => ['content' => '안녕하세요! M 사이즈를 추천드립니다. 감사합니다.'],
+            ]],
+        ]);
+        $provider = new MockGroqProvider($raw);
+        $result   = $provider->generateQnaAnswer('티셔츠', '면 100%', '사이즈 문의', 'M 사이즈 맞나요?');
+        $this->assertSame('안녕하세요! M 사이즈를 추천드립니다. 감사합니다.', $result);
+    }
+
+    public function testGroqGenerateQnaAnswerReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockGroqProvider('', false);
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '설명', '제목', '내용'));
+    }
+
+    public function testGroqGenerateQnaAnswerReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockGroqProvider('{}');
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    public function testGroqQnaSystemPromptContainsRules(): void
+    {
+        $raw = json_encode(['choices' => [['message' => ['content' => '답변']]]]);
+        $p2  = new MockGroqProvider($raw);
+        $this->assertSame('답변', $p2->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    public function testGroqGenerateQnaAnswerTruncatesProductDescAt500Chars(): void
+    {
+        $raw      = json_encode(['choices' => [['message' => ['content' => 'ok']]]]);
+        $provider = new MockGroqProvider($raw);
+        $longDesc = str_repeat('다', 1000);
+        $provider->generateQnaAnswer('상품', $longDesc, '제목', '내용');
+
+        $payload = json_decode($provider->lastPayload, true);
+        $content = $payload['messages'][1]['content'];
+        $this->assertLessThanOrEqual(560, mb_strlen($content));
+    }
+
+    public function testGroqGenerateQnaAnswerIncludesAllFields(): void
+    {
+        $raw      = json_encode(['choices' => [['message' => ['content' => 'ok']]]]);
+        $provider = new MockGroqProvider($raw);
+        $provider->generateQnaAnswer('블랙 청바지', '데님 소재', '색 빠짐', '세탁하면 색이 빠지나요?');
+
+        $payload = json_decode($provider->lastPayload, true);
+        $content = $payload['messages'][1]['content'];
+        $this->assertStringContainsString('블랙 청바지', $content);
+        $this->assertStringContainsString('데님 소재', $content);
+        $this->assertStringContainsString('색 빠짐', $content);
+        $this->assertStringContainsString('세탁하면 색이 빠지나요?', $content);
+    }
+
+    public function testClaudeGenerateQnaAnswerTruncatesProductDescAt500Chars(): void
+    {
+        $raw      = json_encode(['content' => [['text' => 'ok']]]);
+        $provider = new MockClaudeProvider($raw);
+        $longDesc = str_repeat('라', 1000);
+        $provider->generateQnaAnswer('상품', $longDesc, '제목', '내용');
+
+        $payload = json_decode($provider->lastPayload, true);
+        $content = $payload['messages'][0]['content'];
+        $this->assertLessThanOrEqual(560, mb_strlen($content));
+    }
+
+    // ── ClaudeProvider::generateQnaAnswer ────────────────────────────────────
+
+    public function testClaudeGenerateQnaAnswerReturnsContent(): void
+    {
+        $raw = json_encode([
+            'content' => [['text' => '안녕하세요! 문의 주셔서 감사합니다.']],
+        ]);
+        $provider = new MockClaudeProvider($raw);
+        $result   = $provider->generateQnaAnswer('청바지', '데님 소재', '색 빠짐', '세탁하면 색이 빠지나요?');
+        $this->assertSame('안녕하세요! 문의 주셔서 감사합니다.', $result);
+    }
+
+    public function testClaudeGenerateQnaAnswerReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockClaudeProvider('', false);
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    public function testClaudeGenerateQnaAnswerReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockClaudeProvider('{}');
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
     }
 
     // ── 실제 Groq API 통합 테스트 ─────────────────────────────────────────────

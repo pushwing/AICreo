@@ -211,8 +211,9 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 상품 문의 관리
     $routes->get( 'qna',               'Admin\QnaController::index');
-    $routes->post('qna/(:num)/answer', 'Admin\QnaController::answer/$1');
-    $routes->post('qna/(:num)/delete', 'Admin\QnaController::delete/$1');
+    $routes->post('qna/(:num)/answer',         'Admin\QnaController::answer/$1');
+    $routes->post('qna/(:num)/suggest-answer', 'Admin\QnaController::suggestAnswer/$1');
+    $routes->post('qna/(:num)/delete',         'Admin\QnaController::delete/$1');
 
     // 리뷰 관리
     $routes->get( 'reviews/json',          'Admin\ReviewController::json');

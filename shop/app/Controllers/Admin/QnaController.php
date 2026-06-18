@@ -3,6 +3,8 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\AiCategoryAdvisor;
+use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
 
 class QnaController extends BaseController
@@ -50,6 +52,35 @@ class QnaController extends BaseController
         ]);
 
         return redirect()->back()->with('success', '답변이 등록되었습니다.');
+    }
+
+    /** POST /admin/qna/:id/suggest-answer — AI 답변 초안 생성 (AJAX) */
+    public function suggestAnswer(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $qna = $this->model->find($id);
+        if (! $qna) {
+            return $this->response->setJSON(['error' => '문의를 찾을 수 없습니다.'])->setStatusCode(404);
+        }
+
+        $product     = (new ProductModel())->find((int) $qna['product_id']);
+        $productName = $product['name'] ?? '';
+        $productDesc = $product['description'] ?? '';
+
+        try {
+            $answer = AiCategoryAdvisor::create()->generateQnaAnswer(
+                $productName,
+                $productDesc,
+                (string) $qna['title'],
+                (string) $qna['content']
+            );
+            if ($answer === '') {
+                return $this->response->setJSON(['error' => 'AI 응답이 비어있습니다. 잠시 후 다시 시도해주세요.'])->setStatusCode(500);
+            }
+            return $this->response->setJSON(['answer' => $answer]);
+        } catch (\Throwable $e) {
+            log_message('error', 'AiQnaAdvisor: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => 'AI 답변 생성 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
     }
 
     /** POST /admin/qna/:id/delete */
