@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Libraries\AiCategoryAdvisor;
 use App\Libraries\Mailer;
+use App\Libraries\NaverShoppingProvider;
 use App\Libraries\MediaUploader;
 use App\Models\CategoryModel;
 use App\Models\ProductImageModel;
@@ -486,6 +487,28 @@ class ProductController extends BaseController
         } catch (\Throwable $e) {
             log_message('error', 'AiCategoryAdvisor: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 추천 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
+    }
+
+    /** GET /admin/products/naver-search — 네이버 쇼핑 상품 검색 (AJAX) */
+    public function naverSearch(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $keyword = trim((string) $this->request->getGet('q'));
+        $page    = max(1, (int) $this->request->getGet('page'));
+
+        if ($keyword === '') {
+            return $this->response->setJSON(['error' => '검색어를 입력해주세요.'])->setStatusCode(422);
+        }
+
+        $display = 10;
+        $start   = ($page - 1) * $display + 1;
+
+        try {
+            $result = (new NaverShoppingProvider())->search($keyword, $display, $start);
+            return $this->response->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'NaverShopping: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => '검색 중 오류가 발생했습니다.'])->setStatusCode(500);
         }
     }
 

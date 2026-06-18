@@ -13,7 +13,12 @@
 
             <!-- 기본 정보 -->
             <div class="card mb-3">
-                <div class="card-header fw-semibold">기본 정보</div>
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>기본 정보</span>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="btnNaverSearch">
+                        <i class="bi bi-search me-1"></i>네이버 상품 검색
+                    </button>
+                </div>
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">상품명 <span class="text-danger">*</span></label>
@@ -283,6 +288,31 @@
                            accept=".jpg,.jpeg,.png,.gif,.webp" multiple form="productForm">
                     <div class="form-text">jpg, jpeg, png, gif, webp / 최대 5MB / 여러 파일 선택 가능</div>
                     <div class="form-text">첫 번째 업로드된 이미지가 대표 이미지가 됩니다.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 네이버 쇼핑 검색 모달 -->
+<div class="modal fade" id="naverSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-search me-2"></i>네이버 쇼핑 상품 검색</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" id="naverKeyword" class="form-control" placeholder="검색어를 입력하세요 (예: 남성 반팔 티셔츠)">
+                    <button class="btn btn-success" id="btnNaverSearchExec">
+                        <i class="bi bi-search me-1"></i>검색
+                    </button>
+                </div>
+                <div id="naverSearchStatus" class="text-muted small mb-2 d-none"></div>
+                <div id="naverSearchResults" class="row g-2"></div>
+                <div class="d-flex justify-content-center mt-3 d-none" id="naverSearchMore">
+                    <button class="btn btn-outline-secondary btn-sm" id="btnNaverSearchMore">더 보기</button>
                 </div>
             </div>
         </div>
@@ -725,6 +755,133 @@ document.getElementById('btnUseOriginalDesc').addEventListener('click', function
         document.getElementById('editor').value = aiDescOriginalContent;
     }
     aiDescModal.hide();
+});
+
+// ── 네이버 쇼핑 상품 검색 ─────────────────────────────────────────────────────
+const naverModal    = new bootstrap.Modal(document.getElementById('naverSearchModal'));
+let   naverPage     = 1;
+let   naverKeyword  = '';
+
+document.getElementById('btnNaverSearch').addEventListener('click', function () {
+    document.getElementById('naverKeyword').value = document.querySelector('input[name="name"]').value.trim();
+    document.getElementById('naverSearchResults').innerHTML = '';
+    document.getElementById('naverSearchMore').classList.add('d-none');
+    document.getElementById('naverSearchStatus').classList.add('d-none');
+    naverModal.show();
+});
+
+document.getElementById('btnNaverSearchExec').addEventListener('click', function () {
+    naverPage    = 1;
+    naverKeyword = document.getElementById('naverKeyword').value.trim();
+    document.getElementById('naverSearchResults').innerHTML = '';
+    document.getElementById('naverSearchMore').classList.add('d-none');
+    execNaverSearch(false);
+});
+
+document.getElementById('naverKeyword').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnNaverSearchExec').click(); }
+});
+
+document.getElementById('btnNaverSearchMore').addEventListener('click', function () {
+    naverPage++;
+    execNaverSearch(true);
+});
+
+async function execNaverSearch(append) {
+    const status = document.getElementById('naverSearchStatus');
+    const btn    = document.getElementById('btnNaverSearchExec');
+
+    if (!naverKeyword) {
+        status.textContent = '검색어를 입력해주세요.';
+        status.className   = 'text-danger small mb-2';
+        status.classList.remove('d-none');
+        return;
+    }
+
+    btn.disabled    = true;
+    status.textContent = '검색 중…';
+    status.className   = 'text-muted small mb-2';
+    status.classList.remove('d-none');
+
+    try {
+        const res  = await fetch('/admin/products/naver-search?' + new URLSearchParams({q: naverKeyword, page: naverPage}), {
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            status.textContent = data.error;
+            status.className   = 'text-danger small mb-2';
+            return;
+        }
+
+        const container = document.getElementById('naverSearchResults');
+        if (!append) container.innerHTML = '';
+
+        if (!data.items || data.items.length === 0) {
+            status.textContent = '검색 결과가 없습니다.';
+            status.className   = 'text-muted small mb-2';
+            return;
+        }
+
+        data.items.forEach(function (item) {
+            const price = parseInt(item.lprice, 10);
+            const col   = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3';
+            col.innerHTML = `
+                <div class="card h-100 border naver-item" style="cursor:pointer"
+                     data-title="${item.title.replace(/"/g,'&quot;')}"
+                     data-price="${price}">
+                    <img src="${item.image}" class="card-img-top" style="height:140px;object-fit:cover"
+                         onerror="this.src='/favicon.ico'">
+                    <div class="card-body p-2">
+                        <div class="small fw-semibold lh-sm mb-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                            ${item.title}
+                        </div>
+                        <div class="text-danger fw-bold small">${price ? price.toLocaleString() + '원' : '가격 미정'}</div>
+                        <div class="text-muted" style="font-size:0.7rem">${item.mallName || item.brand}</div>
+                    </div>
+                    <div class="card-footer p-1 text-center">
+                        <button type="button" class="btn btn-sm btn-success w-100 btn-naver-apply">적용</button>
+                    </div>
+                </div>`;
+            container.appendChild(col);
+        });
+
+        status.textContent = `총 ${data.total.toLocaleString()}건 중 ${naverPage * 10}건 표시`;
+        status.className   = 'text-muted small mb-2';
+
+        const moreBtn = document.getElementById('naverSearchMore');
+        if (data.total > naverPage * 10) {
+            moreBtn.classList.remove('d-none');
+        } else {
+            moreBtn.classList.add('d-none');
+        }
+
+    } catch (e) {
+        status.textContent = '네트워크 오류가 발생했습니다.';
+        status.className   = 'text-danger small mb-2';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.getElementById('naverSearchResults').addEventListener('click', function (e) {
+    const applyBtn = e.target.closest('.btn-naver-apply');
+    if (!applyBtn) return;
+
+    const card  = applyBtn.closest('.naver-item');
+    const title = card.dataset.title;
+    const price = parseInt(card.dataset.price, 10);
+
+    document.querySelector('input[name="name"]').value  = title;
+    if (price > 0) document.querySelector('input[name="price"]').value = price;
+
+    // 슬러그 자동 생성 트리거
+    const nameInput = document.querySelector('input[name="name"]');
+    nameInput.dispatchEvent(new Event('input'));
+
+    naverModal.hide();
 });
 </script>
 <?= $this->endSection() ?>
