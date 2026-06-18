@@ -11,7 +11,8 @@ class ClaudeProvider implements AiProviderInterface
 
     public function __construct()
     {
-        $this->apiKey = env('ANTHROPIC_API_KEY', '');
+        $settings     = model('SettingModel')->getAllAsMap();
+        $this->apiKey = ($settings['anthropic_api_key'] ?? '') ?: env('ANTHROPIC_API_KEY', '');
     }
 
     public function suggestCategories(string $name, string $description, array $tree): array
@@ -92,16 +93,26 @@ PROMPT;
     {
         $cleanDesc = mb_substr(strip_tags($description), 0, 1000);
 
-        $systemPrompt = <<<PROMPT
+        $systemPrompt = <<<'PROMPT'
 당신은 쇼핑몰 상품 설명 작성 전문가입니다.
 상품명과 기존 설명을 참고하여 고객의 구매욕을 자극하는 매력적인 상품 설명을 한국어로 작성하세요.
 
+[중요] 출력은 반드시 HTML만 사용하세요. 마크다운 문법은 절대 사용하지 마세요.
+허용 태그: <p> <strong> <ul> <li> <br>
+금지 문법: ** ## -- ``` _ (마크다운 볼드·헤딩·리스트·코드블록 모두 금지)
+
+올바른 출력 예시:
+<p>이 상품은 <strong>고품질 면 소재</strong>로 제작된 티셔츠입니다.</p>
+<ul>
+<li>세탁기 세탁 가능한 편리함</li>
+<li>통기성이 뛰어나 사계절 착용 가능</li>
+</ul>
+<p>일상복으로 완벽한 선택입니다.</p>
+
 규칙:
-- HTML 형식으로 작성하되 <p>, <strong>, <ul>, <li>, <br> 태그만 사용
 - 상품의 특징과 장점을 명확하게 강조
 - 자연스럽고 설득력 있는 문체 사용
 - 300~500자 내외로 간결하게 작성
-- 마크다운(**, ##, ``` 등)은 절대 사용하지 마세요
 PROMPT;
 
         $payload = json_encode([
@@ -119,7 +130,54 @@ PROMPT;
         }
 
         $data = json_decode($raw, true);
-        return $data['content'][0]['text'] ?? '';
+        $text = $data['content'][0]['text'] ?? '';
+        return $text !== '' ? $this->convertToHtml($text) : '';
+    }
+
+    private function convertToHtml(string $text): string
+    {
+        $text = preg_replace('/```[\s\S]*?```/', '', $text);
+        $text = preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $text);
+        $text = preg_replace('/__(.+?)__/u',     '<strong>$1</strong>', $text);
+
+        $lines     = explode("\n", $text);
+        $result    = [];
+        $listItems = [];
+
+        $flushList = function () use (&$listItems, &$result) {
+            if ($listItems) {
+                $result[]  = '<ul>' . implode('', array_map(fn ($i) => "<li>{$i}</li>", $listItems)) . '</ul>';
+                $listItems = [];
+            }
+        };
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') { $flushList(); continue; }
+
+            if (preg_match('/^#{1,3}\s+(.+)/u', $line, $m)) {
+                $flushList();
+                $result[] = '<p><strong>' . $m[1] . '</strong></p>';
+                continue;
+            }
+
+            if (preg_match('/^[-*]\s+(.+)/u', $line, $m)) {
+                $listItems[] = $m[1];
+                continue;
+            }
+
+            $flushList();
+
+            if (preg_match('/<(p|ul|li|strong|br)[^>]*>/i', $line)) {
+                $result[] = $line;
+            } else {
+                $result[] = "<p>{$line}</p>";
+            }
+        }
+
+        $flushList();
+
+        return implode("\n", array_filter($result));
     }
 
     public function generateQnaAnswer(string $productName, string $productDescription, string $questionTitle, string $questionContent): string

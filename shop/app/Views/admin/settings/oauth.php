@@ -15,6 +15,9 @@
     <li class="nav-item">
         <a class="nav-link active" href="/admin/settings/oauth">소셜 로그인</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" href="/admin/settings/api">외부 API</a>
+    </li>
 </ul>
 
 <!-- 활성화 토글 -->

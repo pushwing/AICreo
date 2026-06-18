@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Exceptions\AiKeyMissingException;
 use App\Libraries\AiCategoryAdvisor;
 use App\Libraries\AiProvider\ClaudeProvider;
 use App\Libraries\AiProvider\GroqProvider;
@@ -82,17 +83,26 @@ class MockClaudeProvider extends ClaudeProvider
 // ── 테스트 클래스 ─────────────────────────────────────────────────────────────
 final class AiCategoryAdvisorTest extends CIUnitTestCase
 {
-    private string $originalProvider = '';
+    private string $originalProvider  = '';
+    private string $originalGroqKey   = '';
+    private string $originalClaudeKey = '';
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->originalProvider = $_ENV['AI_PROVIDER'] ?? getenv('AI_PROVIDER') ?: '';
+        $this->originalProvider  = $_ENV['AI_PROVIDER']       ?? getenv('AI_PROVIDER')       ?: '';
+        $this->originalGroqKey   = $_ENV['GROQ_API_KEY']      ?? getenv('GROQ_API_KEY')      ?: '';
+        $this->originalClaudeKey = $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY') ?: '';
+        // factory 테스트가 AiKeyMissingException 없이 동작하도록 dummy key 설정
+        $this->setApiKey('GROQ_API_KEY', 'test_groq_dummy');
+        $this->setApiKey('ANTHROPIC_API_KEY', 'test_claude_dummy');
     }
 
     protected function tearDown(): void
     {
         $this->setProvider($this->originalProvider);
+        $this->setApiKey('GROQ_API_KEY', $this->originalGroqKey);
+        $this->setApiKey('ANTHROPIC_API_KEY', $this->originalClaudeKey);
         parent::tearDown();
     }
 
@@ -100,6 +110,13 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
     {
         putenv("AI_PROVIDER={$value}");
         $_ENV['AI_PROVIDER'] = $value;
+    }
+
+    private function setApiKey(string $name, string $value): void
+    {
+        putenv("{$name}={$value}");
+        $_ENV[$name]    = $value;
+        $_SERVER[$name] = $value;
     }
 
     private function sampleTree(): array
@@ -113,6 +130,75 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
                 ['id' => 21, 'name' => '청바지'],
             ]],
         ];
+    }
+
+    // ── AiKeyMissingException ─────────────────────────────────────────────────
+
+    public function testExceptionMessageContainsProviderName(): void
+    {
+        $e = new AiKeyMissingException('Groq');
+        $this->assertStringContainsString('Groq', $e->getMessage());
+        $this->assertStringContainsString('API 키', $e->getMessage());
+    }
+
+    public function testExceptionIsRuntimeException(): void
+    {
+        $this->assertInstanceOf(\RuntimeException::class, new AiKeyMissingException('Claude'));
+    }
+
+    public function testFactoryThrowsWhenGroqKeyEmpty(): void
+    {
+        $dbSettings = model('SettingModel')->getAllAsMap();
+        if (! empty($dbSettings['groq_api_key'])) {
+            $this->markTestSkipped('settings DB에 groq_api_key가 저장돼 있어 건너뜀 — 키 없는 환경에서만 유효');
+        }
+        $this->setProvider('groq');
+        $this->setApiKey('GROQ_API_KEY', '');
+        $this->expectException(AiKeyMissingException::class);
+        $this->expectExceptionMessageMatches('/Groq/');
+        AiCategoryAdvisor::create();
+    }
+
+    public function testFactoryThrowsWhenClaudeKeyEmpty(): void
+    {
+        $dbSettings = model('SettingModel')->getAllAsMap();
+        if (! empty($dbSettings['anthropic_api_key'])) {
+            $this->markTestSkipped('settings DB에 anthropic_api_key가 저장돼 있어 건너뜀 — 키 없는 환경에서만 유효');
+        }
+        $this->setProvider('claude');
+        $this->setApiKey('ANTHROPIC_API_KEY', '');
+        $this->expectException(AiKeyMissingException::class);
+        $this->expectExceptionMessageMatches('/Claude/');
+        AiCategoryAdvisor::create();
+    }
+
+    public function testFactoryThrowsGroqExceptionWhenUnknownProviderAndKeyEmpty(): void
+    {
+        $dbSettings = model('SettingModel')->getAllAsMap();
+        if (! empty($dbSettings['groq_api_key'])) {
+            $this->markTestSkipped('settings DB에 groq_api_key가 저장돼 있어 건너뜀 — 키 없는 환경에서만 유효');
+        }
+        $this->setProvider('unknown');
+        $this->setApiKey('GROQ_API_KEY', '');
+        $this->expectException(AiKeyMissingException::class);
+        $this->expectExceptionMessageMatches('/Groq/');
+        AiCategoryAdvisor::create();
+    }
+
+    public function testFactoryDoesNotThrowWhenGroqKeyPresent(): void
+    {
+        $this->setProvider('groq');
+        $this->setApiKey('GROQ_API_KEY', 'valid_dummy_key');
+        $provider = AiCategoryAdvisor::create();
+        $this->assertInstanceOf(GroqProvider::class, $provider);
+    }
+
+    public function testFactoryDoesNotThrowWhenClaudeKeyPresent(): void
+    {
+        $this->setProvider('claude');
+        $this->setApiKey('ANTHROPIC_API_KEY', 'sk-ant-dummy');
+        $provider = AiCategoryAdvisor::create();
+        $this->assertInstanceOf(ClaudeProvider::class, $provider);
     }
 
     // ── Factory ───────────────────────────────────────────────────────────────

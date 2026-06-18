@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Exceptions\AiKeyMissingException;
 use App\Libraries\AiCategoryAdvisor;
 use App\Models\ProductModel;
 use App\Models\ProductQnaModel;
@@ -77,6 +78,11 @@ class QnaController extends BaseController
                 return $this->response->setJSON(['error' => 'AI 응답이 비어있습니다. 잠시 후 다시 시도해주세요.'])->setStatusCode(500);
             }
             return $this->response->setJSON(['answer' => $answer]);
+        } catch (AiKeyMissingException $e) {
+            return $this->response->setJSON([
+                'error'     => $e->getMessage(),
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
         } catch (\Throwable $e) {
             log_message('error', 'AiQnaAdvisor: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 답변 생성 중 오류가 발생했습니다.'])->setStatusCode(500);

@@ -23,6 +23,13 @@ class SettingController extends BaseController
             ]);
         }
 
+        if ($group === 'api') {
+            return $this->render('admin/settings/api', [
+                'group'    => 'api',
+                'settings' => $this->settingModel->getAllAsMap(),
+            ]);
+        }
+
         if ($group === 'pg') {
             $pgList = [
                 'toss'          => ['label' => '토스페이먼츠', 'desc' => '신용카드·간편결제', 'env' => ['TOSS_CLIENT_KEY', 'TOSS_SECRET_KEY']],
@@ -219,6 +226,17 @@ class SettingController extends BaseController
             }
             $this->settingModel->saveSettings($save);
             return redirect()->to('/admin/settings/oauth')->with('success', '소셜 로그인 설정이 저장되었습니다.');
+        }
+
+        if ($group === 'api') {
+            $save = [
+                'groq_api_key'                 => trim($postData['groq_api_key'] ?? ''),
+                'anthropic_api_key'            => trim($postData['anthropic_api_key'] ?? ''),
+                'naver_shopping_client_id'     => trim($postData['naver_shopping_client_id'] ?? ''),
+                'naver_shopping_client_secret' => trim($postData['naver_shopping_client_secret'] ?? ''),
+            ];
+            $this->settingModel->saveSettings($save);
+            return redirect()->to('/admin/settings/api')->with('success', '외부 API 설정이 저장되었습니다.');
         }
 
         if ($group === 'theme') {

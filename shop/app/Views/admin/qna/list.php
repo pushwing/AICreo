@@ -154,7 +154,10 @@ document.querySelectorAll('.btn-ai-answer').forEach(function (btn) {
             const data = await res.json();
 
             if (data.error) {
-                alert(data.error);
+                const msg = data.setup_url
+                    ? `${data.error}\n설정 바로가기: ${location.origin}${data.setup_url}`
+                    : data.error;
+                alert(msg);
                 return;
             }
 
