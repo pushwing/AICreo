@@ -18,7 +18,7 @@ class NaverShoppingProvider
     /**
      * 네이버 쇼핑 상품 검색
      *
-     * @return array{items: list<array{title:string,image:string,lprice:string,hprice:string,mallName:string,brand:string,category1:string,link:string}>, total: int}
+     * @return array{items: list<array>, total: int, error?: string}
      */
     public function search(string $keyword, int $display = 10, int $start = 1): array
     {
@@ -43,29 +43,39 @@ class NaverShoppingProvider
             ],
         ]);
 
-        $raw = curl_exec($ch);
-        $err = curl_errno($ch);
+        $raw      = curl_exec($ch);
+        $curlErr  = curl_errno($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($err || $raw === false) {
-            return ['items' => [], 'total' => 0];
+        if ($curlErr || $raw === false) {
+            log_message('error', "NaverShopping curl error: {$curlErr}");
+            return ['items' => [], 'total' => 0, 'error' => '네트워크 오류가 발생했습니다.'];
         }
 
         $data = json_decode($raw, true);
+
+        if ($httpCode !== 200) {
+            $msg = $data['errorMessage'] ?? $data['message'] ?? "HTTP {$httpCode}";
+            log_message('error', "NaverShopping API error [{$httpCode}]: {$msg}");
+            return ['items' => [], 'total' => 0, 'error' => "API 오류: {$msg}"];
+        }
+
         if (! is_array($data) || ! isset($data['items'])) {
-            return ['items' => [], 'total' => 0];
+            log_message('error', 'NaverShopping unexpected response: ' . $raw);
+            return ['items' => [], 'total' => 0, 'error' => '응답 형식 오류'];
         }
 
         $items = array_map(function (array $item): array {
             return [
                 'title'     => html_entity_decode(strip_tags($item['title'] ?? ''), ENT_QUOTES, 'UTF-8'),
-                'image'     => $item['image']    ?? '',
-                'lprice'    => $item['lprice']   ?? '0',
-                'hprice'    => $item['hprice']   ?? '0',
-                'mallName'  => $item['mallName'] ?? '',
-                'brand'     => $item['brand']    ?? '',
+                'image'     => $item['image']     ?? '',
+                'lprice'    => $item['lprice']    ?? '0',
+                'hprice'    => $item['hprice']    ?? '0',
+                'mallName'  => $item['mallName']  ?? '',
+                'brand'     => $item['brand']     ?? '',
                 'category1' => $item['category1'] ?? '',
-                'link'      => $item['link']     ?? '',
+                'link'      => $item['link']      ?? '',
             ];
         }, $data['items']);
 

@@ -810,13 +810,15 @@ async function execNaverSearch(append) {
         const data = await res.json();
 
         if (data.error) {
-            if (data.setup_msg) {
-                document.getElementById('naverSearchResults').innerHTML =
-                    `<div class="col-12"><div class="alert alert-warning mb-0">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>${data.setup_msg}
-                        <a href="${data.setup_url}" target="_blank" class="alert-link ms-1">설정 바로가기 →</a>
-                    </div></div>`;
-            }
+            const alertClass = data.setup_msg ? 'alert-warning' : 'alert-danger';
+            const icon       = data.setup_msg ? 'bi-exclamation-triangle-fill' : 'bi-x-circle-fill';
+            const extra      = data.setup_msg
+                ? `<a href="${data.setup_url}" target="_blank" class="alert-link ms-1">설정 바로가기 →</a>`
+                : '';
+            document.getElementById('naverSearchResults').innerHTML =
+                `<div class="col-12"><div class="alert ${alertClass} mb-0">
+                    <i class="bi ${icon} me-2"></i>${data.setup_msg || data.error}${extra}
+                </div></div>`;
             status.textContent = data.error;
             status.className   = 'text-danger small mb-2';
             return;
