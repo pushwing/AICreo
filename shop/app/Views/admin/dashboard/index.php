@@ -126,6 +126,31 @@
     </div>
 </div>
 
+<!-- 차트 섹션 -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>최근 30일 일별 매출</strong>
+                <a href="/admin/sales" class="small text-decoration-none">매출 상세</a>
+            </div>
+            <div class="card-body" style="height:240px">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <strong>판매량 TOP 5 <span class="text-muted small fw-normal">최근 30일</span></strong>
+            </div>
+            <div class="card-body" style="height:240px">
+                <canvas id="topChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 최근 주문 + 재고 부족 -->
 <div class="row g-3 mb-3">
     <!-- 최근 주문 -->
@@ -248,4 +273,71 @@
     </div>
 </div>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(async () => {
+    const res  = await fetch('/admin/chart-data');
+    const json = await res.json();
+
+    // 매출 선 차트
+    new Chart(document.getElementById('salesChart'), {
+        type: 'line',
+        data: {
+            labels: json.sales.labels,
+            datasets: [{
+                label: '매출(원)',
+                data: json.sales.data,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13,110,253,.08)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: v => v >= 10000 ? (v/10000).toLocaleString() + '만' : v.toLocaleString(),
+                        font: { size: 10 },
+                    },
+                    grid: { color: 'rgba(0,0,0,.05)' },
+                },
+                x: { ticks: { font: { size: 10 } }, grid: { display: false } },
+            },
+        },
+    });
+
+    // TOP 5 가로 바 차트
+    new Chart(document.getElementById('topChart'), {
+        type: 'bar',
+        data: {
+            labels: json.top.labels.map(l => l.length > 12 ? l.slice(0, 12) + '…' : l),
+            datasets: [{
+                label: '판매량',
+                data: json.top.data,
+                backgroundColor: ['#0d6efd','#198754','#0dcaf0','#ffc107','#dc3545'],
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+                y: { ticks: { font: { size: 10 } }, grid: { display: false } },
+            },
+        },
+    });
+})();
+</script>
 <?= $this->endSection() ?>
