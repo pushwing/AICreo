@@ -944,7 +944,7 @@ class ProductController extends BaseController
         for ($row = 2; $row <= $maxRow; $row++) {
             $cells = [];
             for ($c = 1; $c <= 10; $c++) {
-                $cells[] = trim((string) ($sheet->getCellByColumnAndRow($c, $row)->getValue() ?? ''));
+                $cells[] = trim((string) ($sheet->getCell([$c, $row])->getValue() ?? ''));
             }
             if (implode('', $cells) === '') continue;
 
@@ -966,7 +966,7 @@ class ProductController extends BaseController
         return redirect()->to('/admin/products/import')
             ->with('import_preview',     $valid)
             ->with('import_errors',      $importErrors)
-            ->with('import_valid_count', count($valid));
+            ->with('import_valid_count', (string) count($valid));
     }
 
     /** POST /admin/products/import/confirm */

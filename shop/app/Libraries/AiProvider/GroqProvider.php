@@ -195,20 +195,20 @@ PROMPT;
         $result     = [];
         $listItems  = [];
 
-        $flushList = function () use (&$listItems, &$result) {
-            if ($listItems) {
-                $result[]  = '<ul>' . implode('', array_map(fn ($i) => "<li>{$i}</li>", $listItems)) . '</ul>';
-                $listItems = [];
+        $flushList = static function (array &$items, array &$out): void {
+            if ($items !== []) {
+                $out[]  = '<ul>' . implode('', array_map(fn ($i) => "<li>{$i}</li>", $items)) . '</ul>';
+                $items  = [];
             }
         };
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if ($line === '') { $flushList(); continue; }
+            if ($line === '') { $flushList($listItems, $result); continue; }
 
             // ## 헤딩 → <p><strong>
             if (preg_match('/^#{1,3}\s+(.+)/u', $line, $m)) {
-                $flushList();
+                $flushList($listItems, $result);
                 $result[] = '<p><strong>' . $m[1] . '</strong></p>';
                 continue;
             }
@@ -219,7 +219,7 @@ PROMPT;
                 continue;
             }
 
-            $flushList();
+            $flushList($listItems, $result);
 
             // 이미 HTML 태그가 있으면 그대로
             if (preg_match('/<(p|ul|li|strong|br)[^>]*>/i', $line)) {
@@ -229,9 +229,9 @@ PROMPT;
             }
         }
 
-        $flushList();
+        $flushList($listItems, $result);
 
-        return implode("\n", array_filter($result));
+        return implode("\n", $result);
     }
 
     protected function callApi(string $payload, int $timeout = 15): string|false
