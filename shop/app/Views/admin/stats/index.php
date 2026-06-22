@@ -63,6 +63,80 @@
     </div>
 </div>
 
+<!-- 시간대별 분포 + 유입 경로 -->
+<div class="row g-4 mb-4">
+    <!-- 시간대별 접속 분포 -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white"><strong>시간대별 접속 분포</strong></div>
+            <div class="card-body">
+                <canvas id="hourlyChart" height="130"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- 유입 경로 TOP 10 -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white"><strong>유입 경로 TOP 10</strong></div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:36px">#</th>
+                            <th>도메인</th>
+                            <th style="width:80px" class="text-end">방문</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($refererData)): ?>
+                    <tr><td colspan="3" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+                    <?php else: ?>
+                    <?php foreach ($refererData as $i => $row): ?>
+                    <tr>
+                        <td class="text-muted small"><?= $i + 1 ?></td>
+                        <td class="small text-truncate" style="max-width:180px"><?= esc($row['domain'] ?: '(직접)') ?></td>
+                        <td class="text-end small"><?= number_format($row['hits']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 인기 상품 페이지 TOP 10 -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white"><strong>인기 상품 페이지 TOP 10</strong></div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th>상품 페이지</th>
+                    <th style="width:100px" class="text-end">PV</th>
+                    <th style="width:100px" class="text-end">UV</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php if (empty($topProductPages)): ?>
+            <tr><td colspan="4" class="text-center text-muted py-3">데이터가 없습니다.</td></tr>
+            <?php else: ?>
+            <?php foreach ($topProductPages as $i => $row): ?>
+            <tr>
+                <td class="text-muted small"><?= $i + 1 ?></td>
+                <td class="small"><a href="<?= esc($row['page']) ?>" target="_blank" class="text-decoration-none"><?= esc($row['page']) ?></a></td>
+                <td class="text-end small"><?= number_format($row['hits']) ?></td>
+                <td class="text-end small text-muted"><?= number_format($row['unique_visitors']) ?></td>
+            </tr>
+            <?php endforeach; ?>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- 페이지별 순위 -->
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white"><strong>페이지별 조회수 (상위 20)</strong></div>
@@ -105,6 +179,26 @@
     const labels = <?= json_encode($dailyLabels) ?>;
     const pvData = <?= json_encode($dailyPv) ?>;
     const uvData = <?= json_encode($dailyUv) ?>;
+
+    // 시간대별 분포 차트
+    const hourlyData = <?= json_encode($hourlyData) ?>;
+    new Chart(document.getElementById('hourlyChart'), {
+        type: 'bar',
+        data: {
+            labels: Array.from({length: 24}, (_, i) => i + '시'),
+            datasets: [{
+                label: 'PV',
+                data: hourlyData,
+                backgroundColor: 'rgba(13,110,253,.6)',
+                borderRadius: 3,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        },
+    });
 
     new Chart(document.getElementById('dailyChart'), {
         type: 'line',
