@@ -10,7 +10,7 @@ class ProductReviewModel extends Model
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $allowedFields = [
-        'product_id', 'order_id', 'user_id', 'content', 'is_rewarded',
+        'product_id', 'order_id', 'user_id', 'content', 'is_rewarded', 'is_hidden',
     ];
 
     /** 상품별 리뷰 목록 (이미지 포함) */
@@ -22,11 +22,12 @@ class ProductReviewModel extends Model
             ->select('r.*, u.nickname, u.username')
             ->join('users u', 'u.id = r.user_id')
             ->where('r.product_id', $productId)
+            ->where('r.is_hidden', 0)
             ->orderBy('r.id', 'DESC')
             ->limit($perPage, $offset)
             ->get()->getResultArray();
 
-        $total = $this->where('product_id', $productId)->countAllResults();
+        $total = $this->where('product_id', $productId)->where('is_hidden', 0)->countAllResults();
 
         if ($items) {
             $ids           = array_column($items, 'id');
@@ -124,6 +125,16 @@ class ProductReviewModel extends Model
 
         $this->delete($reviewId);
         return true;
+    }
+
+    /** 숨김/노출 토글 */
+    public function toggleHidden(int $reviewId): int
+    {
+        $review = $this->find($reviewId);
+        if (! $review) return -1;
+        $next = ((int) $review['is_hidden']) === 0 ? 1 : 0;
+        $this->update($reviewId, ['is_hidden' => $next]);
+        return $next;
     }
 
     public function adminGetAll(array $params = []): array

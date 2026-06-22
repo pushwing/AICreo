@@ -7,9 +7,14 @@
     <input id="quickFilter" type="text" class="form-control form-control-sm"
            placeholder="상품명 / 작성자 / 내용 검색" style="width:260px">
     <select id="rewardFilter" class="form-select form-select-sm" style="width:120px">
-        <option value="">전체</option>
+        <option value="">전체 포인트</option>
         <option value="1">포인트 지급</option>
         <option value="0">미지급</option>
+    </select>
+    <select id="hiddenFilter" class="form-select form-select-sm" style="width:120px">
+        <option value="">전체 상태</option>
+        <option value="0">노출 중</option>
+        <option value="1">숨김</option>
     </select>
     <div id="rowCount" class="ms-auto text-muted small"></div>
 </div>
@@ -31,6 +36,7 @@
     }
 
     var rewardFilterVal = '';
+    var hiddenFilterVal = '';
     var csrf = {
         name:  document.querySelector('meta[name="csrf-name"]').content,
         token: document.querySelector('meta[name="csrf-token"]').content,
@@ -64,6 +70,12 @@
                       ? '<span class="badge bg-warning text-dark">150P 지급</span>'
                       : '<span class="text-muted small">-</span>';
               }},
+            { headerName: '상태', field: 'is_hidden', width: 90,
+              cellRenderer: function(p) {
+                  return p.value
+                      ? '<span class="badge bg-secondary">숨김</span>'
+                      : '<span class="badge bg-success">노출</span>';
+              }},
             { headerName: '작성일', field: 'created_at', width: 110,
               cellRenderer: function(p) {
                   if (!p.value) return '';
@@ -71,10 +83,14 @@
                        + new Date(p.value.replace(' ', 'T')).toLocaleDateString('ko-KR') + '</span>';
               },
               comparator: function(a, b) { return a < b ? -1 : a > b ? 1 : 0; }},
-            { headerName: '', width: 90, sortable: false, filter: false, resizable: false,
-              cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+            { headerName: '', width: 170, sortable: false, filter: false, resizable: false,
+              cellStyle: { display: 'flex', alignItems: 'center', gap: '4px' },
               cellRenderer: function(p) {
-                  return '<button class="btn btn-sm btn-outline-danger" onclick="doDelete(' + p.data.id + ')">삭제</button>';
+                  var hiddenLabel = p.data.is_hidden ? '노출' : '숨김';
+                  var hiddenCls   = p.data.is_hidden ? 'btn-outline-success' : 'btn-outline-secondary';
+                  return '<button class="btn btn-sm ' + hiddenCls + '" onclick="doToggleHidden(' + p.data.id + ', this)">'
+                       + hiddenLabel + '</button>'
+                       + ' <button class="btn btn-sm btn-outline-danger" onclick="doDelete(' + p.data.id + ')">삭제</button>';
               }},
         ],
         defaultColDef: { sortable: true, filter: true, resizable: true },
@@ -82,8 +98,12 @@
         pagination: true,
         paginationPageSize: 20,
         paginationPageSizeSelector: [20, 50, 100],
-        isExternalFilterPresent: function() { return rewardFilterVal !== ''; },
-        doesExternalFilterPass: function(node) { return String(node.data.is_rewarded) === rewardFilterVal; },
+        isExternalFilterPresent: function() { return rewardFilterVal !== '' || hiddenFilterVal !== ''; },
+        doesExternalFilterPass: function(node) {
+            if (rewardFilterVal !== '' && String(node.data.is_rewarded) !== rewardFilterVal) return false;
+            if (hiddenFilterVal  !== '' && String(node.data.is_hidden)   !== hiddenFilterVal)  return false;
+            return true;
+        },
         onModelUpdated: function(e) {
             document.getElementById('rowCount').textContent = '총 ' + e.api.getDisplayedRowCount().toLocaleString() + '건';
         },
@@ -104,12 +124,41 @@
         grid.onFilterChanged();
     });
 
+    document.getElementById('hiddenFilter').addEventListener('change', function() {
+        hiddenFilterVal = this.value;
+        grid.onFilterChanged();
+    });
+
+    window.doToggleHidden = function(id, btn) {
+        btn.disabled = true;
+        var body = new URLSearchParams();
+        body.set(csrf.name, csrf.token);
+        fetch('/admin/reviews/' + id + '/toggle-hidden', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString(),
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            // 그리드 행 데이터 업데이트
+            grid.forEachNode(function(node) {
+                if (node.data.id === id) {
+                    node.setDataValue('is_hidden', d.is_hidden);
+                }
+            });
+            grid.onFilterChanged();
+        })
+        .finally(function() { btn.disabled = false; });
+    };
+
     window.doDelete = function(id) {
         if (!confirm('리뷰를 삭제하시겠습니까? 지급된 포인트도 회수됩니다.')) return;
+        var body = new URLSearchParams();
+        body.set(csrf.name, csrf.token);
         fetch('/admin/reviews/' + id + '/delete', {
             method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
-            body: csrf.name + '=' + encodeURIComponent(csrf.token),
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: body.toString(),
         }).then(function() { location.reload(); });
     };
 }());
