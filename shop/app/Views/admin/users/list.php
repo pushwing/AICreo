@@ -4,12 +4,19 @@
 <?= $this->section('content') ?>
 
 <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-    <input id="quickFilter" type="text" class="form-control form-control-sm" style="max-width:260px"
+    <input id="quickFilter" type="text" class="form-control form-control-sm" style="max-width:220px"
            placeholder="닉네임 / 이메일 / 휴대폰 검색">
     <select id="roleFilter" class="form-select form-select-sm" style="width:auto">
         <option value="">전체 역할</option>
         <option value="admin">관리자</option>
         <option value="member">일반회원</option>
+    </select>
+    <select id="gradeFilter" class="form-select form-select-sm" style="width:auto">
+        <option value="">전체 등급</option>
+        <option value="bronze">브론즈</option>
+        <option value="silver">실버</option>
+        <option value="gold">골드</option>
+        <option value="platinum">플래티넘</option>
     </select>
     <select id="statusFilter" class="form-select form-select-sm" style="width:auto">
         <option value="">전체 상태</option>
@@ -17,8 +24,13 @@
         <option value="unverified">이메일 미인증</option>
         <option value="inactive">비활성</option>
     </select>
+    <input id="fromFilter" type="date" class="form-control form-control-sm" style="width:auto" title="가입일 시작">
+    <input id="toFilter"   type="date" class="form-control form-control-sm" style="width:auto" title="가입일 종료">
     <button id="resetBtn" class="btn btn-outline-secondary btn-sm">초기화</button>
-    <span id="rowCount" class="ms-auto text-muted small">불러오는 중…</span>
+    <button id="exportBtn" class="btn btn-outline-success btn-sm ms-auto">
+        <i class="bi bi-file-earmark-excel me-1"></i>엑셀 내보내기
+    </button>
+    <span id="rowCount" class="text-muted small">불러오는 중…</span>
 </div>
 
 <div id="userGrid" class="ag-theme-alpine rounded border" style="height:640px"></div>
@@ -133,16 +145,25 @@ const gridOptions = {
     rowHeight: 44,
     suppressMovableColumns: false,
     isExternalFilterPresent: () =>
-        document.getElementById('roleFilter').value !== '' ||
-        document.getElementById('statusFilter').value !== '',
+        document.getElementById('roleFilter').value   !== '' ||
+        document.getElementById('gradeFilter').value  !== '' ||
+        document.getElementById('statusFilter').value !== '' ||
+        document.getElementById('fromFilter').value   !== '' ||
+        document.getElementById('toFilter').value     !== '',
     doesExternalFilterPass: node => {
         const role   = document.getElementById('roleFilter').value;
+        const grade  = document.getElementById('gradeFilter').value;
         const status = document.getElementById('statusFilter').value;
+        const from   = document.getElementById('fromFilter').value;
+        const to     = document.getElementById('toFilter').value;
         const d = node.data;
-        if (role && d.role !== role) return false;
-        if (status === 'active'     && !d.is_active)                       return false;
+        if (role  && d.role  !== role)  return false;
+        if (grade && d.grade !== grade) return false;
+        if (status === 'active'     && !d.is_active)                           return false;
         if (status === 'unverified' && (d.is_active || !d.email_verify_token)) return false;
         if (status === 'inactive'   && (d.is_active ||  d.email_verify_token)) return false;
+        if (from && d.created_at && d.created_at.substring(0, 10) < from) return false;
+        if (to   && d.created_at && d.created_at.substring(0, 10) > to)   return false;
         return true;
     },
     onGridReady: params => {
@@ -170,18 +191,31 @@ function updateCount() {
     document.getElementById('rowCount').textContent = '총 ' + n.toLocaleString() + '명';
 }
 
-document.getElementById('quickFilter').addEventListener('input', e => {
-    gridApi.setGridOption('quickFilterText', e.target.value);
-});
+document.getElementById('quickFilter').addEventListener('input',  e => gridApi.setGridOption('quickFilterText', e.target.value));
 document.getElementById('roleFilter').addEventListener('change',   () => gridApi.onFilterChanged());
+document.getElementById('gradeFilter').addEventListener('change',  () => gridApi.onFilterChanged());
 document.getElementById('statusFilter').addEventListener('change', () => gridApi.onFilterChanged());
+document.getElementById('fromFilter').addEventListener('change',   () => gridApi.onFilterChanged());
+document.getElementById('toFilter').addEventListener('change',     () => gridApi.onFilterChanged());
+
 document.getElementById('resetBtn').addEventListener('click', () => {
-    document.getElementById('quickFilter').value  = '';
-    document.getElementById('roleFilter').value   = '';
-    document.getElementById('statusFilter').value = '';
+    ['quickFilter','roleFilter','gradeFilter','statusFilter','fromFilter','toFilter']
+        .forEach(id => document.getElementById(id).value = '');
     gridApi.setGridOption('quickFilterText', '');
     gridApi.setFilterModel(null);
     gridApi.onFilterChanged();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const params = new URLSearchParams({
+        q:      document.getElementById('quickFilter').value,
+        role:   document.getElementById('roleFilter').value,
+        grade:  document.getElementById('gradeFilter').value,
+        status: document.getElementById('statusFilter').value,
+        from:   document.getElementById('fromFilter').value,
+        to:     document.getElementById('toFilter').value,
+    });
+    window.location.href = '/admin/users/export?' + params.toString();
 });
 
 async function doDelete(id) {
