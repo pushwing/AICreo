@@ -32,7 +32,7 @@ class ReviewController extends BaseController
     {
         $db   = \Config\Database::connect();
         $rows = $db->table('product_reviews r')
-            ->select('r.id, r.content, r.is_rewarded, r.created_at,
+            ->select('r.id, r.content, r.is_rewarded, r.is_hidden, r.created_at,
                       p.name AS product_name, p.slug AS product_slug,
                       u.nickname, u.username')
             ->join('products p', 'p.id = r.product_id')
@@ -56,10 +56,21 @@ class ReviewController extends BaseController
             'content'      => $r['content'],
             'image_count'  => count($byReview[(int) $r['id']] ?? []),
             'is_rewarded'  => (int) $r['is_rewarded'],
+            'is_hidden'    => (int) ($r['is_hidden'] ?? 0),
             'created_at'   => $r['created_at'],
         ], $rows);
 
         return $this->response->setJSON(['data' => $data]);
+    }
+
+    /** POST /admin/reviews/:id/toggle-hidden */
+    public function toggleHidden(int $id): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $next = $this->model->toggleHidden($id);
+        if ($next === -1) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => '리뷰를 찾을 수 없습니다.']);
+        }
+        return $this->response->setJSON(['is_hidden' => $next]);
     }
 
     /** POST /admin/reviews/:id/delete */

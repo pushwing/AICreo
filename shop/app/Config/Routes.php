@@ -46,8 +46,9 @@ $routes->post('inquiry/submit', 'Front\PageController::inquirySubmit');
 // ─── 관리자 ──────────────────────────────────────────────────────────────────
 $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 대시보드
-    $routes->get('',          'Admin\DashboardController::index');
-    $routes->get('dashboard', 'Admin\DashboardController::index');
+    $routes->get('',           'Admin\DashboardController::index');
+    $routes->get('dashboard',  'Admin\DashboardController::index');
+    $routes->get('chart-data', 'Admin\DashboardController::chartData');
 
     // 페이지 관리
     $routes->get( 'pages',              'Admin\PageManagerController::index');
@@ -83,7 +84,11 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'settings',                   'Admin\SettingController::index');
     $routes->get( 'settings/(:segment)',         'Admin\SettingController::index/$1');
     $routes->post('settings/theme/upload',       'Admin\SettingController::uploadTheme');
+    $routes->post('settings/smtp-test',          'Admin\SettingController::smtpTest');
     $routes->post('settings/(:segment)',         'Admin\SettingController::update/$1');
+
+    // 알림 배지
+    $routes->get('notifications/counts', 'Admin\NotificationController::counts');
 
     // 배치 작업 관리
     $routes->get( 'schedule',                    'Admin\ScheduleController::index');
@@ -97,6 +102,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 회원 관리
     $routes->get( 'users/json',                 'Admin\UserController::json');
+    $routes->get( 'users/export',               'Admin\UserController::export');
     $routes->get( 'users',                      'Admin\UserController::index');
     $routes->get( 'users/(:num)/edit',            'Admin\UserController::edit/$1');
     $routes->post('users/(:num)/edit',            'Admin\UserController::update/$1');
@@ -116,6 +122,10 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/bulk',                           'Admin\ProductController::bulk');
     $routes->get( 'products/json',                           'Admin\ProductController::json');
     $routes->get( 'products',                                'Admin\ProductController::index');
+    $routes->get( 'products/import-template',                'Admin\ProductController::importTemplate');
+    $routes->get( 'products/import',                         'Admin\ProductController::import');
+    $routes->post('products/import',                         'Admin\ProductController::importProcess');
+    $routes->post('products/import/confirm',                 'Admin\ProductController::importConfirm');
     $routes->get( 'products/create',                         'Admin\ProductController::create');
     $routes->post('products/create',                         'Admin\ProductController::store');
     $routes->get( 'products/(:num)/edit',                    'Admin\ProductController::edit/$1');
@@ -220,7 +230,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 리뷰 관리
     $routes->get( 'reviews/json',          'Admin\ReviewController::json');
     $routes->get( 'reviews',              'Admin\ReviewController::index');
-    $routes->post('reviews/(:num)/delete','Admin\ReviewController::delete/$1');
+    $routes->post('reviews/(:num)/toggle-hidden', 'Admin\ReviewController::toggleHidden/$1');
+    $routes->post('reviews/(:num)/delete',        'Admin\ReviewController::delete/$1');
 
     // 접속 통계
     $routes->get('stats', 'Admin\StatsController::index');

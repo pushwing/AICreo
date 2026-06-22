@@ -855,4 +855,231 @@ class ProductController extends BaseController
             $this->imageModel->setPrimary($productId, (int) $primaryMediaId);
         }
     }
+
+    // ── 엑셀 일괄 등록 ──────────────────────────────────────────────────────────
+
+    /** GET /admin/products/import-template */
+    public function importTemplate(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+
+        $col = fn(int $c, int $r): string =>
+            \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c) . $r;
+
+        $headers = ['상품명*', '판매가*', '재고*', '상태', '배송유형', '배송비', '무료배송기준금액', '할인가', '카테고리', '상품설명'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($col($i + 1, 1), $h);
+        }
+
+        $sheet->getStyle('A1:J1')->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType'    => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                       'startColor'  => ['argb' => 'FFE9ECEF']],
+            'borders' => ['bottom' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ]);
+
+        $example = ['예시상품', 10000, 100, 'on_sale', 'free', 0, 0, '', '', '상품 설명'];
+        foreach ($example as $i => $v) {
+            $sheet->setCellValue($col($i + 1, 2), $v);
+        }
+
+        foreach (range(1, 10) as $c) {
+            $sheet->getColumnDimensionByColumn($c)->setAutoSize(true);
+        }
+
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="product_import_template.xlsx"')
+            ->setBody($content);
+    }
+
+    /** GET /admin/products/import */
+    public function import(): string
+    {
+        return $this->render('admin/products/import', [
+            'preview'     => session()->getFlashdata('import_preview')  ?? [],
+            'importErrors'=> session()->getFlashdata('import_errors')   ?? [],
+            'validCount'  => session()->getFlashdata('import_valid_count') ?? 0,
+        ]);
+    }
+
+    /** POST /admin/products/import */
+    public function importProcess(): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $file = $this->request->getFile('excel_file');
+
+        if (! $file || ! $file->isValid() || $file->hasMoved()) {
+            return redirect()->back()->with('error', '파일을 선택해주세요.');
+        }
+
+        $ext = strtolower($file->getClientExtension());
+        if (! in_array($ext, ['xlsx', 'xls'], true)) {
+            return redirect()->back()->with('error', 'Excel 파일(.xlsx, .xls)만 허용됩니다.');
+        }
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', '파일을 읽을 수 없습니다: ' . $e->getMessage());
+        }
+
+        $sheet  = $spreadsheet->getActiveSheet();
+        $maxRow = $sheet->getHighestDataRow();
+
+        $catRows = Database::connect()->table('categories')->select('id, name')->get()->getResultArray();
+        $catMap  = [];
+        foreach ($catRows as $c) {
+            $catMap[trim($c['name'])] = (int) $c['id'];
+        }
+
+        $valid       = [];
+        $importErrors= [];
+
+        for ($row = 2; $row <= $maxRow; $row++) {
+            $cells = [];
+            for ($c = 1; $c <= 10; $c++) {
+                $cells[] = trim((string) ($sheet->getCellByColumnAndRow($c, $row)->getValue() ?? ''));
+            }
+            if (implode('', $cells) === '') continue;
+
+            $parsed = $this->parseImportRow($cells, $catMap);
+
+            if ($parsed['errors']) {
+                $importErrors[] = ['row' => $row, 'data' => $cells, 'messages' => $parsed['errors']];
+            } else {
+                $valid[] = $parsed['data'];
+            }
+        }
+
+        if (empty($valid) && empty($importErrors)) {
+            return redirect()->back()->with('error', '데이터가 없습니다. 2행부터 입력해주세요.');
+        }
+
+        session()->set('product_import_valid', $valid);
+
+        return redirect()->to('/admin/products/import')
+            ->with('import_preview',     $valid)
+            ->with('import_errors',      $importErrors)
+            ->with('import_valid_count', count($valid));
+    }
+
+    /** POST /admin/products/import/confirm */
+    public function importConfirm(): \CodeIgniter\HTTP\RedirectResponse
+    {
+        $valid = session()->get('product_import_valid');
+
+        if (empty($valid)) {
+            return redirect()->to('/admin/products/import')->with('error', '가져올 데이터가 없습니다. 다시 업로드해주세요.');
+        }
+
+        $inserted = 0;
+        foreach ($valid as $row) {
+            $slug      = $this->productModel->generateSlug($row['name']);
+            $productData = [
+                'name'          => $row['name'],
+                'slug'          => $slug,
+                'price'         => $row['price'],
+                'stock'         => $row['stock'],
+                'status'        => $row['status'],
+                'shipping_type' => $row['shipping_type'],
+                'shipping_fee'  => $row['shipping_fee'],
+                'free_threshold'=> $row['free_threshold'],
+                'description'   => $row['description'],
+            ];
+            if ($row['discount_price'] !== null) {
+                $productData['discount_price'] = $row['discount_price'];
+            }
+
+            $productId = $this->productModel->insert($productData);
+
+            if ($row['category_id']) {
+                $this->productModel->setCategories((int) $productId, [$row['category_id']]);
+            }
+
+            $inserted++;
+        }
+
+        session()->remove('product_import_valid');
+
+        return redirect()->to('/admin/products')->with('success', "{$inserted}개 상품이 일괄 등록되었습니다.");
+    }
+
+    public function parseImportRow(array $cells, array $catMap): array
+    {
+        [$name, $price, $stock, $status, $shippingType, $shippingFee, $freeThreshold, $discountPrice, $categoryName, $description]
+            = array_pad($cells, 10, '');
+
+        $errors = [];
+        $data   = [];
+
+        // 상품명
+        if ($name === '') {
+            $errors[] = '상품명은 필수입니다.';
+        } else {
+            $data['name'] = $name;
+        }
+
+        // 판매가
+        if (! is_numeric($price) || (int) $price <= 0) {
+            $errors[] = '판매가는 0보다 큰 정수여야 합니다.';
+        } else {
+            $data['price'] = (int) $price;
+        }
+
+        // 재고
+        if (! is_numeric($stock) || (int) $stock < 0) {
+            $errors[] = '재고는 0 이상의 정수여야 합니다.';
+        } else {
+            $data['stock'] = (int) $stock;
+        }
+
+        // 상태
+        $statusVal = $status !== '' ? $status : 'on_sale';
+        if (! array_key_exists($statusVal, ProductModel::STATUSES)) {
+            $errors[] = '상태는 on_sale/sold_out/hidden 중 하나여야 합니다.';
+        } else {
+            $data['status'] = $statusVal;
+        }
+
+        // 배송유형
+        $shippingTypeVal = $shippingType !== '' ? $shippingType : 'free';
+        if (! array_key_exists($shippingTypeVal, ProductModel::SHIPPING_TYPES)) {
+            $errors[] = '배송유형은 free/fixed/conditional 중 하나여야 합니다.';
+        } else {
+            $data['shipping_type'] = $shippingTypeVal;
+        }
+
+        // 배송비
+        $feeVal = $shippingFee !== '' ? (int) $shippingFee : 0;
+        $data['shipping_fee'] = max(0, $feeVal);
+
+        // 무료배송기준
+        $thresholdVal = $freeThreshold !== '' ? (int) $freeThreshold : 0;
+        $data['free_threshold'] = max(0, $thresholdVal);
+
+        // 할인가
+        if ($discountPrice !== '') {
+            if (! is_numeric($discountPrice) || (int) $discountPrice <= 0) {
+                $errors[] = '할인가는 0보다 큰 정수여야 합니다.';
+            } else {
+                $data['discount_price'] = (int) $discountPrice;
+            }
+        } else {
+            $data['discount_price'] = null;
+        }
+
+        // 카테고리
+        $data['category_id'] = $categoryName !== '' ? ($catMap[$categoryName] ?? null) : null;
+
+        // 설명
+        $data['description'] = $description;
+
+        return ['errors' => $errors, 'data' => $errors ? [] : $data];
+    }
 }

@@ -39,17 +39,22 @@ class BaseController extends Controller
             'loggedIn' => (bool) session()->get('user_id'),
         ];
 
-        // 관리자용: 미읽음 문의 수, 미답변 상품 문의 수, 재고 부족 상품 수
+        // 관리자용: 미읽음 문의 수, 미답변 상품 문의 수, 재고 부족 상품 수, 처리 대기 주문 수
         $unreadInquiries  = 0;
         $unansweredQna    = 0;
         $lowStockCount    = 0;
+        $pendingOrders    = 0;
         if ($authUser['role'] === 'admin') {
             $unreadInquiries   = (new InquiryModel())->getUnreadCount();
             $unansweredQna     = (new ProductQnaModel())->getUnansweredCount();
-            $lowStockThreshold = (int) ($settings['stock_alert_threshold'] ?? 5);
+            $lowStockThreshold = (int) ($settings['low_stock_threshold'] ?? $settings['stock_alert_threshold'] ?? 5);
             $lowStockCount     = (new ProductModel())
                 ->where('stock <=', $lowStockThreshold)
                 ->where('status !=', 'hidden')
+                ->countAllResults();
+            $pendingOrders = (int) \Config\Database::connect()
+                ->table('orders')
+                ->whereIn('status', ['paid', 'awaiting_payment'])
                 ->countAllResults();
         }
 
@@ -70,7 +75,7 @@ class BaseController extends Controller
 
         $categories = $isAdmin ? [] : (new CategoryModel())->getTree();
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'lowStockCount', 'subLeftBanners', 'activePopups', 'cartCount', 'categories');
+        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'unansweredQna', 'lowStockCount', 'pendingOrders', 'subLeftBanners', 'activePopups', 'cartCount', 'categories');
     }
 
     protected function getUserRole(): string

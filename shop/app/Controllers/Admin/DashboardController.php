@@ -12,6 +12,55 @@ use App\Models\UserModel;
 
 class DashboardController extends BaseController
 {
+    /** GET /admin/chart-data — 대시보드 차트용 JSON */
+    public function chartData(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $db = \Config\Database::connect();
+
+        // 최근 30일 일별 매출
+        $rows = $db->query("
+            SELECT DATE(created_at) AS day, SUM(payable_amount) AS revenue
+            FROM orders
+            WHERE status NOT IN ('pending','expired','cancelled','refunded')
+              AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+            GROUP BY day
+            ORDER BY day ASC
+        ")->getResultArray();
+
+        $salesMap = [];
+        foreach ($rows as $r) {
+            $salesMap[$r['day']] = (int) $r['revenue'];
+        }
+
+        $salesLabels = [];
+        $salesData   = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $day = date('Y-m-d', strtotime("-{$i} days"));
+            $salesLabels[] = date('m/d', strtotime($day));
+            $salesData[]   = $salesMap[$day] ?? 0;
+        }
+
+        // 상품별 판매량 TOP 5 (최근 30일)
+        $topProducts = $db->query("
+            SELECT oi.product_name, SUM(oi.qty) AS total_qty
+            FROM order_items oi
+            INNER JOIN orders o ON o.id = oi.order_id
+            WHERE o.status NOT IN ('pending','expired','cancelled','refunded')
+              AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+            GROUP BY oi.product_name
+            ORDER BY total_qty DESC
+            LIMIT 5
+        ")->getResultArray();
+
+        return $this->response->setJSON([
+            'sales'   => ['labels' => $salesLabels, 'data' => $salesData],
+            'top'     => [
+                'labels' => array_column($topProducts, 'product_name'),
+                'data'   => array_map('intval', array_column($topProducts, 'total_qty')),
+            ],
+        ]);
+    }
+
     public function index(): string
     {
         $postModel    = new PostModel();

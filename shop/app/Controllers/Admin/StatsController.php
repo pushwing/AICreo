@@ -102,19 +102,64 @@ class StatsController extends BaseController
             [$fromDt, $toDt, $from, $to]
         )->getRow();
 
+        // 인기 상품 페이지 TOP 10 (/shop/ 경로 필터)
+        $topProductPages = $db->query(
+            "SELECT page, COUNT(*) AS hits, COUNT(DISTINCT ip) AS unique_visitors
+             FROM access_logs
+             WHERE created_at BETWEEN ? AND ?
+               AND page LIKE '/shop/%'
+             GROUP BY page
+             ORDER BY hits DESC
+             LIMIT 10",
+            [$fromDt, $toDt]
+        )->getResultArray();
+
+        // 유입 경로 도메인 TOP 10
+        $refererData = $db->query(
+            "SELECT
+                SUBSTRING_INDEX(
+                    SUBSTRING_INDEX(
+                        REPLACE(REPLACE(TRIM(LEADING 'https://' FROM TRIM(LEADING 'http://' FROM referer)), 'https://', ''), 'http://', ''),
+                    '/', 1),
+                '?', 1) AS domain,
+                COUNT(*) AS hits
+             FROM access_logs
+             WHERE created_at BETWEEN ? AND ?
+               AND referer IS NOT NULL AND referer != '' AND referer NOT LIKE '%localhost%'
+             GROUP BY domain
+             ORDER BY hits DESC
+             LIMIT 10",
+            [$fromDt, $toDt]
+        )->getResultArray();
+
+        // 시간대별 접속 분포 (0~23시)
+        $hourlyRaw = $db->query(
+            "SELECT HOUR(created_at) AS hour, COUNT(*) AS hits
+             FROM access_logs
+             WHERE created_at BETWEEN ? AND ?
+             GROUP BY HOUR(created_at)
+             ORDER BY hour ASC",
+            [$fromDt, $toDt]
+        )->getResultArray();
+        $hourlyMap  = array_column($hourlyRaw, 'hits', 'hour');
+        $hourlyData = array_map(fn($h) => (int) ($hourlyMap[$h] ?? 0), range(0, 23));
+
         $todayStats = (new AccessLogModel())->getTodayStats();
 
         return $this->render('admin/stats/index', [
-            'from'         => $from,
-            'to'           => $to,
-            'dailyLabels'  => $dailyLabels,
-            'dailyPv'      => $dailyPv,
-            'dailyUv'      => $dailyUv,
-            'topPages'     => $topPages,
-            'totalPv'      => (int) ($summary->total_pv ?? 0),
-            'totalUv'      => (int) ($summary->total_uv ?? 0),
-            'todayPv'      => $todayStats['pv'],
-            'todayUv'      => $todayStats['uv'],
+            'from'             => $from,
+            'to'               => $to,
+            'dailyLabels'      => $dailyLabels,
+            'dailyPv'          => $dailyPv,
+            'dailyUv'          => $dailyUv,
+            'topPages'         => $topPages,
+            'topProductPages'  => $topProductPages,
+            'refererData'      => $refererData,
+            'hourlyData'       => $hourlyData,
+            'totalPv'          => (int) ($summary->total_pv ?? 0),
+            'totalUv'          => (int) ($summary->total_uv ?? 0),
+            'todayPv'          => $todayStats['pv'],
+            'todayUv'          => $todayStats['uv'],
         ]);
     }
 }

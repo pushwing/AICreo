@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\Mailer;
 use App\Models\SettingModel;
 
 class SettingController extends BaseController
@@ -256,6 +257,36 @@ class SettingController extends BaseController
         $this->settingModel->saveSettings($postData);
 
         return redirect()->to("/admin/settings/{$group}")->with('success', '설정이 저장되었습니다.');
+    }
+
+    /** POST /admin/settings/smtp-test — SMTP 테스트 메일 발송 */
+    public function smtpTest(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $settings = $this->settingModel->getAllAsMap();
+        $to       = trim($this->request->getPost('to') ?? '');
+        if ($to === '') {
+            $to = ($settings['smtp_from'] ?? '') ?: ($settings['email'] ?? '');
+        }
+
+        if (! filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => '유효한 수신 이메일 주소를 입력하세요.',
+            ]);
+        }
+
+        try {
+            (new Mailer($settings))->sendSmtpTest($to);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "{$to} 으로 테스트 메일을 발송했습니다.",
+            ]);
+        } catch (\Throwable $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'SMTP 오류: ' . $e->getMessage(),
+            ]);
+        }
     }
 
     /** app/Views/themes/ 하위 폴더를 스캔해 테마 목록 반환 */
