@@ -183,6 +183,92 @@ class UserController extends BaseController
         return redirect()->back()->with('success', '인증 메일을 재발송했습니다.');
     }
 
+    /** GET /admin/users/export — 회원 목록 엑셀 다운로드 */
+    public function export(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $keyword = trim($this->request->getGet('q')   ?? '');
+        $role    = $this->request->getGet('role')      ?? '';
+        $status  = $this->request->getGet('status')    ?? '';
+        $grade   = $this->request->getGet('grade')     ?? '';
+        $from    = $this->request->getGet('from')      ?? '';
+        $to      = $this->request->getGet('to')        ?? '';
+
+        $builder = $this->userModel->builder()
+            ->select('id, nickname, email, phone, role, grade, social_provider, is_active, email_verify_token, created_at, last_login');
+
+        if ($keyword !== '') {
+            $builder->groupStart()
+                ->like('nickname', $keyword)
+                ->orLike('email', $keyword)
+                ->orLike('username', $keyword)
+                ->orLike('phone', $keyword)
+                ->groupEnd();
+        }
+        if ($role  !== '') $builder->where('role', $role);
+        if ($grade !== '') $builder->where('grade', $grade);
+        if ($from  !== '') $builder->where('DATE(created_at) >=', $from);
+        if ($to    !== '') $builder->where('DATE(created_at) <=', $to);
+
+        if ($status === 'active')         $builder->where('is_active', 1);
+        elseif ($status === 'unverified') $builder->where('is_active', 0)->where('email_verify_token IS NOT NULL');
+        elseif ($status === 'inactive')   $builder->where('is_active', 0)->where('email_verify_token IS NULL');
+
+        $users = $builder->orderBy('id', 'DESC')->get()->getResultArray();
+
+        $gradeLabels = ['bronze' => '브론즈', 'silver' => '실버', 'gold' => '골드', 'platinum' => '플래티넘'];
+        $roleLabels  = ['admin' => '관리자', 'member' => '일반회원'];
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $col         = fn(int $c, int $r): string =>
+            \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($c) . $r;
+
+        $headers = ['ID', '닉네임', '이메일', '휴대폰', '역할', '등급', '소셜', '상태', '가입일', '최근 로그인'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($col($i + 1, 1), $h);
+        }
+        $sheet->getStyle('A1:J1')->applyFromArray([
+            'font'    => ['bold' => true],
+            'fill'    => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                          'startColor' => ['argb' => 'FFE9ECEF']],
+            'borders' => ['bottom' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ]);
+
+        foreach ($users as $i => $u) {
+            $rowNum = $i + 2;
+            if ($u['is_active'])              $stLabel = '활성';
+            elseif ($u['email_verify_token']) $stLabel = '이메일 미인증';
+            else                              $stLabel = '비활성';
+
+            $sheet->setCellValue($col(1,  $rowNum), (int) $u['id']);
+            $sheet->setCellValue($col(2,  $rowNum), $u['nickname'] ?? '');
+            $sheet->setCellValue($col(3,  $rowNum), $u['email']);
+            $sheet->setCellValue($col(4,  $rowNum), $u['phone'] ?? '');
+            $sheet->setCellValue($col(5,  $rowNum), $roleLabels[$u['role']] ?? $u['role']);
+            $sheet->setCellValue($col(6,  $rowNum), $gradeLabels[$u['grade']] ?? ($u['grade'] ?? ''));
+            $sheet->setCellValue($col(7,  $rowNum), $u['social_provider'] ?? '');
+            $sheet->setCellValue($col(8,  $rowNum), $stLabel);
+            $sheet->setCellValue($col(9,  $rowNum), $u['created_at']  ? substr($u['created_at'],  0, 10) : '');
+            $sheet->setCellValue($col(10, $rowNum), $u['last_login']  ? substr($u['last_login'],  0, 10) : '');
+        }
+
+        foreach (range('A', 'J') as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = '회원목록_' . date('Ymd') . '.xlsx';
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . rawurlencode($filename) . '"')
+            ->setHeader('Cache-Control', 'max-age=0')
+            ->setBody($content);
+    }
+
     /** GET /admin/users/:id/tab/orders */
     public function tabOrders(int $id): \CodeIgniter\HTTP\ResponseInterface
     {
