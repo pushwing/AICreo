@@ -87,6 +87,9 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('settings/smtp-test',          'Admin\SettingController::smtpTest');
     $routes->post('settings/(:segment)',         'Admin\SettingController::update/$1');
 
+    // 알림 배지
+    $routes->get('notifications/counts', 'Admin\NotificationController::counts');
+
     // 배치 작업 관리
     $routes->get( 'schedule',                    'Admin\ScheduleController::index');
     $routes->post('schedule/(:segment)/toggle',  'Admin\ScheduleController::toggle/$1');

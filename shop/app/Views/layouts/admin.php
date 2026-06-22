@@ -97,13 +97,13 @@
         </button>
         <div class="collapse <?= $inShop ? 'show' : '' ?>" id="sec-shop">
             <div class="nav-subgroup">상품</div>
-            <a href="/admin/products"            class="nav-sublink <?= str_starts_with($uri, 'admin/products') && ! str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-bag me-2"></i>상품 관리<?php if (($lowStockCount ?? 0) > 0): ?><span class="badge bg-warning text-dark ms-1" style="font-size:.65rem"><?= $lowStockCount ?></span><?php endif; ?></a>
+            <a href="/admin/products"            class="nav-sublink <?= str_starts_with($uri, 'admin/products') && ! str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-bag me-2"></i>상품 관리<?php if (($lowStockCount ?? 0) > 0): ?><span class="badge bg-warning text-dark ms-1" id="badge-low-stock" style="font-size:.65rem"><?= $lowStockCount ?></span><?php else: ?><span class="badge bg-warning text-dark ms-1 d-none" id="badge-low-stock" style="font-size:.65rem">0</span><?php endif; ?></a>
             <a href="/admin/products/categories" class="nav-sublink <?= str_starts_with($uri, 'admin/products/categories') ? 'active' : '' ?>"><i class="bi bi-tags me-2"></i>카테고리 관리</a>
             <a href="/admin/promotions"          class="nav-sublink <?= str_starts_with($uri, 'admin/promotions') ? 'active' : '' ?>"><i class="bi bi-megaphone me-2"></i>기획전 관리</a>
             <a href="/admin/suppliers"           class="nav-sublink <?= str_starts_with($uri, 'admin/suppliers')  ? 'active' : '' ?>"><i class="bi bi-truck me-2"></i>매입처 관리</a>
             <a href="/admin/inventory"           class="nav-sublink <?= str_starts_with($uri, 'admin/inventory')  ? 'active' : '' ?>"><i class="bi bi-boxes me-2"></i>재고 관리</a>
             <div class="nav-subgroup">거래</div>
-            <a href="/admin/orders"  class="nav-sublink <?= str_starts_with($uri, 'admin/orders')  ? 'active' : '' ?>"><i class="bi bi-receipt me-2"></i>주문 관리</a>
+            <a href="/admin/orders"  class="nav-sublink <?= str_starts_with($uri, 'admin/orders')  ? 'active' : '' ?>"><i class="bi bi-receipt me-2"></i>주문 관리<?php if (($pendingOrders ?? 0) > 0): ?><span class="badge bg-danger ms-1" id="badge-orders" style="font-size:.65rem"><?= $pendingOrders ?></span><?php endif; ?></a>
             <a href="/admin/sales"   class="nav-sublink <?= str_starts_with($uri, 'admin/sales')   ? 'active' : '' ?>"><i class="bi bi-graph-up-arrow me-2"></i>매출 관리</a>
             <a href="/admin/coupons" class="nav-sublink <?= str_starts_with($uri, 'admin/coupons') ? 'active' : '' ?>"><i class="bi bi-ticket-perforated me-2"></i>쿠폰 관리</a>
             <a href="/admin/points"  class="nav-sublink <?= str_starts_with($uri, 'admin/points')  ? 'active' : '' ?>"><i class="bi bi-star me-2"></i>포인트 관리</a>
@@ -122,11 +122,19 @@
             <div class="nav-subgroup">CS</div>
             <a href="/admin/inquiries" class="nav-sublink <?= str_starts_with($uri, 'admin/inquiries') ? 'active' : '' ?>">
                 <i class="bi bi-envelope me-2"></i>문의글 관리
-                <?php if ($unreadInquiries > 0): ?><span class="badge bg-danger ms-1"><?= $unreadInquiries ?></span><?php endif; ?>
+                <?php if ($unreadInquiries > 0): ?>
+                <span class="badge bg-danger ms-1" id="badge-inquiries"><?= $unreadInquiries ?></span>
+                <?php else: ?>
+                <span class="badge bg-danger ms-1 d-none" id="badge-inquiries">0</span>
+                <?php endif; ?>
             </a>
             <a href="/admin/qna" class="nav-sublink <?= str_starts_with($uri, 'admin/qna') ? 'active' : '' ?>">
                 <i class="bi bi-chat-dots me-2"></i>상품 문의 관리
-                <?php if ($unansweredQna > 0): ?><span class="badge bg-danger ms-1"><?= $unansweredQna ?></span><?php endif; ?>
+                <?php if ($unansweredQna > 0): ?>
+                <span class="badge bg-danger ms-1" id="badge-qna"><?= $unansweredQna ?></span>
+                <?php else: ?>
+                <span class="badge bg-danger ms-1 d-none" id="badge-qna">0</span>
+                <?php endif; ?>
             </a>
             <div class="nav-subgroup">분석·관리</div>
             <a href="/admin/stats" class="nav-sublink <?= str_starts_with($uri, 'admin/stats') ? 'active' : '' ?>"><i class="bi bi-bar-chart-line me-2"></i>접속 통계</a>
@@ -195,7 +203,22 @@
 
 <div id="topbar" class="d-flex align-items-center justify-content-between">
     <strong class="text-dark"><?= esc($pageTitle ?? '') ?></strong>
-    <span class="text-muted small"><i class="bi bi-person-circle me-1"></i><?= esc($authUser['nickname']) ?></span>
+    <div class="d-flex align-items-center gap-3">
+        <?php
+        $totalBadge = ($unreadInquiries ?? 0) + ($unansweredQna ?? 0) + ($lowStockCount ?? 0) + ($pendingOrders ?? 0);
+        ?>
+        <div class="position-relative" id="notif-bell-wrap" style="cursor:default">
+            <i class="bi bi-bell fs-5 text-muted" id="notif-bell"></i>
+            <?php if ($totalBadge > 0): ?>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  id="badge-total" style="font-size:.6rem"><?= $totalBadge ?></span>
+            <?php else: ?>
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                  id="badge-total" style="font-size:.6rem">0</span>
+            <?php endif; ?>
+        </div>
+        <span class="text-muted small"><i class="bi bi-person-circle me-1"></i><?= esc($authUser['nickname']) ?></span>
+    </div>
 </div>
 
 <div id="content">
@@ -219,5 +242,31 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <?= $this->renderSection('scripts') ?>
+<script>
+(function () {
+    function setBadge(id, count) {
+        var el = document.getElementById(id);
+        if (! el) return;
+        el.textContent = count;
+        el.classList.toggle('d-none', count === 0);
+    }
+
+    function refreshCounts() {
+        fetch('/admin/notifications/counts')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                setBadge('badge-inquiries', d.unread_inquiries || 0);
+                setBadge('badge-qna',       d.unanswered_qna  || 0);
+                setBadge('badge-low-stock', d.low_stock       || 0);
+                setBadge('badge-orders',    d.pending_orders  || 0);
+                setBadge('badge-total',     d.total           || 0);
+            })
+            .catch(function() {});
+    }
+
+    // 30초마다 갱신
+    setInterval(refreshCounts, 30000);
+}());
+</script>
 </body>
 </html>
