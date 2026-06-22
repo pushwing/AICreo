@@ -119,6 +119,10 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/bulk',                           'Admin\ProductController::bulk');
     $routes->get( 'products/json',                           'Admin\ProductController::json');
     $routes->get( 'products',                                'Admin\ProductController::index');
+    $routes->get( 'products/import-template',                'Admin\ProductController::importTemplate');
+    $routes->get( 'products/import',                         'Admin\ProductController::import');
+    $routes->post('products/import',                         'Admin\ProductController::importProcess');
+    $routes->post('products/import/confirm',                 'Admin\ProductController::importConfirm');
     $routes->get( 'products/create',                         'Admin\ProductController::create');
     $routes->post('products/create',                         'Admin\ProductController::store');
     $routes->get( 'products/(:num)/edit',                    'Admin\ProductController::edit/$1');

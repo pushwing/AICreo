@@ -38,6 +38,9 @@
         <a href="/admin/products/categories" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-tags me-1"></i>카테고리
         </a>
+        <a href="/admin/products/import" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-file-earmark-excel me-1"></i>엑셀 일괄 등록
+        </a>
         <a href="/admin/products/create" class="btn btn-sm btn-primary">
             <i class="bi bi-plus-lg me-1"></i>상품 등록
         </a>
