@@ -223,7 +223,8 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 리뷰 관리
     $routes->get( 'reviews/json',          'Admin\ReviewController::json');
     $routes->get( 'reviews',              'Admin\ReviewController::index');
-    $routes->post('reviews/(:num)/delete','Admin\ReviewController::delete/$1');
+    $routes->post('reviews/(:num)/toggle-hidden', 'Admin\ReviewController::toggleHidden/$1');
+    $routes->post('reviews/(:num)/delete',        'Admin\ReviewController::delete/$1');
 
     // 접속 통계
     $routes->get('stats', 'Admin\StatsController::index');
