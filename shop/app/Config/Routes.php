@@ -46,8 +46,9 @@ $routes->post('inquiry/submit', 'Front\PageController::inquirySubmit');
 // ─── 관리자 ──────────────────────────────────────────────────────────────────
 $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 대시보드
-    $routes->get('',          'Admin\DashboardController::index');
-    $routes->get('dashboard', 'Admin\DashboardController::index');
+    $routes->get('',           'Admin\DashboardController::index');
+    $routes->get('dashboard',  'Admin\DashboardController::index');
+    $routes->get('chart-data', 'Admin\DashboardController::chartData');
 
     // 페이지 관리
     $routes->get( 'pages',              'Admin\PageManagerController::index');
