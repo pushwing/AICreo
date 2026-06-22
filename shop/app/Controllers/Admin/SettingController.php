@@ -265,7 +265,7 @@ class SettingController extends BaseController
         $settings = $this->settingModel->getAllAsMap();
         $to       = trim($this->request->getPost('to') ?? '');
         if ($to === '') {
-            $to = $settings['smtp_from'] ?? $settings['email'] ?? '';
+            $to = ($settings['smtp_from'] ?? '') ?: ($settings['email'] ?? '');
         }
 
         if (! filter_var($to, FILTER_VALIDATE_EMAIL)) {
