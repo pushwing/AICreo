@@ -71,6 +71,9 @@
                         <option value="<?= esc($val) ?>" <?= $s['value'] === $val ? 'selected' : '' ?>><?= esc($label) ?></option>
                         <?php endforeach; ?>
                     </select>
+                <?php elseif ($s['type'] === 'password'): ?>
+                    <input type="password" name="<?= esc($s['key']) ?>" class="form-control form-control-sm"
+                           value="<?= esc($s['value']) ?>" autocomplete="new-password">
                 <?php else: ?>
                     <input type="text" name="<?= esc($s['key']) ?>" class="form-control form-control-sm" value="<?= esc($s['value']) ?>">
                 <?php endif; ?>
@@ -80,6 +83,24 @@
                 <button type="submit" class="btn btn-primary btn-sm px-4">저장</button>
             </div>
         </form>
+
+        <?php if ($group === 'contact'): ?>
+        <hr class="my-4">
+        <div>
+            <h6 class="fw-semibold mb-1">SMTP 테스트 메일 발송</h6>
+            <p class="text-muted small mb-3">저장된 SMTP 설정으로 테스트 메일을 발송합니다.</p>
+            <div class="d-flex gap-2 align-items-center">
+                <input type="email" id="smtpTestTo" class="form-control form-control-sm" style="max-width:280px"
+                       placeholder="수신 이메일 주소">
+                <button id="smtpTestBtn" class="btn btn-outline-primary btn-sm">
+                    <span id="smtpTestSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                    테스트 발송
+                </button>
+            </div>
+            <div id="smtpTestResult" class="mt-2 small"></div>
+        </div>
+        <?php endif; ?>
+
     </div>
 </div>
 
@@ -138,6 +159,40 @@
         chips.querySelectorAll('.btn-close').forEach(function (btn) {
             btn.addEventListener('click', function () { btn.closest('span').remove(); });
         });
+    });
+}());
+
+(function () {
+    const btn = document.getElementById('smtpTestBtn');
+    if (! btn) return;
+    const toInput  = document.getElementById('smtpTestTo');
+    const spinner  = document.getElementById('smtpTestSpinner');
+    const result   = document.getElementById('smtpTestResult');
+    const CSRF_NAME  = document.querySelector('meta[name="csrf-name"]').content;
+    const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
+
+    btn.addEventListener('click', async function () {
+        const to = toInput.value.trim();
+        if (! to) { toInput.focus(); return; }
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        result.innerHTML = '';
+
+        try {
+            const body = new URLSearchParams({ to });
+            body.set(CSRF_NAME, CSRF_TOKEN);
+            const res  = await fetch('/admin/settings/smtp-test', { method: 'POST', body });
+            const data = await res.json();
+            result.innerHTML = data.success
+                ? `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.message}</span>`
+                : `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.message}</span>`;
+        } catch (e) {
+            result.innerHTML = `<span class="text-danger">요청 실패: ${e.message}</span>`;
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
     });
 }());
 </script>

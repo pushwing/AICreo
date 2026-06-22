@@ -11,11 +11,13 @@ class Mailer
 {
     private string $siteName;
     private string $siteUrl;
+    private array  $settings;
 
     public function __construct(array $settings = [])
     {
         $this->siteName = $settings['site_name'] ?? '쇼핑몰';
         $this->siteUrl  = rtrim(base_url(), '/');
+        $this->settings = $settings;
     }
 
     // ------------------------------------------------------------------ //
@@ -209,26 +211,42 @@ HTML;
     }
 
     // ------------------------------------------------------------------ //
+    //  Public: SMTP test (throws on failure)
+    // ------------------------------------------------------------------ //
+
+    public function sendSmtpTest(string $to): void
+    {
+        $s    = $this->settings;
+        $host = ($s['smtp_host'] ?? '') ?: env('EMAIL_SMTP_HOST', '');
+        if (! $host) {
+            throw new \RuntimeException('SMTP 호스트가 설정되지 않았습니다.');
+        }
+
+        $subject = "[{$this->siteName}] SMTP 테스트 메일";
+        $body    = $this->layout(
+            title:   'SMTP 테스트 성공',
+            content: '<p style="font-size:15px;color:#374151;">SMTP 설정이 정상적으로 작동합니다.<br>' .
+                     '이 메일이 수신되었다면 발신 설정이 올바르게 구성된 것입니다.</p>',
+            footer:  '이 메일은 관리자 패널에서 SMTP 연결 확인을 위해 발송되었습니다.'
+        );
+
+        $emailSvc = $this->buildEmailSvc();
+        $emailSvc->setTo($to);
+        $emailSvc->setSubject($subject);
+        $emailSvc->setMessage($body);
+
+        if (! $emailSvc->send()) {
+            throw new \RuntimeException($emailSvc->printDebugger(['headers']));
+        }
+    }
+
+    // ------------------------------------------------------------------ //
     //  SMTP dispatch
     // ------------------------------------------------------------------ //
 
     private function dispatch(string $to, string $subject, string $html, string $logTag): void
     {
-        $emailSvc = \Config\Services::email();
-        $emailSvc->initialize([
-            'protocol'   => 'smtp',
-            'SMTPHost'   => env('EMAIL_SMTP_HOST', ''),
-            'SMTPUser'   => env('EMAIL_SMTP_USER', ''),
-            'SMTPPass'   => env('EMAIL_SMTP_PASS', ''),
-            'SMTPPort'   => (int) env('EMAIL_SMTP_PORT', 587),
-            'SMTPCrypto' => env('EMAIL_SMTP_CRYPTO', 'tls'),
-            'mailType'   => 'html',
-            'charset'    => 'utf-8',
-        ]);
-        $emailSvc->setFrom(
-            env('EMAIL_FROM_ADDRESS', env('EMAIL_SMTP_USER', 'noreply@example.com')),
-            $this->siteName
-        );
+        $emailSvc = $this->buildEmailSvc();
         $emailSvc->setTo($to);
         $emailSvc->setSubject($subject);
         $emailSvc->setMessage($html);
@@ -240,5 +258,30 @@ HTML;
         } catch (\Throwable $e) {
             log_message('error', "{$logTag}_EXCEPTION | " . $e->getMessage());
         }
+    }
+
+    private function buildEmailSvc(): \CodeIgniter\Email\Email
+    {
+        $s        = $this->settings;
+        $host     = ($s['smtp_host']   ?? '') ?: env('EMAIL_SMTP_HOST', '');
+        $user     = ($s['smtp_user']   ?? '') ?: env('EMAIL_SMTP_USER', '');
+        $pass     = ($s['smtp_pass']   ?? '') ?: env('EMAIL_SMTP_PASS', '');
+        $port     = (int)(($s['smtp_port']   ?? '') ?: env('EMAIL_SMTP_PORT', 587));
+        $crypto   = ($s['smtp_crypto'] ?? '') ?: env('EMAIL_SMTP_CRYPTO', 'tls');
+        $from     = ($s['smtp_from']   ?? '') ?: env('EMAIL_FROM_ADDRESS', $user ?: 'noreply@example.com');
+
+        $svc = \Config\Services::email();
+        $svc->initialize([
+            'protocol'   => 'smtp',
+            'SMTPHost'   => $host,
+            'SMTPUser'   => $user,
+            'SMTPPass'   => $pass,
+            'SMTPPort'   => $port,
+            'SMTPCrypto' => $crypto,
+            'mailType'   => 'html',
+            'charset'    => 'utf-8',
+        ]);
+        $svc->setFrom($from, $this->siteName);
+        return $svc;
     }
 }

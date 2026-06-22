@@ -84,6 +84,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'settings',                   'Admin\SettingController::index');
     $routes->get( 'settings/(:segment)',         'Admin\SettingController::index/$1');
     $routes->post('settings/theme/upload',       'Admin\SettingController::uploadTheme');
+    $routes->post('settings/smtp-test',          'Admin\SettingController::smtpTest');
     $routes->post('settings/(:segment)',         'Admin\SettingController::update/$1');
 
     // 배치 작업 관리
