@@ -206,6 +206,29 @@ class GroqProvider implements AiProviderInterface
         return $data['choices'][0]['message']['content'] ?? '';
     }
 
+    public function generateRestockMessage(string $productName, string $productDescription): string
+    {
+        $cleanDesc = mb_substr(strip_tags($productDescription), 0, 500);
+
+        $payload = json_encode([
+            'model'       => self::MODEL,
+            'temperature' => 0.6,
+            'max_tokens'  => 300,
+            'messages'    => [
+                ['role' => 'system', 'content' => AiPrompts::get('restock_message')],
+                ['role' => 'user',   'content' => "상품명: {$productName}\n상품 설명: {$cleanDesc}"],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 20);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return trim((string) ($data['choices'][0]['message']['content'] ?? ''));
+    }
+
     public function generateSalesReport(array $stats): string
     {
         $payload = json_encode([

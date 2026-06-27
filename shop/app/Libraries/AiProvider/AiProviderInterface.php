@@ -69,4 +69,11 @@ interface AiProviderInterface
      * @return string 한국어 분석 텍스트 (실패 시 빈 문자열)
      */
     public function generateSalesReport(array $stats): string;
+
+    /**
+     * 재입고 알림 메일에 넣을 개인화된 안내 문구를 생성한다.
+     *
+     * @return string 2~3문장의 일반 텍스트 (실패 시 빈 문자열 → 호출처에서 기본 문구로 폴백)
+     */
+    public function generateRestockMessage(string $productName, string $productDescription): string;
 }

@@ -15,7 +15,7 @@ class AiPrompts
     public const PREFIX = 'ai_prompt_';
 
     /** 편집 가능한 프롬프트 키 목록 (설정 UI에서 사용) */
-    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision', 'sales_report'];
+    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision', 'sales_report', 'restock_message'];
 
     /**
      * 프롬프트를 반환하고 {placeholder}를 치환한다.
@@ -178,6 +178,17 @@ PROMPT,
 - 데이터에 없는 수치를 지어내지 말 것
 - 전체 12줄 내외로 간결하게
 PROMPT,
+
+            'restock_message' => <<<'PROMPT'
+당신은 쇼핑몰 마케팅 카피라이터입니다.
+품절됐던 상품이 재입고되어, 재입고 알림을 신청한 고객에게 보낼 안내 문구를 작성하세요.
+
+규칙:
+- 상품의 매력을 짚어 다시 구매를 유도하는 따뜻하고 설득력 있는 어조
+- 품절될 수 있으니 서두르라는 가벼운 긴박감 포함
+- 2~3문장, 일반 텍스트로 작성 (HTML·마크다운·이모지 금지)
+- 상품 설명에 없는 사실(할인율·수량 등)은 지어내지 말 것
+PROMPT,
         ];
     }
 
@@ -193,6 +204,7 @@ PROMPT,
             'inquiry_reply'    => '문의 답변 초안 프롬프트',
             'product_vision'   => '이미지 상품정보 추출 프롬프트',
             'sales_report'     => '매출 분석 리포트 프롬프트',
+            'restock_message'  => '재입고 알림 개인화 프롬프트',
         ];
     }
 }
