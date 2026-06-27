@@ -309,10 +309,38 @@ class ProductController extends BaseController
 
         $settings = model('SettingModel')->getAllAsMap();
         $mailer   = new Mailer($settings);
+
+        // 상품당 1회만 AI 개인화 문구 생성·캐시 → 모든 수신자에 재사용 (키 없으면 기본 문구)
+        $aiMessage = $this->restockAiMessage($product);
+
         foreach ($pending as $alert) {
-            $mailer->sendRestockAlert($alert['email'], $product);
+            $mailer->sendRestockAlert($alert['email'], $product, $aiMessage);
         }
         $alertModel->markNotified((int) $product['id']);
+    }
+
+    /** 재입고 알림용 AI 개인화 문구 (상품별 캐시, 실패 시 null로 폴백). */
+    private function restockAiMessage(array $product): ?string
+    {
+        try {
+            $key = \App\Libraries\AiProvider\AiCache::key(
+                'restock_msg',
+                (string) $product['id'],
+                md5((string) ($product['name'] ?? ''))
+            );
+            $message = \App\Libraries\AiProvider\AiCache::remember(
+                $key,
+                fn () => AiCategoryAdvisor::create()->generateRestockMessage(
+                    (string) ($product['name'] ?? ''),
+                    (string) ($product['description'] ?? '')
+                ),
+                86400
+            );
+            return $message !== '' ? $message : null;
+        } catch (\Throwable $e) {
+            log_message('error', 'AiRestockMessage: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function copy(int $id): \CodeIgniter\HTTP\RedirectResponse

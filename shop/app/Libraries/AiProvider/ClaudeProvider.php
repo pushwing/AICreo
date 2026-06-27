@@ -244,6 +244,28 @@ class ClaudeProvider implements AiProviderInterface
         return $data['content'][0]['text'] ?? '';
     }
 
+    public function generateRestockMessage(string $productName, string $productDescription): string
+    {
+        $cleanDesc = mb_substr(strip_tags($productDescription), 0, 500);
+
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 300,
+            'system'     => AiPrompts::get('restock_message'),
+            'messages'   => [
+                ['role' => 'user', 'content' => "상품명: {$productName}\n상품 설명: {$cleanDesc}"],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 20);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return trim((string) ($data['content'][0]['text'] ?? ''));
+    }
+
     public function generateSalesReport(array $stats): string
     {
         $payload = json_encode([

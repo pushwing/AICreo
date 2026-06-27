@@ -96,14 +96,19 @@ class Mailer
         }
     }
 
-    public function sendRestockAlert(string $toEmail, array $product): void
+    public function sendRestockAlert(string $toEmail, array $product, ?string $aiMessage = null): void
     {
         $productUrl = $this->siteUrl . '/shop/' . esc($product['slug']);
+
+        // AI 개인화 문구가 있으면 사용, 없으면 기본 문구
+        $intro = ($aiMessage !== null && trim($aiMessage) !== '')
+            ? nl2br(esc(trim($aiMessage)))
+            : '관심 상품이 재입고되었습니다!';
 
         $body = $this->layout(
             title: '재입고 알림',
             content:
-                '<p style="margin:0 0 16px;font-size:15px;color:#374151;">관심 상품이 재입고되었습니다!</p>' .
+                '<p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">' . $intro . '</p>' .
                 '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">' .
                 $this->row('상품명', esc($product['name'])) .
                 '</table>' .
