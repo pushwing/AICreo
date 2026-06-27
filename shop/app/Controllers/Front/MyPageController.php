@@ -389,6 +389,9 @@ class MyPageController extends BaseController
         $currentPage = max(1, (int) ($this->request->getGet('page') ?? 1));
         $result      = $this->wishlistModel->getByUser($userId, $currentPage);
 
+        // 개인화 추천 (찜 목록 하단)
+        $result['recommended'] = (new \App\Libraries\RecommendationService())->forUser($userId, 8);
+
         return $this->render('shop/mypage/wishlist', $result);
     }
 }

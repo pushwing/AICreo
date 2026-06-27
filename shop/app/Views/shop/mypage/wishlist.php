@@ -89,6 +89,11 @@
     <?php endif; ?>
 
     <?php endif; ?>
+
+    <?php if (! empty($recommended ?? [])): ?>
+    <hr class="my-4">
+    <?= view('shop/components/recommend', ['recommended' => $recommended]) ?>
+    <?php endif; ?>
 </div>
 
 <?= $this->endSection() ?>

@@ -18,6 +18,9 @@ class WishlistModel extends Model
                          ->where('product_id', $productId)
                          ->first();
 
+        // 찜 변경 → 개인화 추천 캐시 무효화
+        \App\Libraries\RecommendationService::forget($userId);
+
         if ($existing) {
             $this->delete($existing['id']);
             return false;

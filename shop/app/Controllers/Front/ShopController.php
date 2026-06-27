@@ -379,6 +379,13 @@ class ShopController extends BaseController
             $wishedIds = array_map('intval', array_column($rows, 'product_id'));
         }
 
+        // 로그인 회원 개인화 추천 (필터·검색 없는 목록 1페이지에서만)
+        $recommended = [];
+        $noFilter    = empty($params['keyword']) && (int) $params['category_id'] === 0 && empty($params['only_discount']);
+        if ($userId > 0 && (int) ($params['page'] ?? 1) <= 1 && $noFilter) {
+            $recommended = (new \App\Libraries\RecommendationService())->forUser($userId, 8);
+        }
+
         return $this->render('shop/list', array_merge($result, [
             'tree'         => $this->categoryModel->getTree(),
             'keyword'      => $params['keyword'],
@@ -388,6 +395,7 @@ class ShopController extends BaseController
             'priceMax'     => $params['price_max'] ?? '',
             'onlyDiscount' => (bool) $params['only_discount'],
             'wishedIds'    => $wishedIds,
+            'recommended'  => $recommended,
         ]));
     }
 
