@@ -64,6 +64,7 @@ class StubClassifyProvider implements \App\Libraries\AiProvider\AiProviderInterf
     public function classifyInquiry(string $subject, string $message): array { return $this->canned; }
     public function generateInquiryReply(string $name, string $subject, string $message): string { return ''; }
     public function generateSalesReport(array $stats): string { return ''; }
+    public function generateRestockMessage(string $productName, string $productDescription): string { return ''; }
 }
 
 class FakeInquiryModel extends InquiryModel
