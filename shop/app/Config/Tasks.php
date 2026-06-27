@@ -18,6 +18,7 @@ class Tasks extends BaseTasks
         'schedule_stats_purge_logs' => 'stats:purge-logs',
         'schedule_coupons_birthday' => 'coupons:birthday',
         'schedule_grades_upgrade'   => 'grades:upgrade',
+        'schedule_ai_work'          => 'ai:work',
     ];
 
     /**

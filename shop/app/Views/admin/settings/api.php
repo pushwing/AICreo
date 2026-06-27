@@ -64,6 +64,37 @@
         </div>
     </div>
 
+    <!-- AI 프롬프트 (고급) -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#aiPromptBody">
+            <span><i class="bi bi-sliders me-2 text-primary"></i>AI 프롬프트 (고급)</span>
+            <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="collapse" id="aiPromptBody">
+            <div class="card-body">
+                <p class="text-muted small">
+                    비워두면 기본 프롬프트가 사용됩니다. 톤·정책을 조정할 때만 입력하세요.
+                    <code>{categories}</code> 등 중괄호 변수는 자동으로 치환됩니다.
+                </p>
+                <?php
+                $promptLabels   = \App\Libraries\AiProvider\AiPrompts::labels();
+                $promptDefaults = \App\Libraries\AiProvider\AiPrompts::defaults();
+                ?>
+                <?php foreach (\App\Libraries\AiProvider\AiPrompts::KEYS as $pk): ?>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold"><?= esc($promptLabels[$pk] ?? $pk) ?></label>
+                    <textarea name="ai_prompt_<?= esc($pk) ?>" class="form-control form-control-sm font-monospace"
+                              rows="5" placeholder="<?= esc($promptDefaults[$pk] ?? '') ?>"><?= esc($settings['ai_prompt_' . $pk] ?? '') ?></textarea>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <div class="card-footer bg-white border-0 text-end p-3">
+                <button type="submit" class="btn btn-primary btn-sm px-4">저장</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 네이버 쇼핑 검색 API -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white fw-semibold">

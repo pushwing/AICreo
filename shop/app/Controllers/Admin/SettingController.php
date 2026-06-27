@@ -231,11 +231,17 @@ class SettingController extends BaseController
 
         if ($group === 'api') {
             $save = [
+                'ai_provider'                  => in_array($postData['ai_provider'] ?? '', ['groq', 'claude'], true)
+                    ? $postData['ai_provider'] : 'groq',
                 'groq_api_key'                 => trim($postData['groq_api_key'] ?? ''),
                 'anthropic_api_key'            => trim($postData['anthropic_api_key'] ?? ''),
                 'naver_shopping_client_id'     => trim($postData['naver_shopping_client_id'] ?? ''),
                 'naver_shopping_client_secret' => trim($postData['naver_shopping_client_secret'] ?? ''),
             ];
+            // AI 프롬프트: 입력값이 있으면 저장, 비우면 코드 기본값으로 폴백
+            foreach (\App\Libraries\AiProvider\AiPrompts::KEYS as $key) {
+                $save[\App\Libraries\AiProvider\AiPrompts::PREFIX . $key] = trim($postData['ai_prompt_' . $key] ?? '');
+            }
             $this->settingModel->saveSettings($save);
             return redirect()->to('/admin/settings/api')->with('success', '외부 API 설정이 저장되었습니다.');
         }
