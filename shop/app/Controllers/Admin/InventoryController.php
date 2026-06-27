@@ -72,6 +72,20 @@ class InventoryController extends BaseController
         ]);
     }
 
+    /** GET /admin/inventory/suggestions — 판매 추세 기반 발주 제안 */
+    public function suggestions(): string
+    {
+        $windowDays  = max(7, (int) ($this->request->getGet('window') ?: \App\Libraries\RestockSuggestionService::WINDOW_DAYS));
+        $coverDays   = max(7, (int) ($this->request->getGet('cover')  ?: \App\Libraries\RestockSuggestionService::COVER_DAYS));
+        $suggestions = (new \App\Libraries\RestockSuggestionService())->suggestions($windowDays, $coverDays);
+
+        return $this->render('admin/inventory/suggestions', [
+            'suggestions' => $suggestions,
+            'windowDays'  => $windowDays,
+            'coverDays'   => $coverDays,
+        ]);
+    }
+
     public function adjust(int $productId): \CodeIgniter\HTTP\ResponseInterface
     {
         $product = $this->productModel->find($productId);

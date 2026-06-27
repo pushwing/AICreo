@@ -47,6 +47,9 @@
            class="btn btn-sm <?= $filter === 'sold_out' ? 'btn-danger' : 'btn-outline-danger' ?>">품절</a>
         <a href="/admin/inventory?filter=low<?= $keyword ? '&keyword='.urlencode($keyword) : '' ?>"
            class="btn btn-sm <?= $filter === 'low' ? 'btn-warning' : 'btn-outline-warning' ?>">부족</a>
+        <a href="/admin/inventory/suggestions" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-graph-up-arrow me-1"></i>발주 제안
+        </a>
     </div>
 </div>
 
