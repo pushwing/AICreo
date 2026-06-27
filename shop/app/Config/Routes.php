@@ -156,8 +156,9 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->get( 'inventory/(:num)/logs',            'Admin\InventoryController::logs/$1');
 
     // 매출 관리
-    $routes->get('sales',        'Admin\SalesController::index');
-    $routes->get('sales/export', 'Admin\SalesController::exportExcel');
+    $routes->get('sales',         'Admin\SalesController::index');
+    $routes->get('sales/export',  'Admin\SalesController::exportExcel');
+    $routes->post('sales/ai-report', 'Admin\SalesController::aiReport');
 
     // 쿠폰 관리
     $routes->get( 'coupons/json',               'Admin\CouponController::json');

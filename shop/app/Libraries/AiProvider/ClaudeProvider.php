@@ -244,6 +244,26 @@ class ClaudeProvider implements AiProviderInterface
         return $data['content'][0]['text'] ?? '';
     }
 
+    public function generateSalesReport(array $stats): string
+    {
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 1024,
+            'system'     => AiPrompts::get('sales_report'),
+            'messages'   => [
+                ['role' => 'user', 'content' => json_encode($stats, JSON_UNESCAPED_UNICODE)],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 40);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return $data['content'][0]['text'] ?? '';
+    }
+
     /**
      * 상품 이미지(Vision)를 분석해 상품명·설명(HTML)을 추출한다.
      * Vision은 Claude 전용이라 AiProviderInterface에는 두지 않는다.

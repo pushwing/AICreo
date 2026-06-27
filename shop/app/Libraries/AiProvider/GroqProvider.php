@@ -206,6 +206,27 @@ class GroqProvider implements AiProviderInterface
         return $data['choices'][0]['message']['content'] ?? '';
     }
 
+    public function generateSalesReport(array $stats): string
+    {
+        $payload = json_encode([
+            'model'       => self::MODEL,
+            'temperature' => 0.4,
+            'max_tokens'  => 1024,
+            'messages'    => [
+                ['role' => 'system', 'content' => AiPrompts::get('sales_report')],
+                ['role' => 'user',   'content' => json_encode($stats, JSON_UNESCAPED_UNICODE)],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 40);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return $data['choices'][0]['message']['content'] ?? '';
+    }
+
     private function convertToHtml(string $text): string
     {
         // 코드블록 제거
