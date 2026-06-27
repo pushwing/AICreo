@@ -292,6 +292,20 @@
                     <div class="form-text">jpg, jpeg, png, gif, webp / 최대 5MB / 여러 파일 선택 가능</div>
                     <div class="form-text">첫 번째 업로드된 이미지가 대표 이미지가 됩니다.</div>
                 </div>
+
+                <!-- AI 이미지 분석 (Vision) -->
+                <div class="border-top pt-3 mt-3">
+                    <label class="form-label small fw-semibold">
+                        <i class="bi bi-stars text-info me-1"></i>이미지로 상품정보 채우기
+                    </label>
+                    <input type="file" id="visionFile" class="form-control form-control-sm mb-2"
+                           accept=".jpg,.jpeg,.png,.gif,.webp">
+                    <button type="button" class="btn btn-sm btn-outline-info w-100" id="btnVisionExtract">
+                        <i class="bi bi-magic me-1"></i>AI로 상품명·설명 생성
+                    </button>
+                    <div id="visionMsg" class="form-text text-info d-none"></div>
+                    <div class="form-text">이미지를 분석해 상품명·설명을 자동 입력합니다. (Claude API 키 필요)</div>
+                </div>
             </div>
         </div>
     </div>
@@ -939,6 +953,60 @@ document.getElementById('naverSearchResults').addEventListener('click', async fu
         } catch (e) {
             col.remove();
         }
+    }
+});
+
+// ── AI 이미지 분석 (Vision) ───────────────────────────────────────────────────
+document.getElementById('btnVisionExtract').addEventListener('click', async function () {
+    const fileInput = document.getElementById('visionFile');
+    const msg       = document.getElementById('visionMsg');
+    const file      = fileInput.files[0];
+
+    if (! file) { alert('분석할 이미지를 선택해주세요.'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('이미지 용량은 5MB 이하만 가능합니다.'); return; }
+
+    this.disabled = true;
+    const original = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>분석 중…';
+    msg.classList.add('d-none');
+
+    try {
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+
+        const res  = await fetch('/admin/products/extract-from-image', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (! res.ok || data.error) {
+            if (data.setup_url && confirm((data.error || '오류') + '\n설정 화면으로 이동할까요?')) {
+                location.href = data.setup_url;
+            } else {
+                alert(data.error || 'AI 이미지 분석에 실패했습니다.');
+            }
+            return;
+        }
+
+        const nameInput = document.querySelector('input[name="name"]');
+        if (data.name) {
+            nameInput.value = data.name;
+            nameInput.dispatchEvent(new Event('input'));
+        }
+        if (data.description) {
+            const editor = tinymce.get('editor');
+            if (editor) {
+                editor.setContent(data.description);
+            } else {
+                document.querySelector('textarea[name="description"]').value = data.description;
+            }
+        }
+        msg.textContent = '상품명·설명을 채웠습니다. 내용을 확인 후 저장하세요.';
+        msg.classList.remove('d-none');
+    } catch (e) {
+        alert('요청 중 오류가 발생했습니다.');
+    } finally {
+        this.disabled = false;
+        this.innerHTML = original;
     }
 });
 </script>
