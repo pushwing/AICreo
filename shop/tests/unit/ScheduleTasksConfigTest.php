@@ -29,6 +29,7 @@ final class ScheduleTasksConfigTest extends CIUnitTestCase
         'schedule_stats_purge_logs',
         'schedule_coupons_birthday',
         'schedule_grades_upgrade',
+        'schedule_ai_work',
     ];
 
     protected function setUp(): void
