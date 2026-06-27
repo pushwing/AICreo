@@ -140,6 +140,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/assign-category',               'Admin\ProductController::assignCategory');
     $routes->post('products/suggest-category',              'Admin\ProductController::suggestCategory');
     $routes->post('products/generate-description',          'Admin\ProductController::generateDescription');
+    $routes->post('products/extract-from-image',            'Admin\ProductController::extractFromImage');
     $routes->get( 'products/naver-search',                  'Admin\ProductController::naverSearch');
     $routes->post('products/import-image',                  'Admin\ProductController::importImage');
     $routes->get( 'products/categories',                     'Admin\ProductController::categories');

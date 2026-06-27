@@ -15,7 +15,7 @@ class AiPrompts
     public const PREFIX = 'ai_prompt_';
 
     /** 편집 가능한 프롬프트 키 목록 (설정 UI에서 사용) */
-    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply'];
+    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision'];
 
     /**
      * 프롬프트를 반환하고 {placeholder}를 치환한다.
@@ -147,6 +147,20 @@ PROMPT,
 - 감사 인사와 함께 마무리
 - 3~6문장의 이메일 본문, 일반 텍스트로 작성 (HTML·마크다운 금지)
 PROMPT,
+
+            'product_vision' => <<<'PROMPT'
+당신은 쇼핑몰 상품 등록 전문가입니다.
+첨부된 상품 이미지를 분석하여 상품명과 상품 설명을 한국어로 작성하세요.
+
+반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 금지):
+{"name": "상품명", "description": "<p>HTML 형식 설명</p>"}
+
+규칙:
+- name: 이미지 속 상품을 나타내는 간결한 상품명 (40자 이내)
+- description: 구매욕을 자극하는 매력적인 설명. HTML만 사용 (허용 태그: <p> <strong> <ul> <li> <br>), 마크다운 금지
+- 이미지에서 확인되는 색상·소재·형태·특징을 반영
+- 이미지로 확실히 알 수 없는 사양(정확한 치수·브랜드 등)은 단정하지 말 것
+PROMPT,
         ];
     }
 
@@ -160,6 +174,7 @@ PROMPT,
             'review_summary'   => '리뷰 요약 프롬프트',
             'inquiry_classify' => '문의 자동 분류 프롬프트',
             'inquiry_reply'    => '문의 답변 초안 프롬프트',
+            'product_vision'   => '이미지 상품정보 추출 프롬프트',
         ];
     }
 }

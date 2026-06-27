@@ -244,6 +244,57 @@ class ClaudeProvider implements AiProviderInterface
         return $data['content'][0]['text'] ?? '';
     }
 
+    /**
+     * 상품 이미지(Vision)를 분석해 상품명·설명(HTML)을 추출한다.
+     * Vision은 Claude 전용이라 AiProviderInterface에는 두지 않는다.
+     *
+     * @param  string $imageData base64 인코딩된 이미지 데이터
+     * @param  string $mimeType  image/jpeg | image/png | image/gif | image/webp
+     * @return array{name:string, description:string} 실패 시 빈 값
+     */
+    public function extractProductInfo(string $imageData, string $mimeType): array
+    {
+        $empty = ['name' => '', 'description' => ''];
+
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 1024,
+            'system'     => AiPrompts::get('product_vision'),
+            'messages'   => [
+                ['role' => 'user', 'content' => [
+                    ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $mimeType, 'data' => $imageData]],
+                    ['type' => 'text', 'text' => '이 상품 이미지를 분석해 상품명과 설명을 작성해주세요.'],
+                ]],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 40);
+        if ($raw === false) {
+            return $empty;
+        }
+
+        $data = json_decode($raw, true);
+        $text = $data['content'][0]['text'] ?? '';
+        if ($text === '') {
+            return $empty;
+        }
+
+        if (preg_match('/\{.*\}/s', $text, $m)) {
+            $text = $m[0];
+        }
+        $parsed = json_decode($text, true);
+        if (! is_array($parsed) || trim((string) ($parsed['name'] ?? '')) === '') {
+            return $empty;
+        }
+
+        $description = trim((string) ($parsed['description'] ?? ''));
+
+        return [
+            'name'        => trim(mb_substr((string) $parsed['name'], 0, 100)),
+            'description' => $description !== '' ? $this->convertToHtml($description) : '',
+        ];
+    }
+
     protected function callApi(string $payload, int $timeout = 15): string|false
     {
         $ch = curl_init(self::API_URL);
