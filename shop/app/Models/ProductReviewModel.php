@@ -10,8 +10,36 @@ class ProductReviewModel extends Model
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $allowedFields = [
-        'product_id', 'order_id', 'user_id', 'content', 'is_rewarded', 'is_hidden',
+        'product_id', 'order_id', 'user_id', 'content', 'is_rewarded', 'is_hidden', 'is_negative',
     ];
+
+    /** AI 요약용 — 노출 중인 리뷰의 id·content만 최신순으로 반환 */
+    public function getForSummary(int $productId, int $limit = 50): array
+    {
+        return $this->db->table('product_reviews')
+            ->select('id, content')
+            ->where('product_id', $productId)
+            ->where('is_hidden', 0)
+            ->orderBy('id', 'DESC')
+            ->limit($limit)
+            ->get()->getResultArray();
+    }
+
+    /** 상품의 부정 리뷰 표시를 갱신한다 (전체 0으로 리셋 후 지정 id만 1). */
+    public function markNegative(int $productId, array $negativeIds): void
+    {
+        $this->db->table('product_reviews')
+            ->where('product_id', $productId)
+            ->update(['is_negative' => 0]);
+
+        $negativeIds = array_values(array_filter(array_map('intval', $negativeIds)));
+        if ($negativeIds !== []) {
+            $this->db->table('product_reviews')
+                ->where('product_id', $productId)
+                ->whereIn('id', $negativeIds)
+                ->update(['is_negative' => 1]);
+        }
+    }
 
     /** 상품별 리뷰 목록 (이미지 포함) */
     public function getByProduct(int $productId, int $page = 1, int $perPage = 10): array

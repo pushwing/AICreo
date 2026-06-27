@@ -32,7 +32,7 @@ class AiJobRunner
     public static function defaultHandlers(): array
     {
         return [
-            // 'review_summary' => static fn (array $p): array => (new \App\Libraries\Ai\ReviewSummaryHandler())->handle($p),
+            'review_summary' => static fn (array $p): array => (new ReviewSummaryHandler())->handle($p),
         ];
     }
 

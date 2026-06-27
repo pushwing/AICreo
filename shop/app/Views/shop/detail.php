@@ -288,6 +288,47 @@ $allImages = $primaryImage ? array_merge([$primaryImage], $extraImages) : [];
                     </div>
                     <?php endif; ?>
 
+                    <!-- AI 리뷰 요약 -->
+                    <?php
+                    $rSummary = $reviewSummary ?? null;
+                    if (is_array($rSummary) && trim((string) ($rSummary['summary'] ?? '')) !== ''):
+                        $sentiment = $rSummary['sentiment'] ?? 'mixed';
+                        $sBadge    = ['positive' => ['bg-success', '긍정적'], 'negative' => ['bg-danger', '부정적'], 'mixed' => ['bg-secondary', '복합적']][$sentiment] ?? ['bg-secondary', '복합적'];
+                    ?>
+                    <div class="card border-0 bg-light mb-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="fw-semibold"><i class="bi bi-stars text-primary me-1"></i>AI 리뷰 요약</span>
+                                <span class="badge <?= esc($sBadge[0]) ?> ms-2"><?= esc($sBadge[1]) ?></span>
+                            </div>
+                            <p class="mb-3 small"><?= esc($rSummary['summary']) ?></p>
+                            <div class="row g-3">
+                                <?php if (! empty($rSummary['pros'])): ?>
+                                <div class="col-sm-6">
+                                    <div class="small fw-semibold text-success mb-1"><i class="bi bi-hand-thumbs-up me-1"></i>장점</div>
+                                    <ul class="small mb-0 ps-3">
+                                        <?php foreach ($rSummary['pros'] as $pro): ?>
+                                        <li><?= esc($pro) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                                <?php endif; ?>
+                                <?php if (! empty($rSummary['cons'])): ?>
+                                <div class="col-sm-6">
+                                    <div class="small fw-semibold text-danger mb-1"><i class="bi bi-hand-thumbs-down me-1"></i>아쉬운 점</div>
+                                    <ul class="small mb-0 ps-3">
+                                        <?php foreach ($rSummary['cons'] as $con): ?>
+                                        <li><?= esc($con) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="text-muted mt-3" style="font-size:.72rem">AI가 구매자 리뷰를 분석한 요약입니다.</div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <!-- 리뷰 목록 -->
                     <?php if (empty($reviewItems ?? [])): ?>
                     <p class="text-muted text-center py-4">등록된 리뷰가 없습니다.</p>

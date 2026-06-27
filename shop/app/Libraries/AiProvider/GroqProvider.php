@@ -4,6 +4,8 @@ namespace App\Libraries\AiProvider;
 
 class GroqProvider implements AiProviderInterface
 {
+    use ReviewSummaryParsing;
+
     private const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODEL   = 'llama-3.1-8b-instant';
 
@@ -130,6 +132,32 @@ class GroqProvider implements AiProviderInterface
 
         $data = json_decode($raw, true);
         return $data['choices'][0]['message']['content'] ?? '';
+    }
+
+    public function summarizeReviews(string $productName, array $reviews): array
+    {
+        if ($reviews === []) {
+            return $this->emptySummary();
+        }
+
+        $payload = json_encode([
+            'model'           => self::MODEL,
+            'temperature'     => 0.3,
+            'max_tokens'      => 1024,
+            'messages'        => [
+                ['role' => 'system', 'content' => AiPrompts::get('review_summary')],
+                ['role' => 'user',   'content' => $this->buildReviewMessage($productName, $reviews)],
+            ],
+            'response_format' => ['type' => 'json_object'],
+        ]);
+
+        $raw = $this->callApi($payload, 30);
+        if ($raw === false) {
+            return $this->emptySummary();
+        }
+
+        $data = json_decode($raw, true);
+        return $this->parseSummary($data['choices'][0]['message']['content'] ?? '');
     }
 
     private function convertToHtml(string $text): string
