@@ -5,6 +5,7 @@ namespace App\Libraries\AiProvider;
 class GroqProvider implements AiProviderInterface
 {
     use ReviewSummaryParsing;
+    use InquiryParsing;
 
     private const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODEL   = 'llama-3.1-8b-instant';
@@ -158,6 +159,51 @@ class GroqProvider implements AiProviderInterface
 
         $data = json_decode($raw, true);
         return $this->parseSummary($data['choices'][0]['message']['content'] ?? '');
+    }
+
+    public function classifyInquiry(string $subject, string $message): array
+    {
+        $payload = json_encode([
+            'model'           => self::MODEL,
+            'temperature'     => 0.1,
+            'max_tokens'      => 128,
+            'messages'        => [
+                ['role' => 'system', 'content' => AiPrompts::get('inquiry_classify')],
+                ['role' => 'user',   'content' => $this->buildInquiryMessage($subject, $message)],
+            ],
+            'response_format' => ['type' => 'json_object'],
+        ]);
+
+        $raw = $this->callApi($payload, 20);
+        if ($raw === false) {
+            return $this->emptyClassification();
+        }
+
+        $data = json_decode($raw, true);
+        return $this->parseClassification($data['choices'][0]['message']['content'] ?? '');
+    }
+
+    public function generateInquiryReply(string $name, string $subject, string $message): string
+    {
+        $cleanMsg = mb_substr(strip_tags($message), 0, 1000);
+
+        $payload = json_encode([
+            'model'       => self::MODEL,
+            'temperature' => 0.4,
+            'max_tokens'  => 600,
+            'messages'    => [
+                ['role' => 'system', 'content' => AiPrompts::get('inquiry_reply')],
+                ['role' => 'user',   'content' => "고객명: {$name}\n제목: {$subject}\n문의 내용: {$cleanMsg}"],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 30);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return $data['choices'][0]['message']['content'] ?? '';
     }
 
     private function convertToHtml(string $text): string

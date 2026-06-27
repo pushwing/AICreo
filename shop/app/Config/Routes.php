@@ -116,6 +116,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 문의 수신함
     $routes->get( 'inquiries',              'Admin\InquiryController::index');
     $routes->get( 'inquiries/(:num)',       'Admin\InquiryController::view/$1');
+    $routes->post('inquiries/(:num)/suggest-reply', 'Admin\InquiryController::suggestReply/$1');
     $routes->post('inquiries/(:num)/delete','Admin\InquiryController::delete/$1');
 
     // 상품 관리
