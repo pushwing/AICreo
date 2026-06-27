@@ -3,11 +3,66 @@
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <h4 class="fw-bold mb-0">매출 관리</h4>
-    <a href="/admin/sales/export?from=<?= esc($from) ?>&to=<?= esc($to) ?>&keyword=<?= esc($keyword) ?>"
-       class="btn btn-success btn-sm">
-        <i class="bi bi-file-earmark-excel me-1"></i>엑셀 다운로드
-    </a>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-info btn-sm" id="btnAiReport">
+            <i class="bi bi-stars me-1"></i>AI 매출 분석
+        </button>
+        <a href="/admin/sales/export?from=<?= esc($from) ?>&to=<?= esc($to) ?>&keyword=<?= esc($keyword) ?>"
+           class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>엑셀 다운로드
+        </a>
+    </div>
 </div>
+
+<!-- AI 매출 분석 리포트 -->
+<div class="card border-info mb-4 d-none" id="aiReportCard">
+    <div class="card-header bg-white fw-semibold text-info d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-stars me-1"></i>AI 매출 분석</span>
+        <button type="button" class="btn-close" id="btnCloseAiReport"></button>
+    </div>
+    <div class="card-body">
+        <div id="aiReportBody" style="white-space:pre-wrap" class="small"></div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var btn   = document.getElementById('btnAiReport');
+    var card  = document.getElementById('aiReportCard');
+    var body  = document.getElementById('aiReportBody');
+    var csrf  = { name: '<?= csrf_token() ?>', hash: '<?= csrf_hash() ?>' };
+    var params = { period: '<?= esc($period, 'js') ?>', from: '<?= esc($from, 'js') ?>', to: '<?= esc($to, 'js') ?>' };
+
+    document.getElementById('btnCloseAiReport').addEventListener('click', function () { card.classList.add('d-none'); });
+
+    btn.addEventListener('click', function () {
+        btn.disabled = true;
+        var original = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>분석 중…';
+        card.classList.remove('d-none');
+        body.textContent = '매출 데이터를 분석하고 있습니다…';
+
+        var fd = new FormData();
+        fd.append(csrf.name, csrf.hash);
+        fd.append('period', params.period);
+        fd.append('from', params.from);
+        fd.append('to', params.to);
+
+        fetch('/admin/sales/ai-report', { method: 'POST', body: fd })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) {
+                if (! res.ok || res.d.error) {
+                    body.textContent = res.d.error || 'AI 분석에 실패했습니다.';
+                    if (res.d.setup_url && confirm((res.d.error || '오류') + '\n설정으로 이동할까요?')) location.href = res.d.setup_url;
+                    return;
+                }
+                body.textContent = res.d.report;
+            })
+            .catch(function () { body.textContent = '요청 중 오류가 발생했습니다.'; })
+            .finally(function () { btn.disabled = false; btn.innerHTML = original; });
+    });
+}());
+</script>
 
 <!-- ─── 검색 / 필터 ──────────────────────────────────────────────────────── -->
 <div class="card mb-4">

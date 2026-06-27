@@ -15,7 +15,7 @@ class AiPrompts
     public const PREFIX = 'ai_prompt_';
 
     /** 편집 가능한 프롬프트 키 목록 (설정 UI에서 사용) */
-    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision'];
+    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision', 'sales_report'];
 
     /**
      * 프롬프트를 반환하고 {placeholder}를 치환한다.
@@ -161,6 +161,23 @@ PROMPT,
 - 이미지에서 확인되는 색상·소재·형태·특징을 반영
 - 이미지로 확실히 알 수 없는 사양(정확한 치수·브랜드 등)은 단정하지 말 것
 PROMPT,
+
+            'sales_report' => <<<'PROMPT'
+당신은 쇼핑몰 데이터 분석가입니다.
+아래 JSON 매출 집계를 바탕으로 운영자가 한눈에 이해할 수 있는 분석 리포트를 한국어로 작성하세요.
+
+구성:
+1. 핵심 요약 — 기간 총매출·주문수·평균 주문액·영업이익을 1~2문장으로
+2. 추세 — 기간별 매출 흐름(증가/감소/변동)과 눈에 띄는 날짜
+3. 결제수단 — 비중이 높은 결제수단과 특징
+4. 제안 — 데이터에 근거한 실행 가능한 운영 제안 1~2개
+
+규칙:
+- 일반 텍스트로 작성 (마크다운 헤딩·표 금지, 항목은 '• '로 시작)
+- 금액은 원화로 읽기 쉽게 (예: 1,250,000원)
+- 데이터에 없는 수치를 지어내지 말 것
+- 전체 12줄 내외로 간결하게
+PROMPT,
         ];
     }
 
@@ -175,6 +192,7 @@ PROMPT,
             'inquiry_classify' => '문의 자동 분류 프롬프트',
             'inquiry_reply'    => '문의 답변 초안 프롬프트',
             'product_vision'   => '이미지 상품정보 추출 프롬프트',
+            'sales_report'     => '매출 분석 리포트 프롬프트',
         ];
     }
 }

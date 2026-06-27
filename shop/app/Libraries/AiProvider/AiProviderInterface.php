@@ -61,4 +61,12 @@ interface AiProviderInterface
      * @return string 답변 초안 텍스트 (실패 시 빈 문자열)
      */
     public function generateInquiryReply(string $name, string $subject, string $message): string;
+
+    /**
+     * 매출 집계 데이터를 바탕으로 자연어 분석 리포트를 생성한다.
+     *
+     * @param  array $stats 기간·요약·기간별·결제수단별 집계 (구조화된 배열)
+     * @return string 한국어 분석 텍스트 (실패 시 빈 문자열)
+     */
+    public function generateSalesReport(array $stats): string;
 }

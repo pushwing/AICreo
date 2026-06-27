@@ -19,6 +19,44 @@ class SalesController extends BaseController
             $period = 'daily';
         }
 
+        $base = $this->baseSalesQuery($db, $from, $to, $keyword);
+
+        $periodRows = $this->salesPeriodRows($base, $period);
+        $methodRows = $this->salesMethodRows($base);
+        $summary    = $this->salesSummary($base);
+
+        $orders = (clone $base)
+            ->select('o.id, o.order_number, o.total_amount, o.payable_amount,
+                      o.shipping_fee, o.coupon_discount_amount, o.point_used_amount,
+                      o.created_at, o.receiver_name,
+                      u.nickname, u.email, p.method AS payment_method, p.pg_provider,
+                      COALESCE(oc.cost_total, 0) AS cost_total,
+                      o.payable_amount - COALESCE(oc.cost_total, 0) - o.shipping_fee AS profit', false)
+            ->orderBy('o.id', 'DESC')
+            ->limit(50)
+            ->get()->getResultArray();
+
+        $pgLabels = self::PG_LABELS;
+
+        return $this->render('admin/sales/index', compact(
+            'period', 'keyword', 'from', 'to',
+            'periodRows', 'methodRows', 'summary', 'orders', 'pgLabels'
+        ));
+    }
+
+    private const PG_LABELS = [
+        'bank_transfer' => '무통장입금',
+        'toss'          => '토스페이먼츠',
+        'inicis'        => 'KG이니시스',
+        'nicepay'       => '나이스페이',
+        'kakaopay'      => '카카오페이',
+        'naverpay'      => '네이버페이',
+        'payco'         => 'PAYCO',
+    ];
+
+    /** 매출 집계 공통 base 쿼리 (결제완료 주문 + 매입원가 조인). */
+    private function baseSalesQuery($db, string $from, string $to, string $keyword = '')
+    {
         $paidPaymentSql = "
             SELECT p1.*
             FROM payments p1
@@ -29,7 +67,6 @@ class SalesController extends BaseController
                 GROUP BY order_id
             ) latest_paid ON latest_paid.id = p1.id
         ";
-
         // 주문별 매입원가 집계 서브쿼리 (1:N 중복 합산 방지)
         $costSubSql = "SELECT order_id, SUM(qty * cost_price) AS cost_total FROM order_items GROUP BY order_id";
 
@@ -50,14 +87,19 @@ class SalesController extends BaseController
                 ->groupEnd();
         }
 
+        return $base;
+    }
+
+    /** 기간별 매출 집계 (GMV = total_amount, 실매출 = payable_amount). */
+    private function salesPeriodRows($base, string $period): array
+    {
         $groupExpr = match ($period) {
             'weekly'  => "DATE_FORMAT(DATE_SUB(o.created_at, INTERVAL (DAYOFWEEK(o.created_at)-2+7)%7 DAY), '%Y-%m-%d')",
             'monthly' => "DATE_FORMAT(o.created_at, '%Y-%m')",
             default   => "DATE(o.created_at)",
         };
 
-        // GMV = total_amount (할인 전), 실매출 = payable_amount (실 결제액)
-        $periodRows = (clone $base)
+        return (clone $base)
             ->select("{$groupExpr} AS period_key,
                 COUNT(o.id)                                                                   AS order_count,
                 SUM(o.total_amount)                                                           AS gmv,
@@ -68,15 +110,23 @@ class SalesController extends BaseController
             ->groupBy('period_key')
             ->orderBy('period_key', 'DESC')
             ->get()->getResultArray();
+    }
 
-        $methodRows = (clone $base)
+    /** 결제수단별 집계. */
+    private function salesMethodRows($base): array
+    {
+        return (clone $base)
             ->select('p.pg_provider, p.method, COUNT(o.id) AS order_count,
                 SUM(o.total_amount) AS gmv, SUM(o.payable_amount) AS revenue', false)
             ->groupBy('p.pg_provider, p.method')
             ->orderBy('revenue', 'DESC')
             ->get()->getResultArray();
+    }
 
-        $summary = (clone $base)
+    /** 기간 요약 집계. */
+    private function salesSummary($base): array
+    {
+        return (clone $base)
             ->select('COUNT(o.id) AS total_orders,
                 SUM(o.total_amount)                                                           AS total_gmv,
                 SUM(o.payable_amount)                                                         AS total_revenue,
@@ -84,33 +134,77 @@ class SalesController extends BaseController
                 AVG(o.payable_amount)                                                         AS avg_order,
                 SUM(COALESCE(oc.cost_total, 0))                                               AS total_cost,
                 SUM(o.payable_amount) - SUM(COALESCE(oc.cost_total, 0)) - SUM(o.shipping_fee) AS total_profit', false)
-            ->get()->getRowArray();
+            ->get()->getRowArray() ?? [];
+    }
 
-        $orders = (clone $base)
-            ->select('o.id, o.order_number, o.total_amount, o.payable_amount,
-                      o.shipping_fee, o.coupon_discount_amount, o.point_used_amount,
-                      o.created_at, o.receiver_name,
-                      u.nickname, u.email, p.method AS payment_method, p.pg_provider,
-                      COALESCE(oc.cost_total, 0) AS cost_total,
-                      o.payable_amount - COALESCE(oc.cost_total, 0) - o.shipping_fee AS profit', false)
-            ->orderBy('o.id', 'DESC')
-            ->limit(50)
-            ->get()->getResultArray();
+    /** POST /admin/sales/ai-report — 매출 AI 분석 리포트 (AJAX) */
+    public function aiReport(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        $period = $this->request->getPost('period') ?? 'daily';
+        $from   = $this->request->getPost('from') ?? date('Y-m-01');
+        $to     = $this->request->getPost('to')   ?? date('Y-m-d');
+        if (! in_array($period, ['daily', 'weekly', 'monthly'], true)) {
+            $period = 'daily';
+        }
 
-        $pgLabels = [
-            'bank_transfer' => '무통장입금',
-            'toss'          => '토스페이먼츠',
-            'inicis'        => 'KG이니시스',
-            'nicepay'       => '나이스페이',
-            'kakaopay'      => '카카오페이',
-            'naverpay'      => '네이버페이',
-            'payco'         => 'PAYCO',
+        $db   = \Config\Database::connect();
+        $base = $this->baseSalesQuery($db, $from, $to);
+
+        $summary = $this->salesSummary($base);
+        if ((int) ($summary['total_orders'] ?? 0) === 0) {
+            return $this->response->setJSON(['error' => '해당 기간에 매출 데이터가 없습니다.'])->setStatusCode(422);
+        }
+
+        $methodRows = array_map(fn ($m) => [
+            'label'   => self::PG_LABELS[$m['pg_provider']] ?? $m['pg_provider'],
+            'orders'  => (int) $m['order_count'],
+            'revenue' => (int) $m['revenue'],
+        ], $this->salesMethodRows($base));
+
+        $periods = array_map(fn ($r) => [
+            'period'  => $r['period_key'],
+            'orders'  => (int) $r['order_count'],
+            'revenue' => (int) $r['revenue'],
+            'profit'  => (int) $r['operating_profit'],
+        ], array_slice($this->salesPeriodRows($base, $period), 0, 31));
+
+        $stats = [
+            'period'  => $period,
+            'from'    => $from,
+            'to'      => $to,
+            'summary' => [
+                'total_orders'  => (int) $summary['total_orders'],
+                'total_revenue' => (int) $summary['total_revenue'],
+                'total_gmv'     => (int) $summary['total_gmv'],
+                'avg_order'     => (int) $summary['avg_order'],
+                'total_discount'=> (int) $summary['total_discount'],
+                'total_profit'  => (int) $summary['total_profit'],
+            ],
+            'periods' => $periods,
+            'methods' => $methodRows,
         ];
 
-        return $this->render('admin/sales/index', compact(
-            'period', 'keyword', 'from', 'to',
-            'periodRows', 'methodRows', 'summary', 'orders', 'pgLabels'
-        ));
+        try {
+            // 동일 데이터 반복 조회 시 캐시 (요약 수치 해시 포함 — 데이터 변하면 자동 무효화)
+            $key    = \App\Libraries\AiProvider\AiCache::key('sales_report', $from, $to, $period, md5(json_encode($stats['summary'])));
+            $report = \App\Libraries\AiProvider\AiCache::remember(
+                $key,
+                fn () => \App\Libraries\AiCategoryAdvisor::create()->generateSalesReport($stats),
+                3600
+            );
+            if ($report === '') {
+                return $this->response->setJSON(['error' => 'AI 응답이 비어있습니다. 잠시 후 다시 시도해주세요.'])->setStatusCode(500);
+            }
+            return $this->response->setJSON(['report' => $report]);
+        } catch (\App\Exceptions\AiKeyMissingException $e) {
+            return $this->response->setJSON([
+                'error'     => $e->getMessage(),
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
+        } catch (\Throwable $e) {
+            log_message('error', 'AiSalesReport: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => 'AI 매출 분석 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
     }
 
     public function exportExcel(): \CodeIgniter\HTTP\ResponseInterface
