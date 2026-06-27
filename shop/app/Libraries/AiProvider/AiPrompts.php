@@ -15,7 +15,7 @@ class AiPrompts
     public const PREFIX = 'ai_prompt_';
 
     /** 편집 가능한 프롬프트 키 목록 (설정 UI에서 사용) */
-    public const KEYS = ['category', 'description', 'qna', 'review_summary'];
+    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply'];
 
     /**
      * 프롬프트를 반환하고 {placeholder}를 치환한다.
@@ -113,6 +113,40 @@ PROMPT,
 - negative_review_ids는 별점 불만·환불·하자 등 명확히 부정적인 리뷰의 id만 포함
 - 리뷰에 없는 내용을 지어내지 말 것
 PROMPT,
+
+            'inquiry_classify' => <<<'PROMPT'
+당신은 쇼핑몰 고객 문의 분류 담당자입니다.
+아래 문의를 분석하여 분류·우선순위·감성을 판정하세요.
+
+반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 금지):
+{"category": "...", "priority": "...", "sentiment": "..."}
+
+category (다음 중 하나):
+- shipping: 배송 지연·조회·누락 등 배송 관련
+- refund: 환불·취소·반품 요청
+- product: 상품 상태·옵션·재고·사용법 등 상품 관련
+- payment: 결제 오류·영수증·세금계산서 등 결제 관련
+- etc: 위에 해당하지 않는 기타
+
+priority (다음 중 하나):
+- high: 즉시 대응 필요 (결제 오류, 강한 불만, 오배송 등)
+- normal: 일반 문의
+- low: 단순 질문·정보성
+
+sentiment: positive | neutral | negative 중 하나
+PROMPT,
+
+            'inquiry_reply' => <<<'PROMPT'
+당신은 쇼핑몰 고객 서비스 담당자입니다.
+고객 문의에 대해 이메일로 보낼 정중하고 전문적인 답변 초안을 한국어로 작성하세요.
+
+규칙:
+- "안녕하세요, {고객명}님" 형태의 인사로 시작
+- 문의 내용에 직접적으로 답변
+- 확실하지 않은 정보는 "확인 후 안내드리겠습니다"로 처리
+- 감사 인사와 함께 마무리
+- 3~6문장의 이메일 본문, 일반 텍스트로 작성 (HTML·마크다운 금지)
+PROMPT,
         ];
     }
 
@@ -120,10 +154,12 @@ PROMPT,
     public static function labels(): array
     {
         return [
-            'category'       => '카테고리 추천 프롬프트',
-            'description'    => '상품 설명 생성 프롬프트',
-            'qna'            => '상품 문의 답변 프롬프트',
-            'review_summary' => '리뷰 요약 프롬프트',
+            'category'         => '카테고리 추천 프롬프트',
+            'description'      => '상품 설명 생성 프롬프트',
+            'qna'              => '상품 문의 답변 프롬프트',
+            'review_summary'   => '리뷰 요약 프롬프트',
+            'inquiry_classify' => '문의 자동 분류 프롬프트',
+            'inquiry_reply'    => '문의 답변 초안 프롬프트',
         ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Libraries\AiProvider;
 class ClaudeProvider implements AiProviderInterface
 {
     use ReviewSummaryParsing;
+    use InquiryParsing;
 
     private const API_URL = 'https://api.anthropic.com/v1/messages';
     private const MODEL   = 'claude-haiku-4-5-20251001';
@@ -199,6 +200,48 @@ class ClaudeProvider implements AiProviderInterface
 
         $data = json_decode($raw, true);
         return $this->parseSummary($data['content'][0]['text'] ?? '');
+    }
+
+    public function classifyInquiry(string $subject, string $message): array
+    {
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 128,
+            'system'     => AiPrompts::get('inquiry_classify'),
+            'messages'   => [
+                ['role' => 'user', 'content' => $this->buildInquiryMessage($subject, $message)],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 20);
+        if ($raw === false) {
+            return $this->emptyClassification();
+        }
+
+        $data = json_decode($raw, true);
+        return $this->parseClassification($data['content'][0]['text'] ?? '');
+    }
+
+    public function generateInquiryReply(string $name, string $subject, string $message): string
+    {
+        $cleanMsg = mb_substr(strip_tags($message), 0, 1000);
+
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 600,
+            'system'     => AiPrompts::get('inquiry_reply'),
+            'messages'   => [
+                ['role' => 'user', 'content' => "고객명: {$name}\n제목: {$subject}\n문의 내용: {$cleanMsg}"],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 30);
+        if ($raw === false) {
+            return '';
+        }
+
+        $data = json_decode($raw, true);
+        return $data['content'][0]['text'] ?? '';
     }
 
     protected function callApi(string $payload, int $timeout = 15): string|false

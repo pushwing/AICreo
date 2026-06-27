@@ -63,6 +63,8 @@ class StubSummaryProvider implements AiProviderInterface
     public function generateDescription(string $name, string $description): string { return ''; }
     public function generateQnaAnswer(string $p, string $d, string $t, string $c): string { return ''; }
     public function summarizeReviews(string $productName, array $reviews): array { return $this->canned; }
+    public function classifyInquiry(string $subject, string $message): array { return []; }
+    public function generateInquiryReply(string $name, string $subject, string $message): string { return ''; }
 }
 
 class FakeProductModel extends ProductModel
