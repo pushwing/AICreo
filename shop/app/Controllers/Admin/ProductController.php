@@ -480,10 +480,11 @@ class ProductController extends BaseController
         }
 
         try {
-            $ids = AiCategoryAdvisor::create()->suggestCategories(
-                $name,
-                $description,
-                $this->categoryModel->getTree()
+            $tree = $this->categoryModel->getTree();
+            // 동일 상품명·설명 재요청 시 캐시 사용 (카테고리 구조 변경도 키에 반영)
+            $ids  = \App\Libraries\AiProvider\AiCache::remember(
+                \App\Libraries\AiProvider\AiCache::key('category', $name, $description, md5(json_encode($tree))),
+                fn () => AiCategoryAdvisor::create()->suggestCategories($name, $description, $tree)
             );
             return $this->response->setJSON(['category_ids' => $ids]);
         } catch (AiKeyMissingException $e) {
