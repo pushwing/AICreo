@@ -136,6 +136,10 @@
                 <span class="badge bg-danger ms-1 d-none" id="badge-qna">0</span>
                 <?php endif; ?>
             </a>
+            <a href="/admin/reviews" class="nav-sublink <?= str_starts_with($uri, 'admin/reviews') ? 'active' : '' ?>">
+                <i class="bi bi-star-half me-2"></i>리뷰 관리
+                <span class="badge bg-danger ms-1 d-none" id="badge-reviews" title="AI가 감지한 부정 리뷰">0</span>
+            </a>
             <div class="nav-subgroup">분석·관리</div>
             <a href="/admin/stats" class="nav-sublink <?= str_starts_with($uri, 'admin/stats') ? 'active' : '' ?>"><i class="bi bi-bar-chart-line me-2"></i>접속 통계</a>
             <a href="/admin/menus" class="nav-sublink <?= str_starts_with($uri, 'admin/menus') ? 'active' : '' ?>"><i class="bi bi-list-ul me-2"></i>메뉴 관리</a>
@@ -259,6 +263,7 @@
                 setBadge('badge-qna',       d.unanswered_qna  || 0);
                 setBadge('badge-low-stock', d.low_stock       || 0);
                 setBadge('badge-orders',    d.pending_orders  || 0);
+                setBadge('badge-reviews',   d.negative_reviews|| 0);
                 setBadge('badge-total',     d.total           || 0);
             })
             .catch(function() {});

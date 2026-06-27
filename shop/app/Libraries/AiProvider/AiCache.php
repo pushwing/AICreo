@@ -60,6 +60,18 @@ class AiCache
         return self::PREFIX . $feature . '_' . substr(md5(implode('|', $parts)), 0, 16);
     }
 
+    /** 결과를 직접 저장한다 (워커가 백그라운드에서 생성한 결과 적재용). */
+    public static function put(string $key, mixed $value, int $ttl = self::DEFAULT_TTL): void
+    {
+        service('cache')->save($key, $value, $ttl);
+    }
+
+    /** 캐시된 값을 반환한다 (없으면 null). */
+    public static function get(string $key): mixed
+    {
+        return service('cache')->get($key);
+    }
+
     /** 특정 캐시 키 무효화 */
     public static function forget(string $key): void
     {

@@ -4,6 +4,8 @@ namespace App\Libraries\AiProvider;
 
 class ClaudeProvider implements AiProviderInterface
 {
+    use ReviewSummaryParsing;
+
     private const API_URL = 'https://api.anthropic.com/v1/messages';
     private const MODEL   = 'claude-haiku-4-5-20251001';
 
@@ -173,6 +175,30 @@ class ClaudeProvider implements AiProviderInterface
 
         $data = json_decode($raw, true);
         return $data['content'][0]['text'] ?? '';
+    }
+
+    public function summarizeReviews(string $productName, array $reviews): array
+    {
+        if ($reviews === []) {
+            return $this->emptySummary();
+        }
+
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 1024,
+            'system'     => AiPrompts::get('review_summary'),
+            'messages'   => [
+                ['role' => 'user', 'content' => $this->buildReviewMessage($productName, $reviews)],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 30);
+        if ($raw === false) {
+            return $this->emptySummary();
+        }
+
+        $data = json_decode($raw, true);
+        return $this->parseSummary($data['content'][0]['text'] ?? '');
     }
 
     protected function callApi(string $payload, int $timeout = 15): string|false

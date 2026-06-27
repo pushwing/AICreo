@@ -179,6 +179,9 @@ class ShopController extends BaseController
             'reviewPerPage'   => $reviewPerPage,
             'canWriteReview'  => $canWriteReview,
             'reviewOrderId'   => $reviewOrderId,
+            'reviewSummary'   => \App\Libraries\AiProvider\AiCache::get(
+                \App\Libraries\AiProvider\ReviewSummaryHandler::cacheKey((int) $product['id'])
+            ),
             // 찜 / 최근 본 상품
             'isWished'        => $isWished,
             'recentProducts'  => $recentProducts,
@@ -314,6 +317,9 @@ class ShopController extends BaseController
             ]);
         }
 
+        // AI 리뷰 요약 재생성 (백그라운드 워커가 처리)
+        \App\Libraries\AiProvider\ReviewSummaryHandler::enqueue((int) $product['id']);
+
         if (mb_strlen($content) >= 30 && count($uploadedImages) >= 1) {
             $this->reviewModel->grantPoints($reviewId, $userId);
             return $this->response->setJSON(['success' => true, 'message' => '리뷰가 등록되었습니다. 150 포인트가 적립되었습니다!']);
@@ -332,6 +338,12 @@ class ShopController extends BaseController
 
         if (! $this->reviewModel->deleteReview($id, $userId)) {
             return $this->response->setJSON(['success' => false, 'message' => '삭제할 수 없습니다.']);
+        }
+
+        // AI 리뷰 요약 재생성
+        $product = $this->productModel->where('slug', $slug)->first();
+        if ($product) {
+            \App\Libraries\AiProvider\ReviewSummaryHandler::enqueue((int) $product['id']);
         }
 
         return $this->response->setJSON(['success' => true]);

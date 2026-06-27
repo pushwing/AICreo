@@ -25,13 +25,19 @@ class NotificationController extends BaseController
             ->table('orders')
             ->whereIn('status', ['paid', 'awaiting_payment'])
             ->countAllResults();
+        $negativeReviews = (int) \Config\Database::connect()
+            ->table('product_reviews')
+            ->where('is_negative', 1)
+            ->where('is_hidden', 0)
+            ->countAllResults();
 
         return $this->response->setJSON([
             'unread_inquiries' => $unreadInquiries,
             'unanswered_qna'   => $unansweredQna,
             'low_stock'        => $lowStock,
             'pending_orders'   => $pendingOrders,
-            'total'            => $unreadInquiries + $unansweredQna + $lowStock + $pendingOrders,
+            'negative_reviews' => $negativeReviews,
+            'total'            => $unreadInquiries + $unansweredQna + $lowStock + $pendingOrders + $negativeReviews,
         ]);
     }
 }

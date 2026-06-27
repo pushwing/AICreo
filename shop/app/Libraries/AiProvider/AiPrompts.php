@@ -15,7 +15,7 @@ class AiPrompts
     public const PREFIX = 'ai_prompt_';
 
     /** 편집 가능한 프롬프트 키 목록 (설정 UI에서 사용) */
-    public const KEYS = ['category', 'description', 'qna'];
+    public const KEYS = ['category', 'description', 'qna', 'review_summary'];
 
     /**
      * 프롬프트를 반환하고 {placeholder}를 치환한다.
@@ -93,6 +93,26 @@ PROMPT,
 - 2~4문장의 간결한 답변
 - 일반 텍스트로 작성 (HTML·마크다운 사용 금지)
 PROMPT,
+
+            'review_summary' => <<<'PROMPT'
+당신은 쇼핑몰 상품 리뷰 분석 전문가입니다.
+아래 구매자 리뷰들을 분석하여 예비 구매자에게 도움이 되도록 요약하세요.
+
+반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 금지):
+{
+  "summary": "리뷰 전반을 2~3문장으로 요약한 한국어 텍스트",
+  "pros": ["자주 언급된 장점", "..."],
+  "cons": ["자주 언급된 단점이나 아쉬운 점", "..."],
+  "sentiment": "positive | mixed | negative 중 하나",
+  "negative_review_ids": [명확히 부정적·불만인 리뷰의 id 숫자 배열]
+}
+
+규칙:
+- pros·cons는 각각 최대 4개, 짧은 명사구로
+- 단점이 없으면 cons는 빈 배열
+- negative_review_ids는 별점 불만·환불·하자 등 명확히 부정적인 리뷰의 id만 포함
+- 리뷰에 없는 내용을 지어내지 말 것
+PROMPT,
         ];
     }
 
@@ -100,9 +120,10 @@ PROMPT,
     public static function labels(): array
     {
         return [
-            'category'    => '카테고리 추천 프롬프트',
-            'description' => '상품 설명 생성 프롬프트',
-            'qna'         => '상품 문의 답변 프롬프트',
+            'category'       => '카테고리 추천 프롬프트',
+            'description'    => '상품 설명 생성 프롬프트',
+            'qna'            => '상품 문의 답변 프롬프트',
+            'review_summary' => '리뷰 요약 프롬프트',
         ];
     }
 }
