@@ -152,6 +152,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 재고 관리
     $routes->get( 'inventory',                        'Admin\InventoryController::index');
+    $routes->get( 'inventory/suggestions',            'Admin\InventoryController::suggestions');
     $routes->post('inventory/(:num)/adjust',          'Admin\InventoryController::adjust/$1');
     $routes->get( 'inventory/(:num)/logs',            'Admin\InventoryController::logs/$1');
 
