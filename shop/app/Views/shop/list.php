@@ -17,6 +17,8 @@
         </form>
     </div>
 
+    <?= view('shop/components/recommend', ['recommended' => $recommended ?? []]) ?>
+
     <div class="row g-4">
 
         <!-- 필터 사이드바 -->

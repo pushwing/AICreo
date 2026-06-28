@@ -309,10 +309,38 @@ class ProductController extends BaseController
 
         $settings = model('SettingModel')->getAllAsMap();
         $mailer   = new Mailer($settings);
+
+        // 상품당 1회만 AI 개인화 문구 생성·캐시 → 모든 수신자에 재사용 (키 없으면 기본 문구)
+        $aiMessage = $this->restockAiMessage($product);
+
         foreach ($pending as $alert) {
-            $mailer->sendRestockAlert($alert['email'], $product);
+            $mailer->sendRestockAlert($alert['email'], $product, $aiMessage);
         }
         $alertModel->markNotified((int) $product['id']);
+    }
+
+    /** 재입고 알림용 AI 개인화 문구 (상품별 캐시, 실패 시 null로 폴백). */
+    private function restockAiMessage(array $product): ?string
+    {
+        try {
+            $key = \App\Libraries\AiProvider\AiCache::key(
+                'restock_msg',
+                (string) $product['id'],
+                md5((string) ($product['name'] ?? ''))
+            );
+            $message = \App\Libraries\AiProvider\AiCache::remember(
+                $key,
+                fn () => AiCategoryAdvisor::create()->generateRestockMessage(
+                    (string) ($product['name'] ?? ''),
+                    (string) ($product['description'] ?? '')
+                ),
+                86400
+            );
+            return $message !== '' ? $message : null;
+        } catch (\Throwable $e) {
+            log_message('error', 'AiRestockMessage: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function copy(int $id): \CodeIgniter\HTTP\RedirectResponse
@@ -480,10 +508,11 @@ class ProductController extends BaseController
         }
 
         try {
-            $ids = AiCategoryAdvisor::create()->suggestCategories(
-                $name,
-                $description,
-                $this->categoryModel->getTree()
+            $tree = $this->categoryModel->getTree();
+            // 동일 상품명·설명 재요청 시 캐시 사용 (카테고리 구조 변경도 키에 반영)
+            $ids  = \App\Libraries\AiProvider\AiCache::remember(
+                \App\Libraries\AiProvider\AiCache::key('category', $name, $description, md5(json_encode($tree))),
+                fn () => AiCategoryAdvisor::create()->suggestCategories($name, $description, $tree)
             );
             return $this->response->setJSON(['category_ids' => $ids]);
         } catch (AiKeyMissingException $e) {
@@ -622,6 +651,52 @@ class ProductController extends BaseController
         } catch (\Throwable $e) {
             log_message('error', 'AiDescriptionGenerator: ' . $e->getMessage());
             return $this->response->setJSON(['error' => 'AI 설명 생성 중 오류가 발생했습니다.'])->setStatusCode(500);
+        }
+    }
+
+    /** POST /admin/products/extract-from-image — 이미지(Vision)로 상품명·설명 추출 (AJAX) */
+    public function extractFromImage(): \CodeIgniter\HTTP\ResponseInterface
+    {
+        // Vision은 Claude 전용 — Anthropic 키가 있으면 ai_provider 설정과 무관하게 Claude 사용
+        $settings = model('SettingModel')->getAllAsMap();
+        $apiKey   = ($settings['anthropic_api_key'] ?? '') ?: env('ANTHROPIC_API_KEY', '');
+        if ($apiKey === '') {
+            return $this->response->setJSON([
+                'error'     => '이미지 분석(Vision)은 Claude(Anthropic) API 키가 필요합니다. 설정에서 등록해주세요.',
+                'setup_url' => '/admin/settings/api',
+            ])->setStatusCode(422);
+        }
+
+        $file = $this->request->getFile('image');
+        if ($file === null || ! $file->isValid()) {
+            return $this->response->setJSON(['error' => '이미지를 선택해주세요.'])->setStatusCode(422);
+        }
+
+        $mime    = $file->getMimeType();
+        $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (! in_array($mime, $allowed, true)) {
+            return $this->response->setJSON(['error' => '지원하지 않는 형식입니다. (jpg, png, gif, webp)'])->setStatusCode(422);
+        }
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            return $this->response->setJSON(['error' => '이미지 용량은 5MB 이하만 가능합니다.'])->setStatusCode(422);
+        }
+
+        try {
+            $bytes = file_get_contents($file->getTempName());
+            if ($bytes === false) {
+                return $this->response->setJSON(['error' => '이미지를 읽을 수 없습니다.'])->setStatusCode(500);
+            }
+
+            $result = (new \App\Libraries\AiProvider\ClaudeProvider())
+                ->extractProductInfo(base64_encode($bytes), $mime);
+
+            if ($result['name'] === '') {
+                return $this->response->setJSON(['error' => '이미지에서 상품 정보를 추출하지 못했습니다. 다시 시도해주세요.'])->setStatusCode(500);
+            }
+            return $this->response->setJSON($result);
+        } catch (\Throwable $e) {
+            log_message('error', 'AiVision: ' . $e->getMessage());
+            return $this->response->setJSON(['error' => 'AI 이미지 분석 중 오류가 발생했습니다.'])->setStatusCode(500);
         }
     }
 

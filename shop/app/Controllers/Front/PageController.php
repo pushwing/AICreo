@@ -52,7 +52,7 @@ class PageController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        (new InquiryModel())->insert([
+        $inquiryId = (int) (new InquiryModel())->insert([
             'name'       => $this->request->getPost('name'),
             'email'      => $this->request->getPost('email'),
             'phone'      => $this->request->getPost('phone'),
@@ -60,6 +60,9 @@ class PageController extends BaseController
             'message'    => $this->request->getPost('message'),
             'ip_address' => $this->request->getIPAddress(),
         ]);
+
+        // AI 자동 분류 (백그라운드 워커가 처리)
+        \App\Libraries\AiProvider\InquiryClassifyHandler::enqueue($inquiryId);
 
         // 관리자 이메일 발송 (설정에서 수신 이메일 읽기)
         $toEmail = $this->viewData['settings']['email'] ?? '';

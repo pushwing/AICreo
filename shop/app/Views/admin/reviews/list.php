@@ -57,7 +57,10 @@
               cellRenderer: function(p) {
                   var s = p.value || '';
                   if (s.length > 60) s = s.substring(0, 60) + '…';
-                  return '<span class="small">' + esc(s) + '</span>';
+                  var flag = p.data.is_negative
+                      ? '<span class="badge bg-danger me-1" title="AI가 부정 리뷰로 감지">AI 부정</span>'
+                      : '';
+                  return flag + '<span class="small">' + esc(s) + '</span>';
               }},
             { headerName: '이미지', field: 'image_count', width: 80, type: 'numericColumn',
               cellRenderer: function(p) {

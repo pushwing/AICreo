@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "76f38dff738c2ad599a60268c4616cb2",
+    "content-hash": "52c885359ffa60d07db1837f195e919c",
     "packages": [
         {
             "name": "codeigniter4/queue",

@@ -64,7 +64,7 @@ class MockGroqProvider extends GroqProvider
 
     public function exposeDescriptionSystemPrompt(): string
     {
-        return $this->descriptionSystemPrompt();
+        return \App\Libraries\AiProvider\AiPrompts::defaults()['description'];
     }
 }
 

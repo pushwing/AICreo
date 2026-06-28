@@ -33,4 +33,47 @@ interface AiProviderInterface
      * @return string                     생성된 답변 텍스트 (실패 시 빈 문자열)
      */
     public function generateQnaAnswer(string $productName, string $productDescription, string $questionTitle, string $questionContent): string;
+
+    /**
+     * 상품 리뷰 목록을 요약하고 장단점·감성을 분석한다.
+     *
+     * @param  string $productName 상품명
+     * @param  array  $reviews     [['id' => int, 'content' => string], ...]
+     * @return array{summary:string, pros:string[], cons:string[], sentiment:string, negative_review_ids:int[]}
+     *               실패 시 빈 요약(summary='')을 담은 기본 구조를 반환한다.
+     *               sentiment: 'positive' | 'mixed' | 'negative'
+     */
+    public function summarizeReviews(string $productName, array $reviews): array;
+
+    /**
+     * 고객 문의를 분류·우선순위·감성으로 판정한다.
+     *
+     * @return array{category:string, priority:string, sentiment:string}
+     *               category: shipping|refund|product|payment|etc
+     *               priority: high|normal|low / sentiment: positive|neutral|negative
+     *               실패 시 안전한 기본값(etc/normal/neutral)을 반환한다.
+     */
+    public function classifyInquiry(string $subject, string $message): array;
+
+    /**
+     * 고객 문의에 대한 이메일 답변 초안을 생성한다.
+     *
+     * @return string 답변 초안 텍스트 (실패 시 빈 문자열)
+     */
+    public function generateInquiryReply(string $name, string $subject, string $message): string;
+
+    /**
+     * 매출 집계 데이터를 바탕으로 자연어 분석 리포트를 생성한다.
+     *
+     * @param  array $stats 기간·요약·기간별·결제수단별 집계 (구조화된 배열)
+     * @return string 한국어 분석 텍스트 (실패 시 빈 문자열)
+     */
+    public function generateSalesReport(array $stats): string;
+
+    /**
+     * 재입고 알림 메일에 넣을 개인화된 안내 문구를 생성한다.
+     *
+     * @return string 2~3문장의 일반 텍스트 (실패 시 빈 문자열 → 호출처에서 기본 문구로 폴백)
+     */
+    public function generateRestockMessage(string $productName, string $productDescription): string;
 }

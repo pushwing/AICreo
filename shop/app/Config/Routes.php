@@ -116,6 +116,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 문의 수신함
     $routes->get( 'inquiries',              'Admin\InquiryController::index');
     $routes->get( 'inquiries/(:num)',       'Admin\InquiryController::view/$1');
+    $routes->post('inquiries/(:num)/suggest-reply', 'Admin\InquiryController::suggestReply/$1');
     $routes->post('inquiries/(:num)/delete','Admin\InquiryController::delete/$1');
 
     // 상품 관리
@@ -139,6 +140,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     $routes->post('products/assign-category',               'Admin\ProductController::assignCategory');
     $routes->post('products/suggest-category',              'Admin\ProductController::suggestCategory');
     $routes->post('products/generate-description',          'Admin\ProductController::generateDescription');
+    $routes->post('products/extract-from-image',            'Admin\ProductController::extractFromImage');
     $routes->get( 'products/naver-search',                  'Admin\ProductController::naverSearch');
     $routes->post('products/import-image',                  'Admin\ProductController::importImage');
     $routes->get( 'products/categories',                     'Admin\ProductController::categories');
@@ -150,12 +152,14 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
 
     // 재고 관리
     $routes->get( 'inventory',                        'Admin\InventoryController::index');
+    $routes->get( 'inventory/suggestions',            'Admin\InventoryController::suggestions');
     $routes->post('inventory/(:num)/adjust',          'Admin\InventoryController::adjust/$1');
     $routes->get( 'inventory/(:num)/logs',            'Admin\InventoryController::logs/$1');
 
     // 매출 관리
-    $routes->get('sales',        'Admin\SalesController::index');
-    $routes->get('sales/export', 'Admin\SalesController::exportExcel');
+    $routes->get('sales',         'Admin\SalesController::index');
+    $routes->get('sales/export',  'Admin\SalesController::exportExcel');
+    $routes->post('sales/ai-report', 'Admin\SalesController::aiReport');
 
     // 쿠폰 관리
     $routes->get( 'coupons/json',               'Admin\CouponController::json');

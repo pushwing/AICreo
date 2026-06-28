@@ -32,7 +32,7 @@ class ReviewController extends BaseController
     {
         $db   = \Config\Database::connect();
         $rows = $db->table('product_reviews r')
-            ->select('r.id, r.content, r.is_rewarded, r.is_hidden, r.created_at,
+            ->select('r.id, r.content, r.is_rewarded, r.is_hidden, r.is_negative, r.created_at,
                       p.name AS product_name, p.slug AS product_slug,
                       u.nickname, u.username')
             ->join('products p', 'p.id = r.product_id')
@@ -57,6 +57,7 @@ class ReviewController extends BaseController
             'image_count'  => count($byReview[(int) $r['id']] ?? []),
             'is_rewarded'  => (int) $r['is_rewarded'],
             'is_hidden'    => (int) ($r['is_hidden'] ?? 0),
+            'is_negative'  => (int) ($r['is_negative'] ?? 0),
             'created_at'   => $r['created_at'],
         ], $rows);
 
@@ -66,17 +67,23 @@ class ReviewController extends BaseController
     /** POST /admin/reviews/:id/toggle-hidden */
     public function toggleHidden(int $id): \CodeIgniter\HTTP\ResponseInterface
     {
-        $next = $this->model->toggleHidden($id);
+        $review = $this->model->find($id);
+        $next   = $this->model->toggleHidden($id);
         if ($next === -1) {
             return $this->response->setStatusCode(404)->setJSON(['error' => '리뷰를 찾을 수 없습니다.']);
         }
+        // 노출 변경 → AI 요약 재생성
+        \App\Libraries\AiProvider\ReviewSummaryHandler::enqueue((int) ($review['product_id'] ?? 0));
         return $this->response->setJSON(['is_hidden' => $next]);
     }
 
     /** POST /admin/reviews/:id/delete */
     public function delete(int $id): \CodeIgniter\HTTP\RedirectResponse
     {
+        $review = $this->model->find($id);
         $this->model->deleteReview($id);
+        // 삭제 → AI 요약 재생성
+        \App\Libraries\AiProvider\ReviewSummaryHandler::enqueue((int) ($review['product_id'] ?? 0));
         return redirect()->to('/admin/reviews')->with('success', '리뷰가 삭제되었습니다.');
     }
 }
