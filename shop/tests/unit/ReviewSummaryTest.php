@@ -67,6 +67,7 @@ class StubSummaryProvider implements AiProviderInterface
     public function generateInquiryReply(string $name, string $subject, string $message): string { return ''; }
     public function generateSalesReport(array $stats): string { return ''; }
     public function generateRestockMessage(string $productName, string $productDescription): string { return ''; }
+    public function expandSearchQuery(string $query): array { return []; }
 }
 
 class FakeProductModel extends ProductModel

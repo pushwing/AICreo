@@ -362,6 +362,13 @@ class ShopController extends BaseController
             'only_discount'=> $this->request->getGet('only_discount'),
         ];
 
+        // 시맨틱 검색: 검색어를 AI로 확장해 재현율 향상 (AI 미설정 시 일반 검색)
+        $expandedTerms = [];
+        if (! empty($params['keyword'])) {
+            $expandedTerms = (new \App\Libraries\SemanticSearchService())->expand((string) $params['keyword']);
+            $params['expanded_terms'] = $expandedTerms;
+        }
+
         $result = $this->productModel->getList($params);
 
         $this->imageModel->attachPrimaryImages($result['items']);
@@ -396,6 +403,7 @@ class ShopController extends BaseController
             'onlyDiscount' => (bool) $params['only_discount'],
             'wishedIds'    => $wishedIds,
             'recommended'  => $recommended,
+            'expandedTerms'=> $expandedTerms,
         ]));
     }
 

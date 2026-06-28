@@ -15,7 +15,7 @@ class AiPrompts
     public const PREFIX = 'ai_prompt_';
 
     /** 편집 가능한 프롬프트 키 목록 (설정 UI에서 사용) */
-    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision', 'sales_report', 'restock_message'];
+    public const KEYS = ['category', 'description', 'qna', 'review_summary', 'inquiry_classify', 'inquiry_reply', 'product_vision', 'sales_report', 'restock_message', 'search_expand'];
 
     /**
      * 프롬프트를 반환하고 {placeholder}를 치환한다.
@@ -189,6 +189,20 @@ PROMPT,
 - 2~3문장, 일반 텍스트로 작성 (HTML·마크다운·이모지 금지)
 - 상품 설명에 없는 사실(할인율·수량 등)은 지어내지 말 것
 PROMPT,
+
+            'search_expand' => <<<'PROMPT'
+당신은 쇼핑몰 검색 도우미입니다.
+사용자의 검색어를 분석하여 상품을 더 잘 찾도록 의미 기반으로 확장하세요.
+
+반드시 아래 JSON 형식으로만 응답하세요 (다른 텍스트 금지):
+{"terms": ["보정된 검색어", "동의어", "관련어", "..."]}
+
+규칙:
+- 오타·띄어쓰기 오류가 있으면 교정한 표현을 포함
+- 동의어·유의어·상위/하위 개념 등 상품 검색에 도움되는 한국어 키워드 포함
+- 각 항목은 짧은 단어/구 (15자 이내), 최대 6개
+- 원래 검색어와 무관한 일반어(예: "상품", "추천")는 넣지 말 것
+PROMPT,
         ];
     }
 
@@ -205,6 +219,7 @@ PROMPT,
             'product_vision'   => '이미지 상품정보 추출 프롬프트',
             'sales_report'     => '매출 분석 리포트 프롬프트',
             'restock_message'  => '재입고 알림 개인화 프롬프트',
+            'search_expand'    => '검색어 의미 확장 프롬프트',
         ];
     }
 }
