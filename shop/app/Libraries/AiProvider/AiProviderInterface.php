@@ -76,4 +76,11 @@ interface AiProviderInterface
      * @return string 2~3문장의 일반 텍스트 (실패 시 빈 문자열 → 호출처에서 기본 문구로 폴백)
      */
     public function generateRestockMessage(string $productName, string $productDescription): string;
+
+    /**
+     * 검색어를 의미 기반으로 확장한다 (오타 교정 · 동의어 · 관련어).
+     *
+     * @return string[] 확장된 검색어 목록 (실패 시 빈 배열)
+     */
+    public function expandSearchQuery(string $query): array;
 }
