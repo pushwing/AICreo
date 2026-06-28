@@ -6,6 +6,7 @@ use App\Exceptions\AiKeyMissingException;
 use App\Libraries\AiCategoryAdvisor;
 use App\Libraries\AiProvider\ClaudeProvider;
 use App\Libraries\AiProvider\GroqProvider;
+use App\Libraries\AiProvider\OpenRouterProvider;
 use CodeIgniter\Test\CIUnitTestCase;
 
 /**
@@ -80,29 +81,70 @@ class MockClaudeProvider extends ClaudeProvider
     }
 }
 
+class MockOpenRouterProvider extends OpenRouterProvider
+{
+    public string $lastPayload = '';
+
+    public function __construct(private string $mockRaw, private bool $success = true)
+    {
+        parent::__construct();
+    }
+
+    protected function callApi(string $payload, int $timeout = 15): string|false
+    {
+        $data          = json_decode($payload, true);
+        $data['model'] = $this->model;
+        $this->lastPayload = (string) json_encode($data);
+        return $this->success ? $this->mockRaw : false;
+    }
+}
+
 // ── 테스트 클래스 ─────────────────────────────────────────────────────────────
 final class AiCategoryAdvisorTest extends CIUnitTestCase
 {
-    private string $originalProvider  = '';
-    private string $originalGroqKey   = '';
-    private string $originalClaudeKey = '';
+    private static bool $tableCreated = false;
+
+    private string $originalProvider       = '';
+    private string $originalGroqKey        = '';
+    private string $originalClaudeKey      = '';
+    private string $originalOpenRouterKey  = '';
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->originalProvider  = $_ENV['AI_PROVIDER']       ?? getenv('AI_PROVIDER')       ?: '';
-        $this->originalGroqKey   = $_ENV['GROQ_API_KEY']      ?? getenv('GROQ_API_KEY')      ?: '';
-        $this->originalClaudeKey = $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY') ?: '';
+
+        // SQLite in-memory 테스트 DB에 settings 테이블 생성 (한 번만)
+        if (! self::$tableCreated) {
+            $db    = \Config\Database::connect();
+            $table = $db->getPrefix() . 'settings';
+            $db->query("CREATE TABLE IF NOT EXISTS {$table} (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                \"group\" VARCHAR(30)  NOT NULL DEFAULT 'general',
+                key      VARCHAR(100) NOT NULL,
+                value    TEXT,
+                label    VARCHAR(255) DEFAULT NULL,
+                type     VARCHAR(50)  DEFAULT 'text',
+                updated_at DATETIME   DEFAULT NULL
+            )");
+            self::$tableCreated = true;
+        }
+
+        $this->originalProvider      = $_ENV['AI_PROVIDER']        ?? getenv('AI_PROVIDER')        ?: '';
+        $this->originalGroqKey       = $_ENV['GROQ_API_KEY']       ?? getenv('GROQ_API_KEY')       ?: '';
+        $this->originalClaudeKey     = $_ENV['ANTHROPIC_API_KEY']  ?? getenv('ANTHROPIC_API_KEY')  ?: '';
+        $this->originalOpenRouterKey = $_ENV['OPENROUTER_API_KEY'] ?? getenv('OPENROUTER_API_KEY') ?: '';
         // factory 테스트가 AiKeyMissingException 없이 동작하도록 dummy key 설정
-        $this->setApiKey('GROQ_API_KEY', 'test_groq_dummy');
-        $this->setApiKey('ANTHROPIC_API_KEY', 'test_claude_dummy');
+        $this->setApiKey('GROQ_API_KEY',       'test_groq_dummy');
+        $this->setApiKey('ANTHROPIC_API_KEY',  'test_claude_dummy');
+        $this->setApiKey('OPENROUTER_API_KEY', 'test_openrouter_dummy');
     }
 
     protected function tearDown(): void
     {
         $this->setProvider($this->originalProvider);
-        $this->setApiKey('GROQ_API_KEY', $this->originalGroqKey);
-        $this->setApiKey('ANTHROPIC_API_KEY', $this->originalClaudeKey);
+        $this->setApiKey('GROQ_API_KEY',       $this->originalGroqKey);
+        $this->setApiKey('ANTHROPIC_API_KEY',  $this->originalClaudeKey);
+        $this->setApiKey('OPENROUTER_API_KEY', $this->originalOpenRouterKey);
         parent::tearDown();
     }
 
@@ -201,6 +243,27 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
         $this->assertInstanceOf(ClaudeProvider::class, $provider);
     }
 
+    public function testFactoryThrowsWhenOpenRouterKeyEmpty(): void
+    {
+        $dbSettings = model('SettingModel')->getAllAsMap();
+        if (! empty($dbSettings['openrouter_api_key'])) {
+            $this->markTestSkipped('settings DB에 openrouter_api_key가 저장돼 있어 건너뜀 — 키 없는 환경에서만 유효');
+        }
+        $this->setProvider('openrouter');
+        $this->setApiKey('OPENROUTER_API_KEY', '');
+        $this->expectException(AiKeyMissingException::class);
+        $this->expectExceptionMessageMatches('/OpenRouter/');
+        AiCategoryAdvisor::create();
+    }
+
+    public function testFactoryDoesNotThrowWhenOpenRouterKeyPresent(): void
+    {
+        $this->setProvider('openrouter');
+        $this->setApiKey('OPENROUTER_API_KEY', 'sk-or-dummy');
+        $provider = AiCategoryAdvisor::create();
+        $this->assertInstanceOf(OpenRouterProvider::class, $provider);
+    }
+
     // ── Factory ───────────────────────────────────────────────────────────────
 
     public function testFactoryReturnsGroqProviderByDefault(): void
@@ -225,6 +288,12 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
     {
         $this->setProvider('unknown');
         $this->assertInstanceOf(GroqProvider::class, AiCategoryAdvisor::create());
+    }
+
+    public function testFactoryReturnsOpenRouterProviderWhenEnvIsOpenRouter(): void
+    {
+        $this->setProvider('openrouter');
+        $this->assertInstanceOf(OpenRouterProvider::class, AiCategoryAdvisor::create());
     }
 
     // ── GroqProvider::flattenTree ─────────────────────────────────────────────
@@ -580,6 +649,71 @@ final class AiCategoryAdvisorTest extends CIUnitTestCase
     {
         $provider = new MockClaudeProvider('{}');
         $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    // ── OpenRouterProvider ───────────────────────────────────────────────────
+
+    public function testOpenRouterGenerateDescriptionReturnsContent(): void
+    {
+        $raw = json_encode([
+            'choices' => [[
+                'message' => ['content' => '<p>OpenRouter 생성 설명입니다.</p>'],
+            ]],
+        ]);
+        $provider = new MockOpenRouterProvider($raw);
+        $result   = $provider->generateDescription('면 티셔츠', '');
+        $this->assertSame('<p>OpenRouter 생성 설명입니다.</p>', $result);
+    }
+
+    public function testOpenRouterGenerateDescriptionReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockOpenRouterProvider('', false);
+        $this->assertSame('', $provider->generateDescription('상품', '설명'));
+    }
+
+    public function testOpenRouterGenerateDescriptionReturnsEmptyOnMissingContent(): void
+    {
+        $provider = new MockOpenRouterProvider('{}');
+        $this->assertSame('', $provider->generateDescription('상품', ''));
+    }
+
+    public function testOpenRouterGenerateQnaAnswerReturnsContent(): void
+    {
+        $raw = json_encode([
+            'choices' => [[
+                'message' => ['content' => '안녕하세요! 문의 주셔서 감사합니다.'],
+            ]],
+        ]);
+        $provider = new MockOpenRouterProvider($raw);
+        $result   = $provider->generateQnaAnswer('청바지', '데님 소재', '세탁', '색 빠짐 있나요?');
+        $this->assertSame('안녕하세요! 문의 주셔서 감사합니다.', $result);
+    }
+
+    public function testOpenRouterGenerateQnaAnswerReturnsEmptyOnApiFailure(): void
+    {
+        $provider = new MockOpenRouterProvider('', false);
+        $this->assertSame('', $provider->generateQnaAnswer('상품', '', '제목', '내용'));
+    }
+
+    public function testOpenRouterCallApiInjectsModelIntoPayload(): void
+    {
+        $raw      = json_encode(['choices' => [['message' => ['content' => 'ok']]]]);
+        $provider = new MockOpenRouterProvider($raw);
+        $provider->generateDescription('상품', '설명');
+
+        $payload = json_decode($provider->lastPayload, true);
+        $this->assertArrayHasKey('model', $payload);
+        $this->assertNotEmpty($payload['model']);
+    }
+
+    public function testOpenRouterPayloadModelOverridesGroqDefault(): void
+    {
+        $raw      = json_encode(['choices' => [['message' => ['content' => 'ok']]]]);
+        $provider = new MockOpenRouterProvider($raw);
+        $provider->generateDescription('상품', '설명');
+
+        $payload = json_decode($provider->lastPayload, true);
+        $this->assertNotSame('llama-3.1-8b-instant', $payload['model'], 'OpenRouter는 Groq 기본 모델을 사용하면 안 된다');
     }
 
     // ── 실제 Groq API 통합 테스트 ─────────────────────────────────────────────

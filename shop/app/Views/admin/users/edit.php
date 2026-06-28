@@ -172,16 +172,16 @@
     }
 
     function renderPoints(res) {
+        var TYPE = {earn:'적립', use:'사용', refund:'환불', cancel:'취소', admin:'관리자'};
         var html = '<p class="small mb-2">현재 잔액: <strong>' + (res.balance || 0).toLocaleString() + 'P</strong></p>';
         if (!res.data.length) return html + '<p class="text-muted small mb-0">포인트 내역이 없습니다.</p>';
         html += '<table class="table table-sm small mb-0"><thead><tr>'
-              + '<th>구분</th><th>금액</th><th>잔액</th><th>내용</th><th>날짜</th></tr></thead><tbody>';
+              + '<th>구분</th><th>금액</th><th>내용</th><th>날짜</th></tr></thead><tbody>';
         res.data.forEach(function (p) {
             var sign = p.amount > 0 ? '+' : '';
-            html += '<tr><td>' + p.type + '</td>'
+            html += '<tr><td>' + (TYPE[p.type] || p.type) + '</td>'
                   + '<td class="' + (p.amount > 0 ? 'text-success' : 'text-danger') + '">'
                   + sign + parseInt(p.amount).toLocaleString() + 'P</td>'
-                  + '<td>' + parseInt(p.balance_after).toLocaleString() + 'P</td>'
                   + '<td>' + (p.note || '') + '</td>'
                   + '<td>' + p.created_at.slice(0, 10) + '</td></tr>';
         });
@@ -194,7 +194,7 @@
                  + '<th>쿠폰명</th><th>코드</th><th>사용</th><th>만료일</th></tr></thead><tbody>';
         data.forEach(function (c) {
             html += '<tr><td>' + c.name + '</td><td><code>' + c.code + '</code></td>'
-                  + '<td>' + (c.status === 'used' ? '<span class="text-muted">사용됨</span>' : '<span class="text-success">미사용</span>') + '</td>'
+                  + '<td>' + (c.status === 'used' ? '<span class="text-muted">사용됨</span>' : c.status === 'expired' ? '<span class="text-danger">만료</span>' : '<span class="text-success">미사용</span>') + '</td>'
                   + '<td>' + (c.expires_at ? c.expires_at.slice(0, 10) : '—') + '</td></tr>';
         });
         return html + '</tbody></table>';
