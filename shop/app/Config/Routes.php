@@ -185,6 +185,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], function ($routes) {
     // 주문 관리
     $routes->get( 'orders/json',                     'Admin\OrderController::json');
     $routes->get( 'orders',                          'Admin\OrderController::index');
+    $routes->get( 'orders/anomalies',                'Admin\OrderController::anomalies');
     $routes->get( 'orders/export',                   'Admin\OrderController::exportExcel');
     $routes->get( 'orders/tracking-template',        'Admin\OrderController::trackingTemplate');
     $routes->get( 'orders/tracking-export',          'Admin\OrderController::trackingExport');
