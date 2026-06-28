@@ -35,8 +35,9 @@
                     <?php
                     $currentProvider = $settings['ai_provider'] ?? (getenv('AI_PROVIDER') ?: 'groq');
                     ?>
-                    <option value="groq"   <?= $currentProvider === 'groq'   ? 'selected' : '' ?>>Groq (llama3 — 무료·빠름)</option>
-                    <option value="claude" <?= $currentProvider === 'claude' ? 'selected' : '' ?>>Claude (Haiku — 고품질)</option>
+                    <option value="groq"        <?= $currentProvider === 'groq'        ? 'selected' : '' ?>>Groq (llama3 — 무료·빠름)</option>
+                    <option value="claude"      <?= $currentProvider === 'claude'      ? 'selected' : '' ?>>Claude (Haiku — 고품질)</option>
+                    <option value="openrouter"  <?= $currentProvider === 'openrouter'  ? 'selected' : '' ?>>OpenRouter (멀티모델 라우터)</option>
                 </select>
                 <div class="form-text">상품 카테고리 추천·설명 생성·문의 답변에 사용됩니다.</div>
             </div>
@@ -49,13 +50,32 @@
                     <a href="https://console.groq.com/keys" target="_blank">console.groq.com</a>에서 무료 발급
                 </div>
             </div>
-            <div class="mb-0">
+            <div class="mb-3">
                 <label class="form-label small fw-semibold">Anthropic (Claude) API Key</label>
                 <input type="password" name="anthropic_api_key" class="form-control form-control-sm"
                        value="<?= esc($settings['anthropic_api_key'] ?? '') ?>"
                        placeholder="sk-ant-..." autocomplete="new-password">
                 <div class="form-text">
                     <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>에서 발급
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">OpenRouter API Key</label>
+                <input type="password" name="openrouter_api_key" class="form-control form-control-sm"
+                       value="<?= esc($settings['openrouter_api_key'] ?? '') ?>"
+                       placeholder="sk-or-..." autocomplete="new-password">
+                <div class="form-text">
+                    <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai</a>에서 발급 — 무료 모델 포함 200개+ 지원
+                </div>
+            </div>
+            <div class="mb-0">
+                <label class="form-label small fw-semibold">OpenRouter 모델</label>
+                <input type="text" name="openrouter_model" class="form-control form-control-sm"
+                       value="<?= esc($settings['openrouter_model'] ?? '') ?>"
+                       placeholder="meta-llama/llama-3.1-8b-instruct:free">
+                <div class="form-text">
+                    비워두면 <code>meta-llama/llama-3.1-8b-instruct:free</code> 사용.
+                    사용 가능 모델: <a href="https://openrouter.ai/models" target="_blank">openrouter.ai/models</a>
                 </div>
             </div>
         </div>
