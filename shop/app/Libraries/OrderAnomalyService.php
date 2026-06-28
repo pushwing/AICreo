@@ -21,6 +21,9 @@ class OrderAnomalyService
     public const BURST_COUNT   = 3;
     public const BURST_MINUTES = 60;
 
+    /** 조회 기간 상한(일) — 전체 이력 풀스캔 방지 */
+    public const MAX_DAYS = 365;
+
     /** 탐지 대상 주문 상태 (취소·만료 제외한 유효 주문) */
     private const ACTIVE_STATUSES = [
         'pending', 'awaiting_payment', 'paid', 'preparing', 'shipped', 'delivered',
@@ -34,7 +37,7 @@ class OrderAnomalyService
      */
     public function flagged(int $days = 7): array
     {
-        $days  = max(1, $days);
+        $days  = min(self::MAX_DAYS, max(1, $days));
         $db    = \Config\Database::connect();
         $since = date('Y-m-d H:i:s', strtotime("-{$days} days"));
 
@@ -142,7 +145,8 @@ class OrderAnomalyService
         $usersByPhone  = [];
         $ordersByPhone = [];
         foreach ($orders as $o) {
-            $phone = trim((string) $o['receiver_phone']);
+            // 하이픈·공백 등 표기 차이로 우회/오탐되지 않도록 숫자만 남겨 비교
+            $phone = preg_replace('/\D/', '', (string) $o['receiver_phone']);
             if ($phone === '' || $o['user_id'] === null) {
                 continue;
             }
