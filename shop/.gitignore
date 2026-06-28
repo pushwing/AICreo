@@ -70,3 +70,7 @@ Thumbs.db
 /app/Config/Validation.php
 /app/Config/View.php
 /app/Config/WorkerMode.php
+
+# PHPUnit / PHPStan 캐시
+.phpunit.result.cache
+tmp/
