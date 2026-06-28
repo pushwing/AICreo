@@ -14,6 +14,9 @@
         <?php endforeach; ?>
     </select>
     <div class="ms-auto d-flex gap-2">
+        <a href="/admin/orders/anomalies" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-shield-exclamation me-1"></i>이상 주문 탐지
+        </a>
         <a href="/admin/orders/tracking-upload" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-truck me-1"></i>송장 일괄 등록
         </a>
