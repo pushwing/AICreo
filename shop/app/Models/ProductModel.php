@@ -82,16 +82,22 @@ class ProductModel extends Model
             ->whereIn('products.status', ['on_sale', 'sold_out']);
 
         if ($keyword) {
-            // 시맨틱 확장어가 있으면 원본 + 확장어를 name·description에 OR-매칭 (재현율 향상)
             $expanded = array_filter(array_map('trim', (array) ($params['expanded_terms'] ?? [])));
-            $terms    = array_values(array_unique(array_merge([$keyword], $expanded)));
 
-            $builder->groupStart();
-            foreach ($terms as $term) {
-                $builder->orLike('products.name', $term);
-                $builder->orLike('products.description', $term);
+            if ($expanded === []) {
+                // 확장어가 없으면 기존과 동일하게 상품명만 검색 (정밀도 유지)
+                $builder->like('products.name', $keyword);
+            } else {
+                // 시맨틱 확장어가 있을 때만 원본 + 확장어를 name·description에 OR-매칭 (재현율 향상)
+                $terms = array_values(array_unique(array_merge([$keyword], $expanded)));
+
+                $builder->groupStart();
+                foreach ($terms as $term) {
+                    $builder->orLike('products.name', $term);
+                    $builder->orLike('products.description', $term);
+                }
+                $builder->groupEnd();
             }
-            $builder->groupEnd();
         }
 
         if ($categoryId) {

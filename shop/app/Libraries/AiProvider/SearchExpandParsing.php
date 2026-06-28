@@ -7,8 +7,8 @@ namespace App\Libraries\AiProvider;
  */
 trait SearchExpandParsing
 {
-    /** 확장 결과 최대 개수 */
-    private int $maxTerms = 8;
+    /** 확장 결과 최대 개수 (프롬프트의 "최대 6개"와 일치 — LIKE 조건 과다 생성 방지) */
+    private int $maxTerms = 6;
 
     /**
      * AI 응답 텍스트에서 검색어 배열을 추출·정규화한다.

@@ -2,6 +2,7 @@
 
 namespace App\Libraries;
 
+use App\Exceptions\AiKeyMissingException;
 use App\Libraries\AiProvider\AiCache;
 
 /**
@@ -36,6 +37,9 @@ class SemanticSearchService
         $terms = AiCache::remember($key, function () use ($query) {
             try {
                 return AiCategoryAdvisor::create()->expandSearchQuery($query);
+            } catch (AiKeyMissingException $e) {
+                // AI 미설정은 정상 폴백 경로 — 로그를 남기지 않는다 (검색마다 누적 방지)
+                return [];
             } catch (\Throwable $e) {
                 log_message('error', 'SemanticSearch: ' . $e->getMessage());
                 return [];
