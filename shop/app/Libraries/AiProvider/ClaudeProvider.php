@@ -6,6 +6,7 @@ class ClaudeProvider implements AiProviderInterface
 {
     use ReviewSummaryParsing;
     use InquiryParsing;
+    use SearchExpandParsing;
 
     private const API_URL = 'https://api.anthropic.com/v1/messages';
     private const MODEL   = 'claude-haiku-4-5-20251001';
@@ -242,6 +243,26 @@ class ClaudeProvider implements AiProviderInterface
 
         $data = json_decode($raw, true);
         return $data['content'][0]['text'] ?? '';
+    }
+
+    public function expandSearchQuery(string $query): array
+    {
+        $payload = json_encode([
+            'model'      => self::MODEL,
+            'max_tokens' => 256,
+            'system'     => AiPrompts::get('search_expand'),
+            'messages'   => [
+                ['role' => 'user', 'content' => "검색어: " . mb_substr($query, 0, 50)],
+            ],
+        ]);
+
+        $raw = $this->callApi($payload, 15);
+        if ($raw === false) {
+            return [];
+        }
+
+        $data = json_decode($raw, true);
+        return $this->parseTerms($data['content'][0]['text'] ?? '');
     }
 
     public function generateRestockMessage(string $productName, string $productDescription): string

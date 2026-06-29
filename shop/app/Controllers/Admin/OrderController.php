@@ -62,6 +62,19 @@ class OrderController extends BaseController
         ]));
     }
 
+    /** GET /admin/orders/anomalies — 이상 주문(사기·어뷰징 의심) 탐지 */
+    public function anomalies(): string
+    {
+        $days    = min(\App\Libraries\OrderAnomalyService::MAX_DAYS, max(1, (int) ($this->request->getGet('days') ?: 7)));
+        $flagged = (new \App\Libraries\OrderAnomalyService())->flagged($days);
+
+        return $this->render('admin/orders/anomalies', [
+            'flagged'      => $flagged,
+            'days'         => $days,
+            'statusLabels' => self::STATUS_LABELS,
+        ]);
+    }
+
     /** GET /admin/orders/json */
     public function json(): \CodeIgniter\HTTP\ResponseInterface
     {

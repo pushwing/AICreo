@@ -17,6 +17,16 @@
         </form>
     </div>
 
+    <?php if (! empty($expandedTerms ?? []) && ! empty($keyword)): ?>
+    <div class="alert alert-light border d-flex align-items-center flex-wrap gap-1 py-2 mb-3">
+        <i class="bi bi-stars text-primary me-1"></i>
+        <span class="small text-muted me-1">AI 연관 검색:</span>
+        <?php foreach ($expandedTerms as $term): ?>
+        <a href="/shop?keyword=<?= urlencode($term) ?>" class="badge bg-primary-subtle text-primary text-decoration-none border border-primary-subtle"><?= esc($term) ?></a>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <?= view('shop/components/recommend', ['recommended' => $recommended ?? []]) ?>
 
     <div class="row g-4">

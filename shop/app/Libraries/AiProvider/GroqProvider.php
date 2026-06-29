@@ -6,6 +6,7 @@ class GroqProvider implements AiProviderInterface
 {
     use ReviewSummaryParsing;
     use InquiryParsing;
+    use SearchExpandParsing;
 
     private const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
     private const MODEL   = 'llama-3.1-8b-instant';
@@ -204,6 +205,28 @@ class GroqProvider implements AiProviderInterface
 
         $data = json_decode($raw, true);
         return $data['choices'][0]['message']['content'] ?? '';
+    }
+
+    public function expandSearchQuery(string $query): array
+    {
+        $payload = json_encode([
+            'model'           => self::MODEL,
+            'temperature'     => 0.2,
+            'max_tokens'      => 200,
+            'messages'        => [
+                ['role' => 'system', 'content' => AiPrompts::get('search_expand')],
+                ['role' => 'user',   'content' => "검색어: " . mb_substr($query, 0, 50)],
+            ],
+            'response_format' => ['type' => 'json_object'],
+        ]);
+
+        $raw = $this->callApi($payload, 15);
+        if ($raw === false) {
+            return [];
+        }
+
+        $data = json_decode($raw, true);
+        return $this->parseTerms($data['choices'][0]['message']['content'] ?? '');
     }
 
     public function generateRestockMessage(string $productName, string $productDescription): string
