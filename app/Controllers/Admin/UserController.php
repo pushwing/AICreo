@@ -40,17 +40,17 @@ class UserController extends BaseController
 
         $total = (clone $builder)->countAllResults(false);
         $users = $builder->orderBy('id', 'DESC')
-                         ->limit($perPage, ($page - 1) * $perPage)
-                         ->get()->getResultArray();
+            ->limit($perPage, ($page - 1) * $perPage)
+            ->get()->getResultArray();
 
         return $this->render('admin/users/list', [
-            'users'      => $users,
-            'total'      => $total,
-            'currentPage'=> $page,
-            'totalPages' => (int) ceil($total / $perPage),
-            'keyword'    => $keyword,
-            'role'       => $role,
-            'status'     => $status,
+            'users'       => $users,
+            'total'       => $total,
+            'currentPage' => $page,
+            'totalPages'  => (int) ceil($total / $perPage),
+            'keyword'     => $keyword,
+            'role'        => $role,
+            'status'      => $status,
         ]);
     }
 

@@ -24,18 +24,18 @@ class CreateSiteTables extends Migration
 
         // 동적 페이지
         $this->forge->addField([
-            'id'          => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
-            'slug'        => ['type' => 'VARCHAR', 'constraint' => 200],
-            'title'       => ['type' => 'VARCHAR', 'constraint' => 255],
-            'content'     => ['type' => 'LONGTEXT', 'null' => true],
-            'layout'      => ['type' => 'VARCHAR', 'constraint' => 50, 'default' => 'default'],
-            'meta_title'  => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
-            'meta_desc'   => ['type' => 'VARCHAR', 'constraint' => 300, 'null' => true],
-            'og_image'    => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
-            'sort_order'  => ['type' => 'INT', 'default' => 0],
-            'status'      => ['type' => 'ENUM', 'constraint' => ['published', 'draft'], 'default' => 'published'],
-            'created_at'  => ['type' => 'DATETIME', 'null' => true],
-            'updated_at'  => ['type' => 'DATETIME', 'null' => true],
+            'id'         => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
+            'slug'       => ['type' => 'VARCHAR', 'constraint' => 200],
+            'title'      => ['type' => 'VARCHAR', 'constraint' => 255],
+            'content'    => ['type' => 'LONGTEXT', 'null' => true],
+            'layout'     => ['type' => 'VARCHAR', 'constraint' => 50, 'default' => 'default'],
+            'meta_title' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'meta_desc'  => ['type' => 'VARCHAR', 'constraint' => 300, 'null' => true],
+            'og_image'   => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
+            'sort_order' => ['type' => 'INT', 'default' => 0],
+            'status'     => ['type' => 'ENUM', 'constraint' => ['published', 'draft'], 'default' => 'published'],
+            'created_at' => ['type' => 'DATETIME', 'null' => true],
+            'updated_at' => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addUniqueKey('slug');

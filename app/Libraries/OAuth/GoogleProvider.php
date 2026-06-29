@@ -24,7 +24,9 @@ class GoogleProvider extends AbstractOAuthProvider
             'Authorization: Bearer ' . $token,
         ]);
 
-        if (empty($data['sub'])) return null;
+        if (empty($data['sub'])) {
+            return null;
+        }
 
         return [
             'social_id' => $data['sub'],

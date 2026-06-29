@@ -4,12 +4,13 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\BoardModel;
+use App\Models\PostFileModel;
 use App\Models\PostModel;
 
 class BoardManagerController extends BaseController
 {
     private BoardModel $boardModel;
-    private PostModel  $postModel;
+    private PostModel $postModel;
 
     public function __construct()
     {
@@ -21,6 +22,7 @@ class BoardManagerController extends BaseController
     public function index()
     {
         $boards = $this->boardModel->orderBy('sort_order')->findAll();
+
         return $this->render('admin/board/list', ['boards' => $boards]);
     }
 
@@ -60,6 +62,7 @@ class BoardManagerController extends BaseController
     public function edit(int $id)
     {
         $board = $this->boardModel->find($id);
+
         return $this->render('admin/board/form', ['board' => $board]);
     }
 
@@ -105,7 +108,7 @@ class BoardManagerController extends BaseController
             return redirect()->back()->with('error', '게시글을 찾을 수 없습니다.');
         }
 
-        (new \App\Models\PostFileModel())->deleteByPost($postId);
+        (new PostFileModel())->deleteByPost($postId);
         $this->postModel->delete($postId);
 
         return redirect()->back()->with('success', '삭제되었습니다.');

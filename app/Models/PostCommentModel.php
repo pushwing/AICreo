@@ -6,8 +6,8 @@ use CodeIgniter\Model;
 
 class PostCommentModel extends Model
 {
-    protected $table      = 'post_comments';
-    protected $primaryKey = 'id';
+    protected $table          = 'post_comments';
+    protected $primaryKey     = 'id';
     protected $useTimestamps  = true;
     protected $updatedField   = '';
     protected $useSoftDeletes = true;
@@ -19,9 +19,9 @@ class PostCommentModel extends Model
     public function getByPost(int $postId): array
     {
         return $this->select('post_comments.*, users.nickname as user_nickname')
-                    ->join('users', 'users.id = post_comments.user_id', 'left')
-                    ->where('post_comments.post_id', $postId)
-                    ->orderBy('post_comments.id', 'ASC')
-                    ->findAll();
+            ->join('users', 'users.id = post_comments.user_id', 'left')
+            ->where('post_comments.post_id', $postId)
+            ->orderBy('post_comments.id', 'ASC')
+            ->findAll();
     }
 }

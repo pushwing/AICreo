@@ -6,11 +6,11 @@ use CodeIgniter\Model;
 
 class MediaModel extends Model
 {
-    protected $table      = 'media';
-    protected $primaryKey = 'id';
-    protected $useTimestamps  = true;
-    protected $updatedField   = '';
-    protected $allowedFields  = [
+    protected $table         = 'media';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $updatedField  = '';
+    protected $allowedFields = [
         'original_name', 'stored_name', 'file_path', 'file_size', 'mime_type', 'alt',
     ];
 
@@ -22,10 +22,14 @@ class MediaModel extends Model
     public function deleteWithFile(int $id): bool
     {
         $media = $this->find($id);
-        if (! $media) return false;
+        if (! $media) {
+            return false;
+        }
 
         $fullPath = FCPATH . $media['file_path'];
-        if (file_exists($fullPath)) unlink($fullPath);
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
 
         return (bool) $this->delete($id);
     }

@@ -20,6 +20,7 @@ class ThemeView extends View
         if ($this->resolvedTheme === null) {
             $this->resolvedTheme = (new SettingModel())->getAllAsMap()['active_theme'] ?? 'default';
         }
+
         return $this->resolvedTheme;
     }
 

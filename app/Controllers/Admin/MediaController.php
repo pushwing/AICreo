@@ -8,7 +8,7 @@ use App\Models\MediaModel;
 
 class MediaController extends BaseController
 {
-    private MediaModel    $mediaModel;
+    private MediaModel $mediaModel;
     private MediaUploader $uploader;
 
     public function __construct()
@@ -25,9 +25,9 @@ class MediaController extends BaseController
         $total  = $this->mediaModel->countAllResults();
 
         return $this->render('admin/media/index', [
-            'mediaList'  => $this->mediaModel->getList($limit, $offset),
-            'totalPages' => (int) ceil($total / $limit),
-            'currentPage'=> $page,
+            'mediaList'   => $this->mediaModel->getList($limit, $offset),
+            'totalPages'  => (int) ceil($total / $limit),
+            'currentPage' => $page,
         ]);
     }
 
@@ -47,12 +47,14 @@ class MediaController extends BaseController
     public function updateAlt(int $id)
     {
         $this->mediaModel->update($id, ['alt' => $this->request->getPost('alt')]);
+
         return $this->response->setJSON(['success' => true]);
     }
 
     public function delete(int $id)
     {
         $this->mediaModel->deleteWithFile($id);
+
         return redirect()->to('/admin/media')->with('success', '삭제되었습니다.');
     }
 }

@@ -52,13 +52,16 @@ class BannerController extends BaseController
         }
 
         $this->bannerModel->insert($this->collectData($result['path']));
+
         return redirect()->to('/admin/banners')->with('success', '배너가 등록되었습니다.');
     }
 
     public function edit(int $id)
     {
         $banner = $this->bannerModel->find($id);
-        if (! $banner) return redirect()->to('/admin/banners')->with('error', '배너를 찾을 수 없습니다.');
+        if (! $banner) {
+            return redirect()->to('/admin/banners')->with('error', '배너를 찾을 수 없습니다.');
+        }
 
         return $this->render('admin/banners/form', [
             'banner'    => $banner,
@@ -69,7 +72,9 @@ class BannerController extends BaseController
     public function update(int $id)
     {
         $banner = $this->bannerModel->find($id);
-        if (! $banner) return redirect()->to('/admin/banners')->with('error', '배너를 찾을 수 없습니다.');
+        if (! $banner) {
+            return redirect()->to('/admin/banners')->with('error', '배너를 찾을 수 없습니다.');
+        }
 
         $imagePath = $banner['image_path'];
 
@@ -80,23 +85,27 @@ class BannerController extends BaseController
                 return redirect()->back()->withInput()->with('error', $result['error']);
             }
             $oldPath = FCPATH . $banner['image_path'];
-            if (file_exists($oldPath)) unlink($oldPath);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
             $imagePath = $result['path'];
         }
 
         $this->bannerModel->update($id, $this->collectData($imagePath));
+
         return redirect()->to('/admin/banners')->with('success', '저장되었습니다.');
     }
 
     public function delete(int $id)
     {
         $this->bannerModel->deleteWithFile($id);
+
         return redirect()->to('/admin/banners')->with('success', '삭제되었습니다.');
     }
 
     private function collectData(string $imagePath): array
     {
-        $toDatetime = fn($val) => $val
+        $toDatetime = static fn ($val) => $val
             ? (strlen($val) <= 16
                 ? str_replace('T', ' ', $val) . ':00'
                 : str_replace('T', ' ', substr($val, 0, 19)))

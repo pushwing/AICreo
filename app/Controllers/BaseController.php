@@ -8,15 +8,18 @@ use App\Models\MenuModel;
 use App\Models\PopupModel;
 use App\Models\SettingModel;
 use CodeIgniter\Controller;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
 class BaseController extends Controller
 {
     protected array $viewData = [];
 
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger,
     ) {
         parent::initController($request, $response, $logger);
 
@@ -64,9 +67,10 @@ class BaseController extends Controller
     protected function checkPermission(string $required): bool
     {
         $role = $this->getUserRole();
+
         return match ($required) {
             'guest'  => true,
-            'member' => in_array($role, ['member', 'admin']),
+            'member' => in_array($role, ['member', 'admin'], true),
             'admin'  => $role === 'admin',
             default  => false,
         };

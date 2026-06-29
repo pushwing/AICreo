@@ -6,11 +6,11 @@ use CodeIgniter\Model;
 
 class InquiryModel extends Model
 {
-    protected $table      = 'inquiries';
-    protected $primaryKey = 'id';
-    protected $useTimestamps  = true;
-    protected $updatedField   = '';
-    protected $allowedFields  = [
+    protected $table         = 'inquiries';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $updatedField  = '';
+    protected $allowedFields = [
         'name', 'email', 'phone', 'subject', 'message', 'ip_address', 'is_read',
     ];
 

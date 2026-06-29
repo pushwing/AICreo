@@ -19,6 +19,7 @@ class AuthController extends BaseController
         if (session()->get('user_id')) {
             return redirect()->to('/');
         }
+
         return $this->render('auth/login');
     }
 
@@ -53,6 +54,7 @@ class AuthController extends BaseController
     public function logout()
     {
         session()->destroy();
+
         return redirect()->to('/auth/login');
     }
 
@@ -93,6 +95,7 @@ class AuthController extends BaseController
         }
 
         $user = $this->userModel->find(session()->get('user_id'));
+
         return $this->render('auth/profile', compact('user'));
     }
 
