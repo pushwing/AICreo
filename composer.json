@@ -14,12 +14,14 @@
         "codeigniter4/framework": "^4.7"
     },
     "require-dev": {
-        "codeigniter/phpstan-codeigniter": "*",
+        "codeigniter/coding-standard": "^1.9",
+        "codeigniter/phpstan-codeigniter": "^2.1",
         "fakerphp/faker": "^1.9",
         "mikey179/vfsstream": "^1.6",
-        "phpstan/extension-installer": "*",
-        "phpstan/phpstan": "*",
-        "phpunit/phpunit": "^10.5.16"
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^10.5.16",
+        "rector/rector": "^2.5"
     },
     "autoload": {
         "psr-4": {
@@ -44,6 +46,16 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "analyse": "phpstan analyse",
+        "cs": "php-cs-fixer fix --ansi --verbose --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix --ansi --verbose --diff",
+        "rector": "rector process",
+        "rector:dry": "rector process --dry-run",
+        "ci": [
+            "@cs",
+            "@analyse",
+            "@test"
+        ]
     }
 }
