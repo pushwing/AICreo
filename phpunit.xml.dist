@@ -35,9 +35,10 @@
         <const name="PUBLICPATH" value="./public/"/>
         <env name="XDEBUG_MODE" value="coverage"/>
 
-        <!-- 테스트 전용 DB: SQLite in-memory (별도 DB 불필요) -->
-        <env name="database.tests.database" value=":memory:"/>
-        <env name="database.tests.DBDriver" value="SQLite3"/>
-        <env name="database.tests.DBPrefix" value="db_"/>
+        <!--
+            테스트 전용 DB는 운영과 동일한 MySQL 사용 (Config/Database.php $tests).
+            연결값은 실제 환경변수로 오버라이드: 로컬은 .env(database.tests.*),
+            CI는 워크플로의 env 로 주입. 기본값은 CI MySQL 서비스 기준.
+        -->
     </php>
 </phpunit>

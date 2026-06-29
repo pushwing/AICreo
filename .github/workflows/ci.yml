@@ -23,6 +23,28 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4']
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ci4_agency_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      database.tests.hostname: 127.0.0.1
+      database.tests.database: ci4_agency_test
+      database.tests.username: root
+      database.tests.password: root
+      database.tests.DBDriver: MySQLi
+      database.tests.port: 3306
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +53,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl, mbstring, sqlite3, pdo_sqlite
+          extensions: intl, mbstring, mysqli
           coverage: none
           tools: composer:v2
 
