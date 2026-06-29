@@ -68,3 +68,82 @@ jobs:
 
       - name: Tests (PHPUnit)
         run: composer test
+
+  coverage:
+    name: 커버리지 리포트
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ci4_agency_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      database.tests.hostname: 127.0.0.1
+      database.tests.database: ci4_agency_test
+      database.tests.username: root
+      database.tests.password: root
+      database.tests.DBDriver: MySQLi
+      database.tests.port: 3306
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring, mysqli
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Tests with coverage
+        run: |
+          mkdir -p build
+          vendor/bin/phpunit \
+            --coverage-text=build/coverage.txt \
+            --coverage-cobertura=build/cobertura.xml
+
+      - name: Append coverage to job summary
+        if: always()
+        run: |
+          {
+            echo '### 📊 커버리지'
+            echo '```'
+            cat build/coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Coverage summary (markdown)
+        if: github.event_name == 'pull_request'
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: build/cobertura.xml
+          format: markdown
+          output: file
+          badge: true
+
+      - name: Post coverage PR comment
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          recreate: true
+          path: code-coverage-results.md

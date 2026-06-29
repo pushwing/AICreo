@@ -50,6 +50,7 @@
     },
     "scripts": {
         "test": "phpunit",
+        "coverage": "phpunit --coverage-text --coverage-html=build/coverage-html",
         "analyse": "phpstan analyse",
         "cs": "php-cs-fixer fix --ansi --verbose --dry-run --diff",
         "cs:fix": "php-cs-fixer fix --ansi --verbose --diff",

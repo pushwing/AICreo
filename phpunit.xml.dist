@@ -20,8 +20,10 @@
             <directory suffix=".php">./app</directory>
         </include>
         <exclude>
+            <!-- 로직이 없는 부분은 커버리지 대상에서 제외 (실제 비즈니스 코드에 집중) -->
             <directory>./app/Views</directory>
-            <file>./app/Config/Routes.php</file>
+            <directory>./app/Config</directory>
+            <directory>./app/Database/Migrations</directory>
         </exclude>
     </source>
 
