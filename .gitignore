@@ -1,5 +1,26 @@
-# 개발 환경 (로컬 CI4 설치본)
-shop-dev/
+# CI4 기본 제외
+/vendor/
+.env
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/tmp/*
+writable/debugbar/*
+!writable/cache/.gitkeep
+!writable/logs/.gitkeep
+!writable/session/.gitkeep
+!writable/tmp/.gitkeep
+!writable/debugbar/index.html
 
-# oh-my-claudecode 로컬 상태
-.omc/
+# 업로드 파일 (실제 미디어는 제외, 폴더 구조만 유지)
+public/uploads/*/*
+!public/uploads/**/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
