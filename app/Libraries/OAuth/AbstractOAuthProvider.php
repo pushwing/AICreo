@@ -2,6 +2,8 @@
 
 namespace App\Libraries\OAuth;
 
+use Config\OAuth as OAuthConfig;
+
 /**
  * 공통 OAuth 2.0 추상 클래스
  * 각 제공자는 getAuthUrl(), getToken(), getProfile() 만 구현
@@ -14,7 +16,7 @@ abstract class AbstractOAuthProvider
     public function __construct(string $providerName)
     {
         $this->providerName = $providerName;
-        $cfg = config('OAuth')->{$providerName};
+        $cfg = config(OAuthConfig::class)->{$providerName};
 
         // .env 우선 적용
         $cfg['client_id']     = env("oauth.{$providerName}.client_id",     $cfg['client_id']);
