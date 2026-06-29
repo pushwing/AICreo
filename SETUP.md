@@ -56,8 +56,9 @@ php spark db:create ci4-agency_test
 # 3) 실행
 composer test        # = phpunit
 composer ci          # 코드 스타일 + 정적분석 + 테스트
+composer coverage    # 커버리지 측정(텍스트 + build/coverage-html/) — Xdebug/pcov 필요
 ```
-> CI(GitHub Actions)는 MySQL 서비스 컨테이너를 띄워 동일하게 검증합니다.
+> CI(GitHub Actions)는 MySQL 서비스 컨테이너를 띄워 동일하게 검증하며, 커버리지를 측정해 잡 요약과 PR 코멘트로 리포트합니다.
 
 ## URL 구조
 | URL | 설명 |
