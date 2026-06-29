@@ -63,7 +63,9 @@ class PopupController extends BaseController
     public function edit(int $id)
     {
         $popup = $this->popupModel->find($id);
-        if (! $popup) return redirect()->to('/admin/popups')->with('error', '팝업을 찾을 수 없습니다.');
+        if (! $popup) {
+            return redirect()->to('/admin/popups')->with('error', '팝업을 찾을 수 없습니다.');
+        }
 
         return $this->render('admin/popups/form', [
             'popup'    => $popup,
@@ -76,7 +78,9 @@ class PopupController extends BaseController
     public function update(int $id)
     {
         $popup = $this->popupModel->find($id);
-        if (! $popup) return redirect()->to('/admin/popups')->with('error', '팝업을 찾을 수 없습니다.');
+        if (! $popup) {
+            return redirect()->to('/admin/popups')->with('error', '팝업을 찾을 수 없습니다.');
+        }
 
         $rules = ['title' => 'required|max_length[200]'];
         if (! $this->validate($rules)) {
@@ -92,7 +96,9 @@ class PopupController extends BaseController
             }
             if ($imagePath) {
                 $oldPath = FCPATH . $imagePath;
-                if (file_exists($oldPath)) unlink($oldPath);
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                }
             }
             $imagePath = $result['path'];
         }
@@ -106,12 +112,13 @@ class PopupController extends BaseController
     public function delete(int $id)
     {
         $this->popupModel->deleteWithFile($id);
+
         return redirect()->to('/admin/popups')->with('success', '삭제되었습니다.');
     }
 
     private function collectData(?string $imagePath): array
     {
-        $toDatetime = fn($val) => $val
+        $toDatetime = static fn ($val) => $val
             ? (strlen($val) <= 16
                 ? str_replace('T', ' ', $val) . ':00'
                 : str_replace('T', ' ', substr($val, 0, 19)))

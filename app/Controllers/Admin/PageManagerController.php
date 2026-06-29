@@ -37,6 +37,7 @@ class PageManagerController extends BaseController
         }
 
         $this->pageModel->insert($this->collectData());
+
         return redirect()->to('/admin/pages')->with('success', '페이지가 생성되었습니다.');
     }
 
@@ -48,12 +49,14 @@ class PageManagerController extends BaseController
     public function update(int $id)
     {
         $this->pageModel->update($id, $this->collectData(isUpdate: true));
+
         return redirect()->to('/admin/pages')->with('success', '저장되었습니다.');
     }
 
     public function delete(int $id)
     {
         $this->pageModel->delete($id);
+
         return redirect()->to('/admin/pages')->with('success', '삭제되었습니다.');
     }
 
@@ -71,6 +74,7 @@ class PageManagerController extends BaseController
         if (! $isUpdate) {
             $data['slug'] = $this->request->getPost('slug');
         }
+
         return $data;
     }
 }

@@ -14,8 +14,8 @@ class Services extends BaseService
             return static::getSharedInstance('renderer', $viewPath, $config);
         }
 
-        $viewPath ??= (new \Config\Paths())->viewDirectory;
-        $config   ??= config(ViewConfig::class);
+        $viewPath ??= (new Paths())->viewDirectory;
+        $config ??= config(ViewConfig::class);
 
         return new ThemeView(
             $config,

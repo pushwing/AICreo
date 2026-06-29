@@ -6,8 +6,8 @@ use CodeIgniter\Model;
 
 class PageModel extends Model
 {
-    protected $table      = 'pages';
-    protected $primaryKey = 'id';
+    protected $table         = 'pages';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $allowedFields = [
         'slug', 'title', 'content', 'layout',

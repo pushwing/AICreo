@@ -20,7 +20,9 @@ class NaverProvider extends AbstractOAuthProvider
             'Authorization: Bearer ' . $token,
         ]);
 
-        if (empty($data['response'])) return null;
+        if (empty($data['response'])) {
+            return null;
+        }
 
         $r = $data['response'];
 

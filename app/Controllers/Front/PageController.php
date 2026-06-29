@@ -5,6 +5,9 @@ namespace App\Controllers\Front;
 use App\Controllers\BaseController;
 use App\Models\InquiryModel;
 use App\Models\PageModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use Config\Services;
+use Throwable;
 
 class PageController extends BaseController
 {
@@ -24,7 +27,7 @@ class PageController extends BaseController
         $page = $this->pageModel->getBySlug($slug);
 
         if (! $page) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $viewFile = match ($page['layout']) {
@@ -69,21 +72,23 @@ class PageController extends BaseController
     private function sendInquiryEmail(): void
     {
         $toEmail = $this->viewData['settings']['email'] ?? '';
-        if (! $toEmail) return;
+        if (! $toEmail) {
+            return;
+        }
 
-        $email = \Config\Services::email();
+        $email = Services::email();
         $email->setTo($toEmail);
         $email->setSubject('[문의] ' . ($this->request->getPost('subject') ?: '새 문의가 도착했습니다'));
         $email->setMessage(
-            "이름: " . $this->request->getPost('name') . "\n" .
-            "이메일: " . $this->request->getPost('email') . "\n" .
-            "연락처: " . $this->request->getPost('phone') . "\n\n" .
-            $this->request->getPost('message')
+            '이름: ' . $this->request->getPost('name') . "\n" .
+            '이메일: ' . $this->request->getPost('email') . "\n" .
+            '연락처: ' . $this->request->getPost('phone') . "\n\n" .
+            $this->request->getPost('message'),
         );
 
         try {
             $email->send();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // 이메일 발송 실패해도 문의 저장은 완료된 상태
         }
     }

@@ -27,7 +27,7 @@ class HomeController extends BaseController
         $bannerModel = new BannerModel();
 
         return $this->render('pages/home', [
-            'page'           => [
+            'page' => [
                 'title'     => $this->viewData['settings']['site_name'] ?? '',
                 'meta_desc' => $this->viewData['settings']['site_desc'] ?? '',
             ],

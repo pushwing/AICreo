@@ -6,8 +6,8 @@ use CodeIgniter\Model;
 
 class BoardModel extends Model
 {
-    protected $table      = 'boards';
-    protected $primaryKey = 'id';
+    protected $table         = 'boards';
+    protected $primaryKey    = 'id';
     protected $useTimestamps = true;
     protected $allowedFields = [
         'slug', 'name', 'description',

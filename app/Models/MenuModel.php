@@ -6,8 +6,8 @@ use CodeIgniter\Model;
 
 class MenuModel extends Model
 {
-    protected $table      = 'menus';
-    protected $primaryKey = 'id';
+    protected $table         = 'menus';
+    protected $primaryKey    = 'id';
     protected $allowedFields = ['parent_id', 'title', 'url', 'target', 'sort_order', 'is_active'];
 
     /**
@@ -16,14 +16,15 @@ class MenuModel extends Model
     public function getTree(): array
     {
         return cache()->remember('nav_menus', 3600, function () {
-            $all    = $this->where('is_active', 1)->orderBy('sort_order')->findAll();
-            $tree   = [];
-            $map    = [];
+            $all  = $this->where('is_active', 1)->orderBy('sort_order')->findAll();
+            $tree = [];
+            $map  = [];
 
             foreach ($all as $item) {
                 $item['children'] = [];
                 $map[$item['id']] = $item;
             }
+
             foreach ($map as $item) {
                 if ($item['parent_id'] && isset($map[$item['parent_id']])) {
                     $map[$item['parent_id']]['children'][] = $item;
@@ -31,6 +32,7 @@ class MenuModel extends Model
                     $tree[] = $item;
                 }
             }
+
             return $tree;
         });
     }

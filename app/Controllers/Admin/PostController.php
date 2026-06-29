@@ -4,12 +4,12 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\BoardModel;
-use App\Models\PostModel;
 use App\Models\PostFileModel;
+use App\Models\PostModel;
 
 class PostController extends BaseController
 {
-    private PostModel  $postModel;
+    private PostModel $postModel;
     private BoardModel $boardModel;
 
     public function __construct()

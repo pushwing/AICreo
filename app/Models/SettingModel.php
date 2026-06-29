@@ -6,8 +6,8 @@ use CodeIgniter\Model;
 
 class SettingModel extends Model
 {
-    protected $table      = 'settings';
-    protected $primaryKey = 'id';
+    protected $table         = 'settings';
+    protected $primaryKey    = 'id';
     protected $allowedFields = ['group', 'key', 'value', 'label', 'type', 'updated_at'];
 
     /**
@@ -18,9 +18,11 @@ class SettingModel extends Model
         return cache()->remember('site_settings', 3600, function () {
             $rows = $this->findAll();
             $map  = [];
+
             foreach ($rows as $row) {
                 $map[$row['key']] = $row['value'];
             }
+
             return $map;
         });
     }
@@ -39,6 +41,7 @@ class SettingModel extends Model
     public function saveSettings(array $data): void
     {
         $now = date('Y-m-d H:i:s');
+
         foreach ($data as $key => $value) {
             $existing = $this->where('key', $key)->first();
             if ($existing) {

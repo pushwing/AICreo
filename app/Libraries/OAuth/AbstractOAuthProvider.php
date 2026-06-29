@@ -16,10 +16,10 @@ abstract class AbstractOAuthProvider
     public function __construct(string $providerName)
     {
         $this->providerName = $providerName;
-        $cfg = config(OAuthConfig::class)->{$providerName};
+        $cfg                = config(OAuthConfig::class)->{$providerName};
 
         // .env 우선 적용
-        $cfg['client_id']     = env("oauth.{$providerName}.client_id",     $cfg['client_id']);
+        $cfg['client_id']     = env("oauth.{$providerName}.client_id", $cfg['client_id']);
         $cfg['client_secret'] = env("oauth.{$providerName}.client_secret", $cfg['client_secret']);
         $cfg['redirect_uri']  = base_url("auth/social/{$providerName}/callback");
 
@@ -59,6 +59,7 @@ abstract class AbstractOAuthProvider
         ];
 
         $response = $this->post($this->config['token_url'], $params);
+
         return $response['access_token'] ?? null;
     }
 
@@ -81,6 +82,7 @@ abstract class AbstractOAuthProvider
         ]);
         $body = curl_exec($ch);
         curl_close($ch);
+
         return json_decode($body, true) ?? [];
     }
 
@@ -97,6 +99,7 @@ abstract class AbstractOAuthProvider
         ]);
         $body = curl_exec($ch);
         curl_close($ch);
+
         return json_decode($body, true) ?? [];
     }
 }

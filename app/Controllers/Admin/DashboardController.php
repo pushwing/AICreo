@@ -17,10 +17,10 @@ class DashboardController extends BaseController
 
         return $this->render('admin/dashboard/index', [
             'stats' => [
-                'total_posts'    => $postModel->countAllResults(),
-                'total_users'    => $userModel->countAllResults(),
-                'total_inquiries'=> $inquiryModel->countAllResults(),
-                'unread_inquiries'=> $inquiryModel->getUnreadCount(),
+                'total_posts'      => $postModel->countAllResults(),
+                'total_users'      => $userModel->countAllResults(),
+                'total_inquiries'  => $inquiryModel->countAllResults(),
+                'unread_inquiries' => $inquiryModel->getUnreadCount(),
             ],
             'recentInquiries' => $inquiryModel->orderBy('id', 'DESC')->findAll(5),
             'recentPosts'     => $postModel

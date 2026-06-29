@@ -22,9 +22,9 @@ class AddSocialLoginToUsers extends Migration
                 'after'      => 'social_provider',
             ],
             'social_token' => [
-                'type'       => 'TEXT',
-                'null'       => true,
-                'after'      => 'social_id',
+                'type'  => 'TEXT',
+                'null'  => true,
+                'after' => 'social_id',
             ],
             'avatar' => [
                 'type'       => 'VARCHAR',

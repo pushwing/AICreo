@@ -7,12 +7,13 @@ use CodeIgniter\HTTP\Files\UploadedFile;
 
 class FileUploader
 {
-    private const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    private const IMAGE_EXTS   = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     private const ALLOWED_EXTS = [
         'jpg', 'jpeg', 'png', 'gif', 'webp',
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
         'zip', 'txt', 'hwp',
     ];
+
     // 확장자 → 허용 MIME 매핑 (서버사이드 검증용)
     private const EXT_MIME_MAP = [
         'jpg'  => ['image/jpeg'],
@@ -42,7 +43,8 @@ class FileUploader
 
     /**
      * 파일 유효성 사전 검증 (DB/디스크 저장 없음)
-     * @return string[] 에러 메시지 배열 (비어 있으면 통과)
+     *
+     * @return list<string> 에러 메시지 배열 (비어 있으면 통과)
      */
     public function validateFiles(array $uploadedFiles): array
     {
@@ -57,12 +59,14 @@ class FileUploader
             }
             if (! $file->isValid()) {
                 $errors[] = $file->getName() . ': ' . $this->uploadErrorMessage($file->getError());
+
                 continue;
             }
 
             $ext = strtolower($file->getClientExtension());
-            if (! in_array($ext, self::ALLOWED_EXTS)) {
+            if (! in_array($ext, self::ALLOWED_EXTS, true)) {
                 $errors[] = $file->getName() . ': 허용되지 않는 파일 형식';
+
                 continue;
             }
             if ($file->getSize() > self::MAX_SIZE) {
@@ -75,6 +79,7 @@ class FileUploader
 
     /**
      * 게시글의 첨부파일 일괄 저장
+     *
      * @return array ['saved' => int, 'errors' => array]
      */
     public function savePostFiles(int $postId, array $uploadedFiles): array
@@ -94,6 +99,7 @@ class FileUploader
 
             if (! $file->isValid()) {
                 $errors[] = $file->getName() . ': ' . $this->uploadErrorMessage($file->getError());
+
                 continue;
             }
 
@@ -125,7 +131,7 @@ class FileUploader
         $ext  = strtolower($file->getClientExtension());
         $mime = $file->getMimeType(); // 서버사이드 MIME (클라이언트 헤더 무시)
 
-        if (! in_array($ext, self::ALLOWED_EXTS)) {
+        if (! in_array($ext, self::ALLOWED_EXTS, true)) {
             return ['success' => false, 'error' => "{$file->getName()}: 허용되지 않는 파일 형식"];
         }
 
@@ -138,7 +144,7 @@ class FileUploader
             return ['success' => false, 'error' => "{$file->getName()}: 파일 크기 초과 (최대 10MB)"];
         }
 
-        $isImage    = in_array($ext, self::IMAGE_EXTS);
+        $isImage    = in_array($ext, self::IMAGE_EXTS, true);
         $subDir     = $isImage ? 'images' : 'files';
         $uploadPath = FCPATH . "uploads/board/{$subDir}/" . date('Y/m');
 
