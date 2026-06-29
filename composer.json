@@ -14,8 +14,11 @@
         "codeigniter4/framework": "^4.7"
     },
     "require-dev": {
+        "codeigniter/phpstan-codeigniter": "*",
         "fakerphp/faker": "^1.9",
         "mikey179/vfsstream": "^1.6",
+        "phpstan/extension-installer": "*",
+        "phpstan/phpstan": "*",
         "phpunit/phpunit": "^10.5.16"
     },
     "autoload": {
@@ -35,7 +38,10 @@
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
     },
     "scripts": {
         "test": "phpunit"

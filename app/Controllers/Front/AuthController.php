@@ -98,7 +98,7 @@ class AuthController extends BaseController
 
     public function profileUpdate()
     {
-        $userId = session()->get('user_id');
+        $userId = (int) session()->get('user_id');
         if (! $userId) {
             return redirect()->to('/auth/login');
         }
