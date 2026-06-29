@@ -25,13 +25,15 @@ class MenuModel extends Model
                 $map[$item['id']] = $item;
             }
 
-            foreach ($map as $item) {
+            // 참조로 연결해야 부모를 트리에 넣은 뒤에도 자식 추가가 반영된다.
+            foreach ($map as $id => $item) {
                 if ($item['parent_id'] && isset($map[$item['parent_id']])) {
-                    $map[$item['parent_id']]['children'][] = $item;
+                    $map[$item['parent_id']]['children'][] = &$map[$id];
                 } else {
-                    $tree[] = $item;
+                    $tree[] = &$map[$id];
                 }
             }
+            unset($item);
 
             return $tree;
         });
