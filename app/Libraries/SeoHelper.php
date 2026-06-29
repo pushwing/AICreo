@@ -7,11 +7,8 @@ namespace App\Libraries;
  */
 class SeoHelper
 {
-    private array $settings;
-
-    public function __construct(array $settings)
+    public function __construct(private array $settings)
     {
-        $this->settings = $settings;
     }
 
     public function render(?array $page = null): string

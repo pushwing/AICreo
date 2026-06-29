@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class SeedSiteData extends Migration
 {
-    public function up()
+    public function up(): void
     {
         $now = date('Y-m-d H:i:s');
 
@@ -76,7 +78,7 @@ class SeedSiteData extends Migration
         ]);
     }
 
-    public function down()
+    public function down(): void
     {
         $this->db->table('settings')->truncate();
         $this->db->table('pages')->truncate();

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
@@ -9,7 +11,7 @@ use App\Models\PostModel;
 
 class HomeController extends BaseController
 {
-    public function index()
+    public function index(): string
     {
         // 홈에 최신 공지 3개 노출
         $boardModel = new BoardModel();

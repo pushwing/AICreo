@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class AddPerformanceIndexes extends Migration
 {
-    public function up()
+    public function up(): void
     {
         // 게시판 목록·카운트: WHERE board_id + is_notice ORDER BY id DESC
         $this->db->query('ALTER TABLE posts ADD INDEX idx_posts_board_notice_id (board_id, is_notice, id)');
@@ -25,7 +27,7 @@ class AddPerformanceIndexes extends Migration
         $this->db->query('ALTER TABLE inquiries ADD INDEX idx_inquiries_is_read (is_read)');
     }
 
-    public function down()
+    public function down(): void
     {
         $this->db->query('ALTER TABLE posts DROP INDEX idx_posts_board_notice_id');
         $this->db->query('ALTER TABLE posts DROP INDEX idx_posts_deleted_at');

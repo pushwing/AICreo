@@ -9,14 +9,14 @@ use App\Models\PopupModel;
 
 class PopupController extends BaseController
 {
-    private PopupModel $popupModel;
+    private readonly PopupModel $popupModel;
 
     public function __construct()
     {
         $this->popupModel = new PopupModel();
     }
 
-    public function index()
+    public function index(): string
     {
         return $this->render('admin/popups/list', [
             'popups' => $this->popupModel->orderBy('priority')->findAll(),
@@ -24,7 +24,7 @@ class PopupController extends BaseController
         ]);
     }
 
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/popups/form', [
             'popup'    => null,
@@ -119,9 +119,9 @@ class PopupController extends BaseController
     private function collectData(?string $imagePath): array
     {
         $toDatetime = static fn ($val) => $val
-            ? (strlen($val) <= 16
+            ? (strlen((string) $val) <= 16
                 ? str_replace('T', ' ', $val) . ':00'
-                : str_replace('T', ' ', substr($val, 0, 19)))
+                : str_replace('T', ' ', substr((string) $val, 0, 19)))
             : null;
 
         return [

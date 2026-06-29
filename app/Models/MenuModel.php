@@ -15,7 +15,7 @@ class MenuModel extends Model
      */
     public function getTree(): array
     {
-        return cache()->remember('nav_menus', 3600, function () {
+        return cache()->remember('nav_menus', 3600, function (): array {
             $all  = $this->where('is_active', 1)->orderBy('sort_order')->findAll();
             $tree = [];
             $map  = [];

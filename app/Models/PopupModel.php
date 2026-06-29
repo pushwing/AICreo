@@ -30,7 +30,7 @@ class PopupModel extends Model
      */
     public function getActiveForPage(string $uri): array
     {
-        $cached = cache()->remember('active_popups', 3600, function () {
+        $cached = cache()->remember('active_popups', 3600, function (): array {
             $popups = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
 
             $pageUrls = [];
@@ -104,8 +104,8 @@ class PopupModel extends Model
 
         $db->table('popup_pages')->where('popup_id', $popupId)->delete();
 
-        if (! empty($menuIds)) {
-            $rows = array_map(static fn ($menuId) => [
+        if ($menuIds !== []) {
+            $rows = array_map(static fn ($menuId): array => [
                 'popup_id' => $popupId,
                 'menu_id'  => (int) $menuId,
             ], $menuIds);

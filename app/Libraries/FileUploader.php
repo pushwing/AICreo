@@ -34,7 +34,7 @@ class FileUploader
     ];
     private const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-    private PostFileModel $fileModel;
+    private readonly PostFileModel $fileModel;
 
     public function __construct()
     {

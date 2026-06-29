@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Libraries;
 
 use CodeIgniter\HTTP\Files\UploadedFile;
@@ -10,7 +12,7 @@ class ImageUploader
     private const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif'];
     private const MAX_SIZE      = 2 * 1024 * 1024; // 2MB
 
-    public function __construct(private string $folder)
+    public function __construct(private readonly string $folder)
     {
     }
 

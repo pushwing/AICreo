@@ -9,7 +9,7 @@ use Throwable;
 
 class SocialAuthController extends BaseController
 {
-    private UserModel $userModel;
+    private readonly UserModel $userModel;
 
     public function __construct()
     {

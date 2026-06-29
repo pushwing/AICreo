@@ -20,7 +20,7 @@ class BaseController extends Controller
         RequestInterface $request,
         ResponseInterface $response,
         LoggerInterface $logger,
-    ) {
+    ): void {
         parent::initController($request, $response, $logger);
 
         // 전역 사이트 설정 (캐시됨)
@@ -53,7 +53,7 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'subLeftBanners', 'activePopups');
+        $this->viewData = ['settings' => $settings, 'menus' => $menus, 'authUser' => $authUser, 'unreadInquiries' => $unreadInquiries, 'subLeftBanners' => $subLeftBanners, 'activePopups' => $activePopups];
     }
 
     protected function getUserRole(): string
