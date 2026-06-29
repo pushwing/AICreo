@@ -10,7 +10,7 @@ class MediaUploader
     private const ALLOWED  = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     private const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-    private MediaModel $model;
+    private readonly MediaModel $model;
 
     public function __construct()
     {

@@ -7,21 +7,21 @@ use App\Models\PageModel;
 
 class PageManagerController extends BaseController
 {
-    private PageModel $pageModel;
+    private readonly PageModel $pageModel;
 
     public function __construct()
     {
         $this->pageModel = new PageModel();
     }
 
-    public function index()
+    public function index(): string
     {
         return $this->render('admin/pages/list', [
             'pages' => $this->pageModel->orderBy('sort_order')->findAll(),
         ]);
     }
 
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/pages/form', ['page' => null]);
     }
@@ -41,7 +41,7 @@ class PageManagerController extends BaseController
         return redirect()->to('/admin/pages')->with('success', '페이지가 생성되었습니다.');
     }
 
-    public function edit(int $id)
+    public function edit(int $id): string
     {
         return $this->render('admin/pages/form', ['page' => $this->pageModel->find($id)]);
     }

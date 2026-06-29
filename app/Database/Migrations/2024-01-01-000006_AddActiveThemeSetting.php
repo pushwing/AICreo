@@ -6,7 +6,7 @@ use CodeIgniter\Database\Migration;
 
 class AddActiveThemeSetting extends Migration
 {
-    public function up()
+    public function up(): void
     {
         $now = date('Y-m-d H:i:s');
 
@@ -23,7 +23,7 @@ class AddActiveThemeSetting extends Migration
         }
     }
 
-    public function down()
+    public function down(): void
     {
         $this->db->table('settings')->where('key', 'active_theme')->delete();
     }

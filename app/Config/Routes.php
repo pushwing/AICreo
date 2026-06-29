@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
@@ -40,7 +42,7 @@ $routes->post('board/image-upload', 'Front\BoardController::imageUpload');
 $routes->post('inquiry/submit', 'Front\PageController::inquirySubmit');
 
 // ─── 관리자 ──────────────────────────────────────────────────────────────────
-$routes->group('admin', ['filter' => 'auth:admin'], static function ($routes) {
+$routes->group('admin', ['filter' => 'auth:admin'], static function ($routes): void {
     // 대시보드
     $routes->get('', 'Admin\DashboardController::index');
     $routes->get('dashboard', 'Admin\DashboardController::index');

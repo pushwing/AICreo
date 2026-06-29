@@ -8,14 +8,14 @@ use App\Models\BannerModel;
 
 class BannerController extends BaseController
 {
-    private BannerModel $bannerModel;
+    private readonly BannerModel $bannerModel;
 
     public function __construct()
     {
         $this->bannerModel = new BannerModel();
     }
 
-    public function index()
+    public function index(): string
     {
         return $this->render('admin/banners/list', [
             'banners'   => $this->bannerModel->orderBy('position')->orderBy('priority')->findAll(),
@@ -23,7 +23,7 @@ class BannerController extends BaseController
         ]);
     }
 
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/banners/form', [
             'banner'    => null,
@@ -106,9 +106,9 @@ class BannerController extends BaseController
     private function collectData(string $imagePath): array
     {
         $toDatetime = static fn ($val) => $val
-            ? (strlen($val) <= 16
+            ? (strlen((string) $val) <= 16
                 ? str_replace('T', ' ', $val) . ':00'
-                : str_replace('T', ' ', substr($val, 0, 19)))
+                : str_replace('T', ' ', substr((string) $val, 0, 19)))
             : null;
 
         return [

@@ -29,7 +29,7 @@ class BannerModel extends Model
      */
     public function getActiveByPosition(string $position): array
     {
-        $grouped = cache()->remember('active_banners', 3600, function () {
+        $grouped = cache()->remember('active_banners', 3600, function (): array {
             $rows = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
             $map  = [];
 
@@ -44,7 +44,7 @@ class BannerModel extends Model
 
         return array_values(array_filter(
             $grouped[$position] ?? [],
-            static fn ($b) => ($b['started_at'] === null || $b['started_at'] <= $now)
+            static fn (array $b): bool => ($b['started_at'] === null || $b['started_at'] <= $now)
                    && ($b['ended_at'] === null || $b['ended_at'] >= $now),
         ));
     }

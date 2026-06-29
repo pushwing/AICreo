@@ -12,11 +12,11 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 
 class BoardController extends BaseController
 {
-    private BoardModel $boardModel;
-    private PostModel $postModel;
-    private PostFileModel $fileModel;
-    private PostCommentModel $commentModel;
-    private FileUploader $uploader;
+    private readonly BoardModel $boardModel;
+    private readonly PostModel $postModel;
+    private readonly PostFileModel $fileModel;
+    private readonly PostCommentModel $commentModel;
+    private readonly FileUploader $uploader;
 
     public function __construct()
     {
@@ -95,7 +95,7 @@ class BoardController extends BaseController
         $files    = $this->fileModel->getByPost($postId);
         $comments = $this->commentModel->getByPost($postId);
 
-        return $this->render('board/view', compact('board', 'post', 'files', 'comments'));
+        return $this->render('board/view', ['board' => $board, 'post' => $post, 'files' => $files, 'comments' => $comments]);
     }
 
     // ─── 작성 ───────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ class BoardController extends BaseController
         $hasFiles   = $multiFiles && ($board['allow_file'] || $board['allow_image']);
         if ($hasFiles) {
             $fileErrors = $this->uploader->validateFiles($multiFiles);
-            if (! empty($fileErrors)) {
+            if ($fileErrors !== []) {
                 return redirect()->back()->withInput()->with('errors', $fileErrors);
             }
         }
@@ -204,7 +204,7 @@ class BoardController extends BaseController
 
         $files = $this->fileModel->getByPost($postId);
 
-        return $this->render('board/write', compact('board', 'post', 'files'));
+        return $this->render('board/write', ['board' => $board, 'post' => $post, 'files' => $files]);
     }
 
     // ─── 비회원 비밀번호 인증 → 세션 토큰 발급 ─────────────────────────────────
@@ -217,7 +217,7 @@ class BoardController extends BaseController
         }
 
         $inputPw = $this->request->getPost('author_password');
-        if (! $inputPw || ! password_verify($inputPw, $post['author_password'])) {
+        if (! $inputPw || ! password_verify($inputPw, (string) $post['author_password'])) {
             return redirect()->back()->with('error', '비밀번호가 틀렸습니다.');
         }
 
@@ -239,7 +239,7 @@ class BoardController extends BaseController
         $multiFiles = $this->request->getFileMultiple('attachments');
         if ($multiFiles) {
             $fileErrors = $this->uploader->validateFiles($multiFiles);
-            if (! empty($fileErrors)) {
+            if ($fileErrors !== []) {
                 return redirect()->back()->withInput()->with('errors', $fileErrors);
             }
         }
@@ -423,7 +423,7 @@ class BoardController extends BaseController
             }
             $inputPw = $this->request->getPost('author_password');
 
-            return $inputPw && password_verify($inputPw, $post['author_password']);
+            return $inputPw && password_verify($inputPw, (string) $post['author_password']);
         }
 
         return false;
@@ -451,12 +451,12 @@ class BoardController extends BaseController
         $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
 
         // on* 이벤트 핸들러 속성 제거 (onclick, onload, onerror 등)
-        $html = preg_replace('/\s+on\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html);
+        $html = preg_replace('/\s+on\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', (string) $html);
 
         // javascript: / vbscript: / data: 링크 제거
-        $html = preg_replace('/\b(javascript|vbscript|data)\s*:/i', '', $html);
+        $html = preg_replace('/\b(javascript|vbscript|data)\s*:/i', '', (string) $html);
 
         // <iframe>, <object>, <embed>, <form> 태그 제거
-        return preg_replace('/<\/?(iframe|object|embed|form)\b[^>]*>/i', '', $html);
+        return preg_replace('/<\/?(iframe|object|embed|form)\b[^>]*>/i', '', (string) $html);
     }
 }

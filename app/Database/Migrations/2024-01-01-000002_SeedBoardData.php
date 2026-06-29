@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class SeedBoardData extends Migration
 {
-    public function up()
+    public function up(): void
     {
         // 기본 게시판 샘플 데이터
         $this->db->table('boards')->insertBatch([
@@ -59,7 +61,7 @@ class SeedBoardData extends Migration
         ]);
     }
 
-    public function down()
+    public function down(): void
     {
         $this->db->table('boards')->truncate();
         $this->db->table('users')->truncate();

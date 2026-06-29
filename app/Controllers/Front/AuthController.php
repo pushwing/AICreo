@@ -7,7 +7,7 @@ use App\Models\UserModel;
 
 class AuthController extends BaseController
 {
-    private UserModel $userModel;
+    private readonly UserModel $userModel;
 
     public function __construct()
     {
@@ -36,7 +36,7 @@ class AuthController extends BaseController
 
         $user = $this->userModel->findByEmail($this->request->getPost('email'));
 
-        if (! $user || ! password_verify($this->request->getPost('password'), $user['password'])) {
+        if (! $user || ! password_verify($this->request->getPost('password'), (string) $user['password'])) {
             return redirect()->back()->withInput()->with('error', '이메일 또는 비밀번호가 올바르지 않습니다.');
         }
 
@@ -58,7 +58,7 @@ class AuthController extends BaseController
         return redirect()->to('/auth/login');
     }
 
-    public function register()
+    public function register(): string
     {
         return $this->render('auth/register');
     }
@@ -96,13 +96,13 @@ class AuthController extends BaseController
 
         $user = $this->userModel->find(session()->get('user_id'));
 
-        return $this->render('auth/profile', compact('user'));
+        return $this->render('auth/profile', ['user' => $user]);
     }
 
     public function profileUpdate()
     {
         $userId = (int) session()->get('user_id');
-        if (! $userId) {
+        if ($userId === 0) {
             return redirect()->to('/auth/login');
         }
 
@@ -144,7 +144,7 @@ class AuthController extends BaseController
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
             }
 
-            if (! password_verify($this->request->getPost('current_password'), $user['password'])) {
+            if (! password_verify($this->request->getPost('current_password'), (string) $user['password'])) {
                 return redirect()->back()->withInput()->with('error', '현재 비밀번호가 올바르지 않습니다.');
             }
 

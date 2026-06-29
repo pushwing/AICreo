@@ -7,14 +7,14 @@ use App\Models\UserModel;
 
 class UserController extends BaseController
 {
-    private UserModel $userModel;
+    private readonly UserModel $userModel;
 
     public function __construct()
     {
         $this->userModel = new UserModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $keyword = $this->request->getGet('q') ?? '';
         $role    = $this->request->getGet('role') ?? '';
@@ -72,7 +72,7 @@ class UserController extends BaseController
         }
 
         // 본인 계정의 역할/상태는 변경 불가
-        if ((int) $id === (int) session()->get('user_id')) {
+        if ($id === (int) session()->get('user_id')) {
             return redirect()->back()->with('error', '본인 계정은 수정할 수 없습니다.');
         }
 
@@ -87,7 +87,7 @@ class UserController extends BaseController
 
     public function delete(int $id)
     {
-        if ((int) $id === (int) session()->get('user_id')) {
+        if ($id === (int) session()->get('user_id')) {
             return redirect()->back()->with('error', '본인 계정은 삭제할 수 없습니다.');
         }
 

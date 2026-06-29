@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class CreateBoardTables extends Migration
 {
-    public function up()
+    public function up(): void
     {
         // 게시판 설정 테이블
         $this->forge->addField([
@@ -100,7 +102,7 @@ class CreateBoardTables extends Migration
         $this->forge->createTable('post_comments');
     }
 
-    public function down()
+    public function down(): void
     {
         $this->forge->dropTable('post_comments', true);
         $this->forge->dropTable('post_files', true);

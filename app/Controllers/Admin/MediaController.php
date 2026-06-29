@@ -8,8 +8,8 @@ use App\Models\MediaModel;
 
 class MediaController extends BaseController
 {
-    private MediaModel $mediaModel;
-    private MediaUploader $uploader;
+    private readonly MediaModel $mediaModel;
+    private readonly MediaUploader $uploader;
 
     public function __construct()
     {
@@ -17,7 +17,7 @@ class MediaController extends BaseController
         $this->uploader   = new MediaUploader();
     }
 
-    public function index()
+    public function index(): string
     {
         $page   = (int) ($this->request->getGet('page') ?? 1);
         $limit  = 24;

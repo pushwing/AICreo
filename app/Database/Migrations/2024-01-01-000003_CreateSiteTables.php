@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class CreateSiteTables extends Migration
 {
-    public function up()
+    public function up(): void
     {
         // 사이트 전역 설정 (key-value)
         $this->forge->addField([
@@ -84,7 +86,7 @@ class CreateSiteTables extends Migration
         $this->forge->createTable('inquiries');
     }
 
-    public function down()
+    public function down(): void
     {
         $this->forge->dropTable('inquiries', true);
         $this->forge->dropTable('media', true);

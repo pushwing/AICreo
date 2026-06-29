@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class CreateBannersTable extends Migration
 {
-    public function up()
+    public function up(): void
     {
         $this->forge->addField([
             'id'          => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
@@ -25,7 +27,7 @@ class CreateBannersTable extends Migration
         $this->forge->createTable('banners');
     }
 
-    public function down()
+    public function down(): void
     {
         $this->forge->dropTable('banners', true);
     }

@@ -9,8 +9,8 @@ use App\Models\PostModel;
 
 class BoardManagerController extends BaseController
 {
-    private BoardModel $boardModel;
-    private PostModel $postModel;
+    private readonly BoardModel $boardModel;
+    private readonly PostModel $postModel;
 
     public function __construct()
     {
@@ -19,7 +19,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 목록
-    public function index()
+    public function index(): string
     {
         $boards = $this->boardModel->orderBy('sort_order')->findAll();
 
@@ -27,7 +27,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 생성 폼
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/board/form', ['board' => null]);
     }
@@ -59,7 +59,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 수정
-    public function edit(int $id)
+    public function edit(int $id): string
     {
         $board = $this->boardModel->find($id);
 
@@ -84,7 +84,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판의 게시글 관리
-    public function posts(int $boardId)
+    public function posts(int $boardId): string
     {
         $board = $this->boardModel->find($boardId);
         $page  = (int) ($this->request->getGet('page') ?? 1);

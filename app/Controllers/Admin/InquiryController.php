@@ -7,14 +7,14 @@ use App\Models\InquiryModel;
 
 class InquiryController extends BaseController
 {
-    private InquiryModel $model;
+    private readonly InquiryModel $model;
 
     public function __construct()
     {
         $this->model = new InquiryModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $page   = max(1, (int) ($this->request->getGet('page') ?? 1));
         $filter = $this->request->getGet('filter') ?? '';

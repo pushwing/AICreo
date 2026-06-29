@@ -11,7 +11,7 @@ use Throwable;
 
 class PageController extends BaseController
 {
-    private PageModel $pageModel;
+    private readonly PageModel $pageModel;
 
     public function __construct()
     {
@@ -22,7 +22,7 @@ class PageController extends BaseController
      * 슬러그 기반 동적 페이지 라우팅
      * layout 값에 따라 다른 뷰 파일 렌더링
      */
-    public function show(string $slug)
+    public function show(string $slug): string
     {
         $page = $this->pageModel->getBySlug($slug);
 
