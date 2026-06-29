@@ -24,3 +24,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# PHPStan (분석 임시 산출물)
+/build/
+/tmp/
