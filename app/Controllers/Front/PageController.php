@@ -3,6 +3,7 @@
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
+use App\Libraries\Seo\JsonLdBuilder;
 use App\Models\InquiryModel;
 use App\Models\PageModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -36,7 +37,12 @@ class PageController extends BaseController
             default   => 'pages/default',
         };
 
-        return $this->render($viewFile, ['page' => $page]);
+        $ld = new JsonLdBuilder();
+
+        return $this->render($viewFile, [
+            'page'   => $page,
+            'jsonLd' => [$ld->webPage($page, base_url($page['slug']))],
+        ]);
     }
 
     /**

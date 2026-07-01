@@ -53,7 +53,8 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = ['settings' => $settings, 'menus' => $menus, 'authUser' => $authUser, 'unreadInquiries' => $unreadInquiries, 'subLeftBanners' => $subLeftBanners, 'activePopups' => $activePopups];
+        // jsonLd 기본값을 항상 [] 로 명시 (Config\View::$saveData=true 공유 렌더러 누출 방지)
+        $this->viewData = ['settings' => $settings, 'menus' => $menus, 'authUser' => $authUser, 'unreadInquiries' => $unreadInquiries, 'subLeftBanners' => $subLeftBanners, 'activePopups' => $activePopups, 'jsonLd' => []];
     }
 
     protected function getUserRole(): string
