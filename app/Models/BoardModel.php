@@ -15,6 +15,9 @@ class BoardModel extends Model
         'allow_file', 'allow_image',
         'posts_per_page', 'sort_order', 'is_active',
     ];
+    protected $afterInsert = ['clearSitemapCache'];
+    protected $afterUpdate = ['clearSitemapCache'];
+    protected $afterDelete = ['clearSitemapCache'];
 
     public function getBySlug(string $slug): ?array
     {
@@ -24,5 +27,12 @@ class BoardModel extends Model
     public function getActiveBoards(): array
     {
         return $this->where('is_active', 1)->orderBy('sort_order')->findAll();
+    }
+
+    protected function clearSitemapCache(array $data): array
+    {
+        cache()->delete('seo_sitemap');
+
+        return $data;
     }
 }

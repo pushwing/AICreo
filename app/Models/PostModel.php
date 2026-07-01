@@ -15,6 +15,32 @@ class PostModel extends Model
         'author_name', 'author_password',
         'is_notice', 'is_secret', 'ip_address',
     ];
+    protected $afterInsert = ['clearSitemapCache'];
+    protected $afterUpdate = ['clearSitemapCache'];
+    protected $afterDelete = ['clearSitemapCache'];
+
+    /**
+     * sitemap.xml 용 공개 글 목록 — 비밀글·비활성 게시판 제외.
+     * (소프트삭제 글은 모델이 자동 제외)
+     *
+     * @return list<array{id:int,updated_at:string|null,board_slug:string}>
+     */
+    public function getPublicForSitemap(): array
+    {
+        return $this->select('posts.id, posts.updated_at, boards.slug AS board_slug')
+            ->join('boards', 'boards.id = posts.board_id', 'inner')
+            ->where('posts.is_secret', 0)
+            ->where('boards.is_active', 1)
+            ->orderBy('posts.id', 'DESC')
+            ->findAll();
+    }
+
+    protected function clearSitemapCache(array $data): array
+    {
+        cache()->delete('seo_sitemap');
+
+        return $data;
+    }
 
     public function getList(int $boardId, int $page, int $perPage): array
     {
