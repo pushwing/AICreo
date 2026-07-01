@@ -78,6 +78,99 @@ final class SeoHelperTest extends CIUnitTestCase
         $this->assertStringContainsString('name="naver-site-verification" content="naver-token"', $html);
     }
 
+    public function testRenderIncludesGoogleAndBingVerification(): void
+    {
+        $html = $this->helper([
+            'google_verify' => 'google-token',
+            'bing_verify'   => 'bing-token',
+        ])->render();
+
+        $this->assertStringContainsString('name="google-site-verification" content="google-token"', $html);
+        $this->assertStringContainsString('name="msvalidate.01" content="bing-token"', $html);
+    }
+
+    public function testRenderOutputsCanonicalLink(): void
+    {
+        $html = $this->helper()->render();
+
+        $this->assertStringContainsString('<link rel="canonical" href="', $html);
+    }
+
+    public function testRenderPrefersExplicitCanonical(): void
+    {
+        $html = $this->helper()->render(['canonical' => 'https://example.com/foo']);
+
+        $this->assertStringContainsString('<link rel="canonical" href="https://example.com/foo">', $html);
+        $this->assertStringContainsString('property="og:url" content="https://example.com/foo"', $html);
+    }
+
+    public function testRenderDefaultsToIndexFollow(): void
+    {
+        $html = $this->helper()->render();
+
+        $this->assertStringContainsString('name="robots" content="index, follow"', $html);
+    }
+
+    public function testRenderRespectsNoindexFlag(): void
+    {
+        $html = $this->helper()->render(['noindex' => true]);
+
+        $this->assertStringContainsString('name="robots" content="noindex, nofollow"', $html);
+    }
+
+    public function testRenderRespectsExplicitRobots(): void
+    {
+        $html = $this->helper()->render(['robots' => 'noindex, follow']);
+
+        $this->assertStringContainsString('name="robots" content="noindex, follow"', $html);
+    }
+
+    public function testRenderIncludesTwitterCardAndLocale(): void
+    {
+        $html = $this->helper()->render(['title' => '글 제목']);
+
+        $this->assertStringContainsString('name="twitter:card" content="summary_large_image"', $html);
+        $this->assertStringContainsString('name="twitter:title" content="글 제목"', $html);
+        $this->assertStringContainsString('property="og:locale" content="ko_KR"', $html);
+    }
+
+    public function testRenderFallsBackToOgDefaultImage(): void
+    {
+        $html = $this->helper(['og_default_image' => 'uploads/default-card.png'])->render();
+
+        $this->assertStringContainsString('property="og:image"', $html);
+        $this->assertStringContainsString('uploads/default-card.png', $html);
+        $this->assertStringContainsString('name="twitter:image"', $html);
+    }
+
+    public function testRenderPageOgImageOverridesDefault(): void
+    {
+        $html = $this->helper(['og_default_image' => 'uploads/default-card.png'])
+            ->render(['og_image' => 'uploads/page-card.png']);
+
+        $this->assertStringContainsString('uploads/page-card.png', $html);
+        $this->assertStringNotContainsString('default-card.png', $html);
+    }
+
+    public function testRenderOutputsImageDimensionsWhenKnown(): void
+    {
+        $html = $this->helper([
+            'site_logo'       => 'uploads/logo.png',
+            'og_image_width'  => 1200,
+            'og_image_height' => 630,
+        ])->render();
+
+        $this->assertStringContainsString('property="og:image:width" content="1200"', $html);
+        $this->assertStringContainsString('property="og:image:height" content="630"', $html);
+    }
+
+    public function testRenderOmitsImageDimensionsWhenUnknown(): void
+    {
+        $html = $this->helper(['site_logo' => 'uploads/logo.png'])->render();
+
+        $this->assertStringNotContainsString('og:image:width', $html);
+    }
+
     public function testGaScriptEmptyWithoutId(): void
     {
         $this->assertSame('', $this->helper()->gaScript());
