@@ -31,6 +31,7 @@ class PostModel extends Model
             ->join('boards', 'boards.id = posts.board_id', 'inner')
             ->where('posts.is_secret', 0)
             ->where('boards.is_active', 1)
+            ->where('boards.read_permission', 'guest')
             ->orderBy('posts.id', 'DESC')
             ->findAll();
     }

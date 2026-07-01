@@ -43,8 +43,11 @@ class SitemapController extends BaseController
             ];
         }
 
-        // 활성 게시판 목록
+        // 활성·공개(guest 열람) 게시판 목록 — 비공개 게시판은 제외
         foreach ((new BoardModel())->getActiveBoards() as $board) {
+            if ($board['read_permission'] !== 'guest') {
+                continue;
+            }
             $urls[] = [
                 'loc'     => base_url('board/' . $board['slug']),
                 'lastmod' => $board['updated_at'] ?? null,

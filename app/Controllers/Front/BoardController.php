@@ -58,6 +58,12 @@ class BoardController extends BaseController
 
         $totalPages = (int) ceil($total / $board['posts_per_page']);
 
+        // 검색결과·비공개 게시판은 색인 제외, canonical 은 자기 참조(페이지 파라미터 포함)
+        $canonical = base_url('board/' . $board['slug']);
+        if ($page > 1) {
+            $canonical .= '?page=' . $page;
+        }
+
         return $this->render('board/list', [
             'board'       => $board,
             'posts'       => $posts,
@@ -67,6 +73,11 @@ class BoardController extends BaseController
             'total'       => $total,
             'keyword'     => $keyword,
             'searchType'  => $type,
+            'page'        => [
+                'title'     => $board['name'],
+                'canonical' => $canonical,
+                'noindex'   => (bool) $keyword || $board['read_permission'] !== 'guest',
+            ],
         ]);
     }
 
@@ -95,7 +106,21 @@ class BoardController extends BaseController
         $files    = $this->fileModel->getByPost($postId);
         $comments = $this->commentModel->getByPost($postId);
 
-        return $this->render('board/view', ['board' => $board, 'post' => $post, 'files' => $files, 'comments' => $comments]);
+        // 비밀글·비공개 게시판 글은 색인 제외
+        $noindex = (bool) $post['is_secret'] || $board['read_permission'] !== 'guest';
+
+        return $this->render('board/view', [
+            'board'    => $board,
+            'post'     => $post,
+            'files'    => $files,
+            'comments' => $comments,
+            'page'     => [
+                'title'     => $post['title'],
+                'meta_desc' => mb_substr(trim(strip_tags((string) $post['content'])), 0, 150),
+                'canonical' => base_url('board/' . $board['slug'] . '/' . $post['id']),
+                'noindex'   => $noindex,
+            ],
+        ]);
     }
 
     // ─── 작성 ───────────────────────────────────────────────────────────────
