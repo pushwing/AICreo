@@ -35,7 +35,7 @@ class SeoHelper
             ?? ($this->settings['og_default_image'] ?? ($this->settings['site_logo'] ?? ''));
         $ogImage = $ogImageRaw ? base_url($ogImageRaw) : '';
 
-        $html  = '<title>' . esc($title) . "</title>\n";
+        $html = '<title>' . esc($title) . "</title>\n";
         $html .= '<meta name="description" content="' . esc($desc) . "\">\n";
         $html .= '<link rel="canonical" href="' . esc($canonical) . "\">\n";
         $html .= '<meta name="robots" content="' . esc($robots) . "\">\n";
