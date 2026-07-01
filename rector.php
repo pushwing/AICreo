@@ -13,8 +13,8 @@ return RectorConfig::configure()
     ->withSkip([
         __DIR__ . '/app/Views',
     ])
-    // CLAUDE.md 기준 최소 지원 버전(PHP 8.1)에 맞춰 문법 현대화
-    ->withPhpSets(php81: true)
+    // 지원 버전(PHP 8.5)에 맞춰 문법 현대화
+    ->withPhpSets(php85: true)
     ->withPreparedSets(
         deadCode: true,
         codeQuality: true,
