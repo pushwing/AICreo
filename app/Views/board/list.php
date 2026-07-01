@@ -1,4 +1,15 @@
 <?= $this->extend('layouts/main') ?>
+
+<?= $this->section('head') ?>
+<?php $baseUrl = base_url('board/' . $board['slug']); ?>
+<?php if ($currentPage > 1): ?>
+<link rel="prev" href="<?= esc($baseUrl . ($currentPage - 1 > 1 ? '?page=' . ($currentPage - 1) : ''), 'attr') ?>">
+<?php endif; ?>
+<?php if ($currentPage < $totalPages): ?>
+<link rel="next" href="<?= esc($baseUrl . '?page=' . ($currentPage + 1), 'attr') ?>">
+<?php endif; ?>
+<?= $this->endSection() ?>
+
 <?= $this->section('content') ?>
 
 <div class="container py-4">
@@ -49,7 +60,7 @@
                     <?php if ($post['is_secret']): ?> <i class="bi bi-lock-fill text-muted small"></i><?php endif; ?>
                 </a>
             </td>
-            <td class="text-center text-muted small"><?= esc($post['author_name']) ?></td>
+            <td class="text-center text-muted small"><?= esc(mask_name($post['author_name'])) ?></td>
             <td class="text-center text-muted small"><?= substr($post['created_at'], 0, 10) ?></td>
             <td class="text-center text-muted small"><?= number_format($post['views']) ?></td>
         </tr>
@@ -70,7 +81,7 @@
                     <?php if ($post['is_secret']): ?> <i class="bi bi-lock-fill text-muted small"></i><?php endif; ?>
                 </a>
             </td>
-            <td class="text-center text-muted small"><?= esc($post['user_nickname'] ?? $post['author_name']) ?></td>
+            <td class="text-center text-muted small"><?= esc($post['user_nickname'] ?? mask_name($post['author_name'])) ?></td>
             <td class="text-center text-muted small"><?= substr($post['created_at'], 0, 10) ?></td>
             <td class="text-center text-muted small"><?= number_format($post['views']) ?></td>
         </tr>

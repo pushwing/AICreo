@@ -12,7 +12,7 @@
     <div class="card-header bg-white">
         <h5 class="mb-1"><?= esc($post['title']) ?></h5>
         <div class="d-flex gap-3 text-muted small">
-            <span><i class="bi bi-person"></i> <?= esc($post['user_nickname'] ?? $post['author_name']) ?></span>
+            <span><i class="bi bi-person"></i> <?= esc($post['user_nickname'] ?? mask_name($post['author_name'])) ?></span>
             <span><i class="bi bi-clock"></i> <?= $post['created_at'] ?></span>
             <span><i class="bi bi-eye"></i> <?= number_format($post['views']) ?></span>
         </div>
@@ -89,7 +89,7 @@
         <?php foreach ($comments as $c): ?>
         <div class="list-group-item comment-box ps-3">
             <div class="d-flex justify-content-between">
-                <strong class="small"><?= esc($c['user_nickname'] ?? $c['author_name']) ?></strong>
+                <strong class="small"><?= esc($c['user_nickname'] ?? mask_name($c['author_name'])) ?></strong>
                 <div class="d-flex align-items-center gap-2">
                     <span class="text-muted small"><?= substr($c['created_at'], 0, 16) ?></span>
                     <?php if ($role === 'admin' || ($userId && $c['user_id'] == $userId)): ?>

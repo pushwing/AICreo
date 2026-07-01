@@ -20,7 +20,7 @@ class AuthController extends BaseController
             return redirect()->to('/');
         }
 
-        return $this->render('auth/login');
+        return $this->render('auth/login', ['page' => ['title' => '로그인', 'noindex' => true]]);
     }
 
     public function loginProcess()
@@ -60,7 +60,7 @@ class AuthController extends BaseController
 
     public function register(): string
     {
-        return $this->render('auth/register');
+        return $this->render('auth/register', ['page' => ['title' => '회원가입', 'noindex' => true]]);
     }
 
     public function registerProcess()
@@ -96,7 +96,7 @@ class AuthController extends BaseController
 
         $user = $this->userModel->find(session()->get('user_id'));
 
-        return $this->render('auth/profile', ['user' => $user]);
+        return $this->render('auth/profile', ['user' => $user, 'page' => ['title' => '내 정보', 'noindex' => true]]);
     }
 
     public function profileUpdate()
