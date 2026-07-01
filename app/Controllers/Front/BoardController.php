@@ -218,6 +218,11 @@ class BoardController extends BaseController
             }
         }
 
+        // 공개(비밀글 아님 · guest 열람 게시판) 글만 IndexNow 즉시 제출
+        if (! $data['is_secret'] && $board['read_permission'] === 'guest') {
+            service('indexnow')->submit([base_url("board/{$boardSlug}/{$postId}")]);
+        }
+
         return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '게시글이 등록되었습니다.');
     }
 
