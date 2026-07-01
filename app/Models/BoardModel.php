@@ -32,6 +32,7 @@ class BoardModel extends Model
     protected function clearSitemapCache(array $data): array
     {
         cache()->delete('seo_sitemap');
+        cache()->delete('seo_llms');
 
         return $data;
     }

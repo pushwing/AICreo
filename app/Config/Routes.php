@@ -12,6 +12,7 @@ $routes->get('/', 'Front\HomeController::index');
 // ─── 크롤러 진입점 (SEO/GEO) — 반드시 catch-all '(:segment)' 보다 위 ─────────────
 $routes->get('sitemap.xml', 'Front\SitemapController::index');
 $routes->get('robots.txt', 'Front\RobotsController::index');
+$routes->get('llms.txt', 'Front\LlmsController::index');
 
 // ─── 인증 ────────────────────────────────────────────────────────────────────
 $routes->get('auth/login', 'Front\AuthController::login');
