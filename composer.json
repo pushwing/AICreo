@@ -10,7 +10,7 @@
         "slack": "https://codeigniterchat.slack.com"
     },
     "require": {
-        "php": "^8.2",
+        "php": "^8.5",
         "codeigniter4/framework": "^4.7"
     },
     "require-dev": {
@@ -45,7 +45,7 @@
             "phpstan/extension-installer": true
         },
         "platform": {
-            "php": "8.2"
+            "php": "8.5"
         }
     },
     "scripts": {
