@@ -4,6 +4,7 @@ namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
 use App\Libraries\FileUploader;
+use App\Libraries\Seo\JsonLdBuilder;
 use App\Models\BoardModel;
 use App\Models\PostCommentModel;
 use App\Models\PostFileModel;
@@ -107,17 +108,35 @@ class BoardController extends BaseController
         $comments = $this->commentModel->getByPost($postId);
 
         // 비밀글·비공개 게시판 글은 색인 제외
-        $noindex = (bool) $post['is_secret'] || $board['read_permission'] !== 'guest';
+        $noindex   = (bool) $post['is_secret'] || $board['read_permission'] !== 'guest';
+        $canonical = base_url('board/' . $board['slug'] . '/' . $post['id']);
+
+        // 공개 글에만 Article + BreadcrumbList JSON-LD 부착 (색인 제외 글은 생략)
+        $jsonLd = [];
+        if (! $noindex) {
+            helper('mask');
+            $ld     = new JsonLdBuilder();
+            $author = $post['user_nickname'] ?? mask_name($post['author_name'] ?? '');
+            $jsonLd = [
+                $ld->blogPosting($post, $canonical, (string) $author),
+                $ld->breadcrumb([
+                    ['name' => '홈', 'url' => base_url('/')],
+                    ['name' => $board['name'], 'url' => base_url('board/' . $board['slug'])],
+                    ['name' => $post['title'], 'url' => $canonical],
+                ]),
+            ];
+        }
 
         return $this->render('board/view', [
             'board'    => $board,
             'post'     => $post,
             'files'    => $files,
             'comments' => $comments,
+            'jsonLd'   => $jsonLd,
             'page'     => [
                 'title'     => $post['title'],
                 'meta_desc' => mb_substr(trim(strip_tags((string) $post['content'])), 0, 150),
-                'canonical' => base_url('board/' . $board['slug'] . '/' . $post['id']),
+                'canonical' => $canonical,
                 'noindex'   => $noindex,
             ],
         ]);
