@@ -9,6 +9,10 @@ use CodeIgniter\Router\RouteCollection;
 // ─── 홈 ──────────────────────────────────────────────────────────────────────
 $routes->get('/', 'Front\HomeController::index');
 
+// ─── 크롤러 진입점 (SEO/GEO) — 반드시 catch-all '(:segment)' 보다 위 ─────────────
+$routes->get('sitemap.xml', 'Front\SitemapController::index');
+$routes->get('robots.txt', 'Front\RobotsController::index');
+
 // ─── 인증 ────────────────────────────────────────────────────────────────────
 $routes->get('auth/login', 'Front\AuthController::login');
 $routes->post('auth/login', 'Front\AuthController::loginProcess');
