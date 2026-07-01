@@ -52,7 +52,8 @@ class SettingModel extends Model
             }
         }
         cache()->delete('site_settings');
-        // robots.txt 는 ai_crawlers_allow 등 설정에 의존하므로 함께 무효화
+        // robots.txt·llms.txt 는 설정(ai_crawlers_allow·사이트명·연락처)에 의존하므로 함께 무효화
         cache()->delete('seo_robots');
+        cache()->delete('seo_llms');
     }
 }
