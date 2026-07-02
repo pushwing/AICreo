@@ -220,11 +220,6 @@ GEO의 핵심은 **구조화 데이터로 사실을 기계 판독 가능하게**
 Q&A/FAQ 성격 게시판은 `FAQPage`/`Question`·`Answer`로 출력하면 AI 답변 인용률이 가장 높다.
 게시판 `slug`/설정으로 FAQ 유형을 식별해 스키마를 분기.
 
-### 4.5 (shop 확장 대비) `Product` + `Offer` + `AggregateRating`
-`shop/`은 현재 초기 단계(`Database`만 존재). 상품 페이지가 SSR로 완성되면 `products`→`Product`,
-`price`/`discount_price`→`Offer`, 리뷰→`AggregateRating`, 카테고리→`BreadcrumbList`를 매핑한다.
-`JsonLdBuilder`를 default에 먼저 구축해두면 shop이 그대로 상속·재사용한다(보일러플레이트 이점).
-
 ---
 
 ## 5. 단계별 로드맵
@@ -347,7 +342,6 @@ Bing 미색인 = ChatGPT Search 미노출. → robots에 `Bingbot` 명시, **Bin
 | 6 | llms.txt (GEO) | `LlmsController` — 사이트 요약·주요 페이지·게시판·연락처 | 2 |
 | 7 | (선택) IndexNow 즉시 색인 | 페이지/글 발행·수정 시 Bing·Naver 즉시 제출 | 2 |
 | 8 | 측정·검증 | GSC/Naver/Bing 등록·Rich Results·크롤러 로그 (배포 시점 운영 활동) | 전체 |
-| 9 | (후속) shop 상품 스키마 | `shop/` 상품 SSR 완성 후 `Product`/`Offer`/`AggregateRating` 매핑 — `JsonLdBuilder` 재사용 | 5 |
 
 ---
 
