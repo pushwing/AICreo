@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Config;
 
 use CodeIgniter\Database\Config;
@@ -162,27 +164,29 @@ class Database extends Config
      *
      * @var array<string, mixed>
      */
+    // 실제 운영(MySQL)과 동일한 스키마로 테스트하기 위해 MySQL 사용.
+    // database.tests.* 환경변수가 BaseConfig 에 의해 자동 바인딩됨 —
+    // 로컬은 .env, CI는 워크플로 env 로 오버라이드. 기본값은 CI MySQL 서비스 기준.
     public array $tests = [
         'DSN'         => '',
         'hostname'    => '127.0.0.1',
-        'username'    => '',
-        'password'    => '',
-        'database'    => ':memory:',
-        'DBDriver'    => 'SQLite3',
-        'DBPrefix'    => 'db_',  // Needed to ensure we're working correctly with prefixes live. DO NOT REMOVE FOR CI DEVS
+        'username'    => 'root',
+        'password'    => 'root',
+        'database'    => 'ci4_agency_test',
+        'DBDriver'    => 'MySQLi',
+        'DBPrefix'    => '',  // 운영 DB와 동일하게 prefix 미사용 (raw SQL 마이그레이션 호환)
         'pConnect'    => false,
         'DBDebug'     => true,
-        'charset'     => 'utf8',
-        'DBCollat'    => '',
+        'charset'     => 'utf8mb4',
+        'DBCollat'    => 'utf8mb4_general_ci',
         'swapPre'     => '',
         'encrypt'     => false,
         'compress'    => false,
-        'strictOn'    => true,
+        'strictOn'    => false,
         'failover'    => [],
         'port'        => 3306,
         'foreignKeys' => true,
         'busyTimeout' => 1000,
-        'synchronous' => null,
         'dateFormat'  => [
             'date'     => 'Y-m-d',
             'datetime' => 'Y-m-d H:i:s',

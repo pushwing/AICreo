@@ -3,9 +3,16 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use Config\Database;
 
 class PopupModel extends Model
 {
+    public const SCOPES = [
+        'all'       => '전체 페이지',
+        'home_only' => '홈 전용',
+        'specific'  => '특정 페이지',
+    ];
+
     protected $table         = 'popups';
     protected $primaryKey    = 'id';
     protected $useTimestamps = true;
@@ -13,13 +20,6 @@ class PopupModel extends Model
         'title', 'image_path', 'content', 'show_scope',
         'pos_x', 'pos_y', 'priority', 'is_active', 'started_at', 'ended_at',
     ];
-
-    public const SCOPES = [
-        'all'       => '전체 페이지',
-        'home_only' => '홈 전용',
-        'specific'  => '특정 페이지',
-    ];
-
     protected $afterInsert = ['clearCacheCallback'];
     protected $afterUpdate = ['clearCacheCallback'];
     protected $afterDelete = ['clearCacheCallback'];
@@ -30,14 +30,15 @@ class PopupModel extends Model
      */
     public function getActiveForPage(string $uri): array
     {
-        $cached = cache()->remember('active_popups', 3600, function () {
+        $cached = cache()->remember('active_popups', 3600, function (): array {
             $popups = $this->where('is_active', 1)->orderBy('priority', 'ASC')->findAll();
 
             $pageUrls = [];
-            $rows = \Config\Database::connect()->table('popup_pages pp')
+            $rows     = Database::connect()->table('popup_pages pp')
                 ->select('pp.popup_id, m.url')
                 ->join('menus m', 'm.id = pp.menu_id')
                 ->get()->getResultArray();
+
             foreach ($rows as $row) {
                 $pageUrls[$row['popup_id']][] = $row['url'];
             }
@@ -50,9 +51,14 @@ class PopupModel extends Model
         $currentUrl = '/' . ltrim($uri, '/');
 
         $result = [];
+
         foreach ($cached['popups'] as $popup) {
-            if ($popup['started_at'] !== null && $popup['started_at'] > $now) continue;
-            if ($popup['ended_at'] !== null && $popup['ended_at'] < $now) continue;
+            if ($popup['started_at'] !== null && $popup['started_at'] > $now) {
+                continue;
+            }
+            if ($popup['ended_at'] !== null && $popup['ended_at'] < $now) {
+                continue;
+            }
 
             $show = match ($popup['show_scope']) {
                 'all'       => true,
@@ -71,6 +77,7 @@ class PopupModel extends Model
     protected function clearCacheCallback(array $data): array
     {
         cache()->delete('active_popups');
+
         return $data;
     }
 
@@ -79,10 +86,11 @@ class PopupModel extends Model
      */
     public function getPageIds(int $popupId): array
     {
-        $rows = \Config\Database::connect()
+        $rows = Database::connect()
             ->table('popup_pages')
             ->where('popup_id', $popupId)
             ->get()->getResultArray();
+
         return array_column($rows, 'menu_id');
     }
 
@@ -91,13 +99,13 @@ class PopupModel extends Model
      */
     public function syncPages(int $popupId, array $menuIds): void
     {
-        $db = \Config\Database::connect();
+        $db = Database::connect();
         $db->transStart();
 
         $db->table('popup_pages')->where('popup_id', $popupId)->delete();
 
-        if (! empty($menuIds)) {
-            $rows = array_map(fn($menuId) => [
+        if ($menuIds !== []) {
+            $rows = array_map(static fn ($menuId): array => [
                 'popup_id' => $popupId,
                 'menu_id'  => (int) $menuId,
             ], $menuIds);
@@ -112,14 +120,18 @@ class PopupModel extends Model
     public function deleteWithFile(int $id): bool
     {
         $popup = $this->find($id);
-        if (! $popup) return false;
+        if (! $popup) {
+            return false;
+        }
 
         if ($popup['image_path']) {
             $fullPath = FCPATH . $popup['image_path'];
-            if (file_exists($fullPath)) unlink($fullPath);
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
         }
 
-        \Config\Database::connect()->table('popup_pages')->where('popup_id', $id)->delete();
+        Database::connect()->table('popup_pages')->where('popup_id', $id)->delete();
 
         return (bool) $this->delete($id);
     }

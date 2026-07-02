@@ -26,7 +26,12 @@ class AuthFilter implements FilterInterface
         if ($requiredRole === 'admin' && $session->get('user_role') !== 'admin') {
             return redirect()->back()->with('error', '접근 권한이 없습니다.');
         }
+
+        return null;
     }
 
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null) {}
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    {
+        return null;
+    }
 }

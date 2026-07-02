@@ -5,10 +5,11 @@ namespace App\Controllers\Front;
 use App\Controllers\BaseController;
 use App\Libraries\OAuth\OAuthFactory;
 use App\Models\UserModel;
+use Throwable;
 
 class SocialAuthController extends BaseController
 {
-    private UserModel $userModel;
+    private readonly UserModel $userModel;
 
     public function __construct()
     {
@@ -21,7 +22,7 @@ class SocialAuthController extends BaseController
      */
     public function redirect(string $provider)
     {
-        if (! in_array($provider, OAuthFactory::supported())) {
+        if (! in_array($provider, OAuthFactory::supported(), true)) {
             return redirect()->to('/auth/login')->with('error', '지원하지 않는 로그인 방식입니다.');
         }
 
@@ -59,8 +60,8 @@ class SocialAuthController extends BaseController
         session()->remove('oauth_state');
 
         try {
-            $oauth   = OAuthFactory::make($provider);
-            $token   = $oauth->getToken($code);
+            $oauth = OAuthFactory::make($provider);
+            $token = $oauth->getToken($code);
 
             if (! $token) {
                 return redirect()->to('/auth/login')->with('error', '인증 토큰을 가져오지 못했습니다.');
@@ -71,9 +72,9 @@ class SocialAuthController extends BaseController
             if (! $profile) {
                 return redirect()->to('/auth/login')->with('error', '사용자 정보를 가져오지 못했습니다.');
             }
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             log_message('error', '[SocialAuth] ' . $e->getMessage());
+
             return redirect()->to('/auth/login')->with('error', '소셜 로그인 중 오류가 발생했습니다.');
         }
 
@@ -116,6 +117,7 @@ class SocialAuthController extends BaseController
                 'social_token' => $token,
                 'avatar'       => $profile['avatar'],
             ]);
+
             return $this->userModel->find($user['id']);
         }
 
@@ -129,6 +131,7 @@ class SocialAuthController extends BaseController
                     'social_token'    => $token,
                     'avatar'          => $profile['avatar'],
                 ]);
+
                 return $this->userModel->find($existing['id']);
             }
         }

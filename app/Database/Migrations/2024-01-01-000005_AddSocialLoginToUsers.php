@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class AddSocialLoginToUsers extends Migration
 {
-    public function up()
+    public function up(): void
     {
         $this->forge->addColumn('users', [
             'social_provider' => [
@@ -22,9 +24,9 @@ class AddSocialLoginToUsers extends Migration
                 'after'      => 'social_provider',
             ],
             'social_token' => [
-                'type'       => 'TEXT',
-                'null'       => true,
-                'after'      => 'social_id',
+                'type'  => 'TEXT',
+                'null'  => true,
+                'after' => 'social_id',
             ],
             'avatar' => [
                 'type'       => 'VARCHAR',
@@ -46,7 +48,7 @@ class AddSocialLoginToUsers extends Migration
         $this->db->query('ALTER TABLE users ADD UNIQUE KEY unique_social (social_provider, social_id)');
     }
 
-    public function down()
+    public function down(): void
     {
         $this->forge->dropColumn('users', ['social_provider', 'social_id', 'social_token', 'avatar']);
     }

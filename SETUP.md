@@ -39,6 +39,27 @@ php spark migrate
 chmod -R 755 public/uploads
 ```
 
+## 8. 테스트 (PHPUnit)
+운영과 동일한 MySQL 스키마로 테스트하므로 **운영 DB와 분리된 테스트 DB**가 필요합니다.
+
+```bash
+# 1) 테스트 DB 생성 (운영 DB와 다른 이름)
+php spark db:create ci4-agency_test
+
+# 2) .env 에 테스트 DB 자격증명 추가 (운영 DB와 분리, 데이터가 매 실행 초기화됨)
+#   database.tests.hostname = localhost
+#   database.tests.database = ci4-agency_test
+#   database.tests.username = <user>
+#   database.tests.password = <pass>
+#   database.tests.DBDriver = MySQLi
+
+# 3) 실행
+composer test        # = phpunit
+composer ci          # 코드 스타일 + 정적분석 + 테스트
+composer coverage    # 커버리지 측정(텍스트 + build/coverage-html/) — Xdebug/pcov 필요
+```
+> CI(GitHub Actions)는 MySQL 서비스 컨테이너를 띄워 동일하게 검증하며, 커버리지를 측정해 잡 요약과 PR 코멘트로 리포트합니다.
+
 ## URL 구조
 | URL | 설명 |
 |-----|------|

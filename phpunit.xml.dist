@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/codeigniter4/framework/system/Test/bootstrap.php"
+         backupGlobals="false"
+         beStrictAboutOutputDuringTests="true"
+         colors="true"
+         columns="max"
+         failOnRisky="true"
+         failOnWarning="true"
+         cacheDirectory="build/.phpunit.cache">
+    <testsuites>
+        <testsuite name="app">
+            <directory>./tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+        <exclude>
+            <!-- 로직이 없는 부분은 커버리지 대상에서 제외 (실제 비즈니스 코드에 집중) -->
+            <directory>./app/Views</directory>
+            <directory>./app/Config</directory>
+            <directory>./app/Database/Migrations</directory>
+        </exclude>
+    </source>
+
+    <php>
+        <server name="app.baseURL" value="http://localhost:8080/"/>
+        <!-- phpunit.xml 이 위치한 디렉터리 -->
+        <const name="HOMEPATH" value="./"/>
+        <!-- Paths 설정 파일이 위치한 디렉터리 -->
+        <const name="CONFIGPATH" value="./app/Config/"/>
+        <!-- 프론트 컨트롤러(index.php)가 위치한 디렉터리 -->
+        <const name="PUBLICPATH" value="./public/"/>
+        <env name="XDEBUG_MODE" value="coverage"/>
+
+        <!--
+            테스트 전용 DB는 운영과 동일한 MySQL 사용 (Config/Database.php $tests).
+            연결값은 실제 환경변수로 오버라이드: 로컬은 .env(database.tests.*),
+            CI는 워크플로의 env 로 주입. 기본값은 CI MySQL 서비스 기준.
+        -->
+    </php>
+</phpunit>

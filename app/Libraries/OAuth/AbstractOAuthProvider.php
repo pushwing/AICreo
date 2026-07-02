@@ -2,6 +2,8 @@
 
 namespace App\Libraries\OAuth;
 
+use Config\OAuth as OAuthConfig;
+
 /**
  * 공통 OAuth 2.0 추상 클래스
  * 각 제공자는 getAuthUrl(), getToken(), getProfile() 만 구현
@@ -9,17 +11,15 @@ namespace App\Libraries\OAuth;
 abstract class AbstractOAuthProvider
 {
     protected array $config;
-    protected string $providerName;
 
-    public function __construct(string $providerName)
+    public function __construct(protected string $providerName)
     {
-        $this->providerName = $providerName;
-        $cfg = config('OAuth')->{$providerName};
+        $cfg = config(OAuthConfig::class)->{$this->providerName};
 
         // .env 우선 적용
-        $cfg['client_id']     = env("oauth.{$providerName}.client_id",     $cfg['client_id']);
-        $cfg['client_secret'] = env("oauth.{$providerName}.client_secret", $cfg['client_secret']);
-        $cfg['redirect_uri']  = base_url("auth/social/{$providerName}/callback");
+        $cfg['client_id']     = env("oauth.{$this->providerName}.client_id", $cfg['client_id']);
+        $cfg['client_secret'] = env("oauth.{$this->providerName}.client_secret", $cfg['client_secret']);
+        $cfg['redirect_uri']  = base_url("auth/social/{$this->providerName}/callback");
 
         $this->config = $cfg;
     }
@@ -57,6 +57,7 @@ abstract class AbstractOAuthProvider
         ];
 
         $response = $this->post($this->config['token_url'], $params);
+
         return $response['access_token'] ?? null;
     }
 
@@ -79,6 +80,7 @@ abstract class AbstractOAuthProvider
         ]);
         $body = curl_exec($ch);
         curl_close($ch);
+
         return json_decode($body, true) ?? [];
     }
 
@@ -95,6 +97,7 @@ abstract class AbstractOAuthProvider
         ]);
         $body = curl_exec($ch);
         curl_close($ch);
+
         return json_decode($body, true) ?? [];
     }
 }

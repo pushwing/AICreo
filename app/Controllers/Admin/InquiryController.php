@@ -7,14 +7,14 @@ use App\Models\InquiryModel;
 
 class InquiryController extends BaseController
 {
-    private InquiryModel $model;
+    private readonly InquiryModel $model;
 
     public function __construct()
     {
         $this->model = new InquiryModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $page   = max(1, (int) ($this->request->getGet('page') ?? 1));
         $filter = $this->request->getGet('filter') ?? '';
@@ -25,10 +25,10 @@ class InquiryController extends BaseController
             $builder->where('is_read', 0);
         }
 
-        $total      = (clone $builder)->countAllResults(false);
-        $inquiries  = $builder->orderBy('id', 'DESC')
-                              ->limit($limit, ($page - 1) * $limit)
-                              ->get()->getResultArray();
+        $total     = (clone $builder)->countAllResults(false);
+        $inquiries = $builder->orderBy('id', 'DESC')
+            ->limit($limit, ($page - 1) * $limit)
+            ->get()->getResultArray();
 
         return $this->render('admin/inquiries/index', [
             'inquiries'   => $inquiries,
@@ -37,14 +37,16 @@ class InquiryController extends BaseController
             'total'       => $total,
             'filter'      => $filter,
             'unreadCount' => $this->model->getUnreadCount(),
-            'totalAll'    => $this->model->countAll(),
+            'totalAll'    => $this->model->countAllResults(),
         ]);
     }
 
     public function view(int $id)
     {
         $inquiry = $this->model->find($id);
-        if (! $inquiry) return redirect()->to('/admin/inquiries');
+        if (! $inquiry) {
+            return redirect()->to('/admin/inquiries');
+        }
 
         $this->model->markRead($id);
 
@@ -54,6 +56,7 @@ class InquiryController extends BaseController
     public function delete(int $id)
     {
         $this->model->delete($id);
+
         return redirect()->to('/admin/inquiries')->with('success', '삭제되었습니다.');
     }
 }

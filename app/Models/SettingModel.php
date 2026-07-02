@@ -6,8 +6,8 @@ use CodeIgniter\Model;
 
 class SettingModel extends Model
 {
-    protected $table      = 'settings';
-    protected $primaryKey = 'id';
+    protected $table         = 'settings';
+    protected $primaryKey    = 'id';
     protected $allowedFields = ['group', 'key', 'value', 'label', 'type', 'updated_at'];
 
     /**
@@ -15,12 +15,14 @@ class SettingModel extends Model
      */
     public function getAllAsMap(): array
     {
-        return cache()->remember('site_settings', 3600, function () {
+        return cache()->remember('site_settings', 3600, function (): array {
             $rows = $this->findAll();
             $map  = [];
+
             foreach ($rows as $row) {
                 $map[$row['key']] = $row['value'];
             }
+
             return $map;
         });
     }
@@ -39,6 +41,7 @@ class SettingModel extends Model
     public function saveSettings(array $data): void
     {
         $now = date('Y-m-d H:i:s');
+
         foreach ($data as $key => $value) {
             $existing = $this->where('key', $key)->first();
             if ($existing) {
@@ -49,5 +52,8 @@ class SettingModel extends Model
             }
         }
         cache()->delete('site_settings');
+        // robots.txt·llms.txt 는 설정(ai_crawlers_allow·사이트명·연락처)에 의존하므로 함께 무효화
+        cache()->delete('seo_robots');
+        cache()->delete('seo_llms');
     }
 }

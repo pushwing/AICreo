@@ -4,13 +4,13 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\BoardModel;
-use App\Models\PostModel;
 use App\Models\PostFileModel;
+use App\Models\PostModel;
 
 class PostController extends BaseController
 {
-    private PostModel  $postModel;
-    private BoardModel $boardModel;
+    private readonly PostModel $postModel;
+    private readonly BoardModel $boardModel;
 
     public function __construct()
     {
@@ -18,7 +18,7 @@ class PostController extends BaseController
         $this->boardModel = new BoardModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $keyword = $this->request->getGet('q') ?? '';
         $boardId = (int) ($this->request->getGet('board_id') ?? 0);

@@ -7,6 +7,14 @@
     $seo = new \App\Libraries\SeoHelper($settings);
     echo $seo->render($page ?? null);
     echo $seo->gaScript();
+
+    // JSON-LD (GEO): 전 페이지 공통 Organization·WebSite + 페이지별 그래프
+    $ld     = new \App\Libraries\Seo\JsonLdBuilder();
+    $graphs = [$ld->organization($settings), $ld->website($settings)];
+    foreach (($jsonLd ?? []) as $node) {
+        $graphs[] = $node;
+    }
+    echo $ld->render($graphs);
     ?>
     <?php if (!empty($settings['favicon'])): ?>
     <link rel="icon" href="/<?= esc($settings['favicon']) ?>">
@@ -14,6 +22,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/themes/default/css/style.css">
+    <?= $this->renderSection('head') ?>
 </head>
 <body>
 

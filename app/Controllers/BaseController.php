@@ -8,16 +8,19 @@ use App\Models\MenuModel;
 use App\Models\PopupModel;
 use App\Models\SettingModel;
 use CodeIgniter\Controller;
+use CodeIgniter\HTTP\RequestInterface;
+use CodeIgniter\HTTP\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
 class BaseController extends Controller
 {
     protected array $viewData = [];
 
     public function initController(
-        \CodeIgniter\HTTP\RequestInterface $request,
-        \CodeIgniter\HTTP\ResponseInterface $response,
-        \Psr\Log\LoggerInterface $logger
-    ) {
+        RequestInterface $request,
+        ResponseInterface $response,
+        LoggerInterface $logger,
+    ): void {
         parent::initController($request, $response, $logger);
 
         // 전역 사이트 설정 (캐시됨)
@@ -50,7 +53,8 @@ class BaseController extends Controller
             ? []
             : (new PopupModel())->getActiveForPage(uri_string());
 
-        $this->viewData = compact('settings', 'menus', 'authUser', 'unreadInquiries', 'subLeftBanners', 'activePopups');
+        // jsonLd 기본값을 항상 [] 로 명시 (Config\View::$saveData=true 공유 렌더러 누출 방지)
+        $this->viewData = ['settings' => $settings, 'menus' => $menus, 'authUser' => $authUser, 'unreadInquiries' => $unreadInquiries, 'subLeftBanners' => $subLeftBanners, 'activePopups' => $activePopups, 'jsonLd' => []];
     }
 
     protected function getUserRole(): string
@@ -64,9 +68,10 @@ class BaseController extends Controller
     protected function checkPermission(string $required): bool
     {
         $role = $this->getUserRole();
+
         return match ($required) {
             'guest'  => true,
-            'member' => in_array($role, ['member', 'admin']),
+            'member' => in_array($role, ['member', 'admin'], true),
             'admin'  => $role === 'admin',
             default  => false,
         };

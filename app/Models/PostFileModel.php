@@ -6,11 +6,11 @@ use CodeIgniter\Model;
 
 class PostFileModel extends Model
 {
-    protected $table      = 'post_files';
-    protected $primaryKey = 'id';
-    protected $useTimestamps  = true;
-    protected $updatedField   = '';
-    protected $allowedFields  = [
+    protected $table         = 'post_files';
+    protected $primaryKey    = 'id';
+    protected $useTimestamps = true;
+    protected $updatedField  = '';
+    protected $allowedFields = [
         'post_id', 'original_name', 'stored_name',
         'file_path', 'file_size', 'mime_type', 'is_image',
     ];
@@ -33,6 +33,7 @@ class PostFileModel extends Model
     public function deleteByPost(int $postId): void
     {
         $files = $this->getByPost($postId);
+
         foreach ($files as $file) {
             $fullPath = FCPATH . $file['file_path'];
             if (file_exists($fullPath)) {

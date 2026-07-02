@@ -20,10 +20,12 @@ class KakaoProvider extends AbstractOAuthProvider
             'Authorization: Bearer ' . $token,
         ]);
 
-        if (empty($data['id'])) return null;
+        if (empty($data['id'])) {
+            return null;
+        }
 
-        $account  = $data['kakao_account'] ?? [];
-        $profile  = $account['profile']    ?? [];
+        $account = $data['kakao_account'] ?? [];
+        $profile = $account['profile'] ?? [];
 
         return [
             'social_id' => (string) $data['id'],

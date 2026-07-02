@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
@@ -9,7 +11,7 @@ use App\Models\PostModel;
 
 class HomeController extends BaseController
 {
-    public function index()
+    public function index(): string
     {
         // 홈에 최신 공지 3개 노출
         $boardModel = new BoardModel();
@@ -27,7 +29,7 @@ class HomeController extends BaseController
         $bannerModel = new BannerModel();
 
         return $this->render('pages/home', [
-            'page'           => [
+            'page' => [
                 'title'     => $this->viewData['settings']['site_name'] ?? '',
                 'meta_desc' => $this->viewData['settings']['site_desc'] ?? '',
             ],

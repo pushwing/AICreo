@@ -2,20 +2,30 @@
 
 namespace Config;
 
+use App\Libraries\Seo\IndexNowService;
 use App\Libraries\ThemeView;
 use CodeIgniter\Config\BaseService;
 use Config\View as ViewConfig;
 
 class Services extends BaseService
 {
+    public static function indexnow(bool $getShared = true): IndexNowService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('indexnow');
+        }
+
+        return new IndexNowService();
+    }
+
     public static function renderer(?string $viewPath = null, ?ViewConfig $config = null, bool $getShared = true)
     {
         if ($getShared) {
             return static::getSharedInstance('renderer', $viewPath, $config);
         }
 
-        $viewPath ??= (new \Config\Paths())->viewDirectory;
-        $config   ??= config(ViewConfig::class);
+        $viewPath ??= (new Paths())->viewDirectory;
+        $config ??= config(ViewConfig::class);
 
         return new ThemeView(
             $config,

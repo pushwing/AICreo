@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
@@ -9,7 +11,7 @@ use App\Models\UserModel;
 
 class DashboardController extends BaseController
 {
-    public function index()
+    public function index(): string
     {
         $postModel    = new PostModel();
         $userModel    = new UserModel();
@@ -17,10 +19,10 @@ class DashboardController extends BaseController
 
         return $this->render('admin/dashboard/index', [
             'stats' => [
-                'total_posts'    => $postModel->countAll(),
-                'total_users'    => $userModel->countAll(),
-                'total_inquiries'=> $inquiryModel->countAll(),
-                'unread_inquiries'=> $inquiryModel->getUnreadCount(),
+                'total_posts'      => $postModel->countAllResults(),
+                'total_users'      => $userModel->countAllResults(),
+                'total_inquiries'  => $inquiryModel->countAllResults(),
+                'unread_inquiries' => $inquiryModel->getUnreadCount(),
             ],
             'recentInquiries' => $inquiryModel->orderBy('id', 'DESC')->findAll(5),
             'recentPosts'     => $postModel

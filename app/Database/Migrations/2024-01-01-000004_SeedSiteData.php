@@ -1,32 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
 class SeedSiteData extends Migration
 {
-    public function up()
+    public function up(): void
     {
         $now = date('Y-m-d H:i:s');
 
         // 기본 사이트 설정
         $this->db->table('settings')->insertBatch([
-            ['group' => 'general', 'key' => 'site_name',    'value' => '내 회사',           'label' => '사이트명',      'type' => 'text',    'updated_at' => $now],
-            ['group' => 'general', 'key' => 'site_desc',    'value' => '믿을 수 있는 파트너', 'label' => '사이트 설명',   'type' => 'textarea','updated_at' => $now],
-            ['group' => 'general', 'key' => 'site_logo',    'value' => '',                  'label' => '로고 이미지',   'type' => 'image',   'updated_at' => $now],
-            ['group' => 'general', 'key' => 'favicon',      'value' => '',                  'label' => '파비콘',        'type' => 'image',   'updated_at' => $now],
-            ['group' => 'contact', 'key' => 'phone',        'value' => '02-0000-0000',      'label' => '전화번호',      'type' => 'text',    'updated_at' => $now],
-            ['group' => 'contact', 'key' => 'email',        'value' => 'contact@example.com','label' => '이메일',       'type' => 'text',    'updated_at' => $now],
-            ['group' => 'contact', 'key' => 'address',      'value' => '서울시 강남구',      'label' => '주소',          'type' => 'text',    'updated_at' => $now],
-            ['group' => 'contact', 'key' => 'kakao',        'value' => '',                  'label' => '카카오채널',    'type' => 'text',    'updated_at' => $now],
-            ['group' => 'sns',     'key' => 'instagram',    'value' => '',                  'label' => '인스타그램',    'type' => 'text',    'updated_at' => $now],
-            ['group' => 'sns',     'key' => 'youtube',      'value' => '',                  'label' => '유튜브',        'type' => 'text',    'updated_at' => $now],
-            ['group' => 'sns',     'key' => 'blog',         'value' => '',                  'label' => '블로그',        'type' => 'text',    'updated_at' => $now],
-            ['group' => 'seo',     'key' => 'ga_id',        'value' => '',                  'label' => 'GA 측정 ID',   'type' => 'text',    'updated_at' => $now],
-            ['group' => 'seo',     'key' => 'naver_verify', 'value' => '',                  'label' => '네이버 인증',   'type' => 'text',    'updated_at' => $now],
-            ['group' => 'footer',  'key' => 'copyright',    'value' => '© 2025 내 회사. All rights reserved.', 'label' => '저작권', 'type' => 'text', 'updated_at' => $now],
-            ['group' => 'footer',  'key' => 'business_num', 'value' => '000-00-00000',      'label' => '사업자번호',    'type' => 'text',    'updated_at' => $now],
+            ['group' => 'general', 'key' => 'site_name', 'value' => '내 회사', 'label' => '사이트명', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'general', 'key' => 'site_desc', 'value' => '믿을 수 있는 파트너', 'label' => '사이트 설명', 'type' => 'textarea', 'updated_at' => $now],
+            ['group' => 'general', 'key' => 'site_logo', 'value' => '', 'label' => '로고 이미지', 'type' => 'image', 'updated_at' => $now],
+            ['group' => 'general', 'key' => 'favicon', 'value' => '', 'label' => '파비콘', 'type' => 'image', 'updated_at' => $now],
+            ['group' => 'contact', 'key' => 'phone', 'value' => '02-0000-0000', 'label' => '전화번호', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'contact', 'key' => 'email', 'value' => 'contact@example.com', 'label' => '이메일', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'contact', 'key' => 'address', 'value' => '서울시 강남구', 'label' => '주소', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'contact', 'key' => 'kakao', 'value' => '', 'label' => '카카오채널', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'sns', 'key' => 'instagram', 'value' => '', 'label' => '인스타그램', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'sns', 'key' => 'youtube', 'value' => '', 'label' => '유튜브', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'sns', 'key' => 'blog', 'value' => '', 'label' => '블로그', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'seo', 'key' => 'ga_id', 'value' => '', 'label' => 'GA 측정 ID', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'seo', 'key' => 'naver_verify', 'value' => '', 'label' => '네이버 인증', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'footer', 'key' => 'copyright', 'value' => '© 2025 내 회사. All rights reserved.', 'label' => '저작권', 'type' => 'text', 'updated_at' => $now],
+            ['group' => 'footer', 'key' => 'business_num', 'value' => '000-00-00000', 'label' => '사업자번호', 'type' => 'text', 'updated_at' => $now],
         ]);
 
         // 기본 페이지
@@ -68,15 +70,15 @@ class SeedSiteData extends Migration
 
         // 기본 메뉴
         $this->db->table('menus')->insertBatch([
-            ['parent_id' => null, 'title' => '홈',      'url' => '/',          'sort_order' => 0, 'is_active' => 1],
-            ['parent_id' => null, 'title' => '회사소개', 'url' => '/about',     'sort_order' => 1, 'is_active' => 1],
-            ['parent_id' => null, 'title' => '서비스',   'url' => '/service',   'sort_order' => 2, 'is_active' => 1],
+            ['parent_id' => null, 'title' => '홈', 'url' => '/', 'sort_order' => 0, 'is_active' => 1],
+            ['parent_id' => null, 'title' => '회사소개', 'url' => '/about', 'sort_order' => 1, 'is_active' => 1],
+            ['parent_id' => null, 'title' => '서비스', 'url' => '/service', 'sort_order' => 2, 'is_active' => 1],
             ['parent_id' => null, 'title' => '공지사항', 'url' => '/board/notice', 'sort_order' => 3, 'is_active' => 1],
-            ['parent_id' => null, 'title' => '문의하기', 'url' => '/contact',   'sort_order' => 4, 'is_active' => 1],
+            ['parent_id' => null, 'title' => '문의하기', 'url' => '/contact', 'sort_order' => 4, 'is_active' => 1],
         ]);
     }
 
-    public function down()
+    public function down(): void
     {
         $this->db->table('settings')->truncate();
         $this->db->table('pages')->truncate();

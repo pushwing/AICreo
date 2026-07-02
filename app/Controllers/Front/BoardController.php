@@ -4,18 +4,20 @@ namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
 use App\Libraries\FileUploader;
+use App\Libraries\Seo\JsonLdBuilder;
 use App\Models\BoardModel;
 use App\Models\PostCommentModel;
 use App\Models\PostFileModel;
 use App\Models\PostModel;
+use CodeIgniter\Exceptions\PageNotFoundException;
 
 class BoardController extends BaseController
 {
-    private BoardModel      $boardModel;
-    private PostModel       $postModel;
-    private PostFileModel   $fileModel;
-    private PostCommentModel $commentModel;
-    private FileUploader    $uploader;
+    private readonly BoardModel $boardModel;
+    private readonly PostModel $postModel;
+    private readonly PostFileModel $fileModel;
+    private readonly PostCommentModel $commentModel;
+    private readonly FileUploader $uploader;
 
     public function __construct()
     {
@@ -32,7 +34,7 @@ class BoardController extends BaseController
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         if (! $board) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if (! $this->checkPermission($board['read_permission'])) {
@@ -44,7 +46,7 @@ class BoardController extends BaseController
         $type    = $this->request->getGet('type') ?? 'title';
 
         if ($keyword) {
-            $result = $this->postModel->search($board['id'], $keyword, $type, $page, $board['posts_per_page']);
+            $result  = $this->postModel->search($board['id'], $keyword, $type, $page, $board['posts_per_page']);
             $posts   = $result['posts'];
             $total   = $result['total'];
             $notices = [];
@@ -57,6 +59,12 @@ class BoardController extends BaseController
 
         $totalPages = (int) ceil($total / $board['posts_per_page']);
 
+        // 검색결과·비공개 게시판은 색인 제외, canonical 은 자기 참조(페이지 파라미터 포함)
+        $canonical = base_url('board/' . $board['slug']);
+        if ($page > 1) {
+            $canonical .= '?page=' . $page;
+        }
+
         return $this->render('board/list', [
             'board'       => $board,
             'posts'       => $posts,
@@ -66,6 +74,11 @@ class BoardController extends BaseController
             'total'       => $total,
             'keyword'     => $keyword,
             'searchType'  => $type,
+            'page'        => [
+                'title'     => $board['name'],
+                'canonical' => $canonical,
+                'noindex'   => (bool) $keyword || $board['read_permission'] !== 'guest',
+            ],
         ]);
     }
 
@@ -76,8 +89,8 @@ class BoardController extends BaseController
         $board = $this->boardModel->getBySlug($boardSlug);
         $post  = $this->postModel->getDetail($postId);
 
-        if (! $board || ! $post || $post['board_id'] != $board['id']) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        if (! $board || ! $post || $post['board_id'] !== $board['id']) {
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if (! $this->checkPermission($board['read_permission'])) {
@@ -94,7 +107,39 @@ class BoardController extends BaseController
         $files    = $this->fileModel->getByPost($postId);
         $comments = $this->commentModel->getByPost($postId);
 
-        return $this->render('board/view', compact('board', 'post', 'files', 'comments'));
+        // 비밀글·비공개 게시판 글은 색인 제외
+        $noindex   = (bool) $post['is_secret'] || $board['read_permission'] !== 'guest';
+        $canonical = base_url('board/' . $board['slug'] . '/' . $post['id']);
+
+        // 공개 글에만 Article + BreadcrumbList JSON-LD 부착 (색인 제외 글은 생략)
+        $jsonLd = [];
+        if (! $noindex) {
+            helper('mask');
+            $ld     = new JsonLdBuilder();
+            $author = $post['user_nickname'] ?? mask_name($post['author_name'] ?? '');
+            $jsonLd = [
+                $ld->blogPosting($post, $canonical, (string) $author),
+                $ld->breadcrumb([
+                    ['name' => '홈', 'url' => base_url('/')],
+                    ['name' => $board['name'], 'url' => base_url('board/' . $board['slug'])],
+                    ['name' => $post['title'], 'url' => $canonical],
+                ]),
+            ];
+        }
+
+        return $this->render('board/view', [
+            'board'    => $board,
+            'post'     => $post,
+            'files'    => $files,
+            'comments' => $comments,
+            'jsonLd'   => $jsonLd,
+            'page'     => [
+                'title'     => $post['title'],
+                'meta_desc' => mb_substr(trim(strip_tags((string) $post['content'])), 0, 150),
+                'canonical' => $canonical,
+                'noindex'   => $noindex,
+            ],
+        ]);
     }
 
     // ─── 작성 ───────────────────────────────────────────────────────────────
@@ -103,11 +148,12 @@ class BoardController extends BaseController
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         if (! $board) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if (! $this->checkPermission($board['write_permission'])) {
             session()->setTempdata('redirect_url', current_url(), 300);
+
             return redirect()->to('/auth/login')->with('error', '글쓰기 권한이 없습니다.');
         }
 
@@ -134,11 +180,11 @@ class BoardController extends BaseController
         }
 
         $data = [
-            'board_id'   => $board['id'],
-            'user_id'    => session()->get('user_id'),
-            'title'      => $this->request->getPost('title'),
-            'content'    => $this->sanitizeContent($this->request->getPost('content')),
-            'author_name'=> $isGuest
+            'board_id'    => $board['id'],
+            'user_id'     => session()->get('user_id'),
+            'title'       => $this->request->getPost('title'),
+            'content'     => $this->sanitizeContent($this->request->getPost('content')),
+            'author_name' => $isGuest
                             ? $this->request->getPost('author_name')
                             : session()->get('user_nickname'),
             'is_notice'  => $this->getUserRole() === 'admin' ? (int) $this->request->getPost('is_notice') : 0,
@@ -155,7 +201,7 @@ class BoardController extends BaseController
         $hasFiles   = $multiFiles && ($board['allow_file'] || $board['allow_image']);
         if ($hasFiles) {
             $fileErrors = $this->uploader->validateFiles($multiFiles);
-            if (! empty($fileErrors)) {
+            if ($fileErrors !== []) {
                 return redirect()->back()->withInput()->with('errors', $fileErrors);
             }
         }
@@ -167,8 +213,14 @@ class BoardController extends BaseController
             $upload = $this->uploader->savePostFiles($postId, $multiFiles);
             if (! empty($upload['errors'])) {
                 $this->postModel->delete($postId, true);
+
                 return redirect()->back()->withInput()->with('errors', $upload['errors']);
             }
+        }
+
+        // 공개(비밀글 아님 · guest 열람 게시판) 글만 IndexNow 즉시 제출
+        if (! $data['is_secret'] && $board['read_permission'] === 'guest') {
+            service('indexnow')->submit([base_url("board/{$boardSlug}/{$postId}")]);
         }
 
         return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '게시글이 등록되었습니다.');
@@ -182,13 +234,13 @@ class BoardController extends BaseController
         $post  = $this->postModel->getDetail($postId);
 
         if (! $board || ! $post) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $userId = session()->get('user_id');
         $role   = $this->getUserRole();
 
-        if ($role === 'admin' || ($userId && $post['user_id'] == $userId)) {
+        if ($role === 'admin' || ($userId && $post['user_id'] === $userId)) {
             // 관리자 또는 본인: 바로 수정 폼
         } elseif (! $userId && $post['author_password']) {
             // 비회원 게시글: 세션 인증 토큰 없으면 비밀번호 재확인
@@ -200,7 +252,8 @@ class BoardController extends BaseController
         }
 
         $files = $this->fileModel->getByPost($postId);
-        return $this->render('board/write', compact('board', 'post', 'files'));
+
+        return $this->render('board/write', ['board' => $board, 'post' => $post, 'files' => $files]);
     }
 
     // ─── 비회원 비밀번호 인증 → 세션 토큰 발급 ─────────────────────────────────
@@ -213,11 +266,12 @@ class BoardController extends BaseController
         }
 
         $inputPw = $this->request->getPost('author_password');
-        if (! $inputPw || ! password_verify($inputPw, $post['author_password'])) {
+        if (! $inputPw || ! password_verify($inputPw, (string) $post['author_password'])) {
             return redirect()->back()->with('error', '비밀번호가 틀렸습니다.');
         }
 
         session()->set('edit_auth_' . $postId, true);
+
         return redirect()->to("/board/{$boardSlug}/{$postId}/edit");
     }
 
@@ -234,7 +288,7 @@ class BoardController extends BaseController
         $multiFiles = $this->request->getFileMultiple('attachments');
         if ($multiFiles) {
             $fileErrors = $this->uploader->validateFiles($multiFiles);
-            if (! empty($fileErrors)) {
+            if ($fileErrors !== []) {
                 return redirect()->back()->withInput()->with('errors', $fileErrors);
             }
         }
@@ -256,14 +310,16 @@ class BoardController extends BaseController
 
         // 선택 파일 삭제
         $deleteFileIds = $this->request->getPost('delete_files') ?? [];
+
         foreach ($deleteFileIds as $fileId) {
             $file = $this->fileModel->find((int) $fileId);
-            if ($file && $file['post_id'] == $postId) {
+            if ($file && $file['post_id'] === $postId) {
                 $this->uploader->deleteFile($file);
             }
         }
 
         session()->remove('edit_auth_' . $postId);
+
         return redirect()->to("/board/{$boardSlug}/{$postId}")->with('success', '수정되었습니다.');
     }
 
@@ -345,17 +401,18 @@ class BoardController extends BaseController
             return redirect()->back()->with('error', '댓글을 찾을 수 없습니다.');
         }
 
-        $role = $this->getUserRole();
+        $role   = $this->getUserRole();
         $userId = session()->get('user_id');
 
         $canDelete = $role === 'admin'
-            || ($userId && $comment['user_id'] == $userId);
+            || ($userId && $comment['user_id'] === $userId);
 
         if (! $canDelete) {
             return redirect()->back()->with('error', '삭제 권한이 없습니다.');
         }
 
         $this->commentModel->delete($commentId);
+
         return redirect()->to("/board/{$boardSlug}/{$postId}#comments");
     }
 
@@ -373,7 +430,7 @@ class BoardController extends BaseController
         }
 
         $ext = strtolower($file->getClientExtension());
-        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
             return $this->response->setJSON(['error' => '이미지 파일만 허용됩니다.'])->setStatusCode(400);
         }
 
@@ -401,14 +458,21 @@ class BoardController extends BaseController
         $role   = $this->getUserRole();
         $userId = session()->get('user_id');
 
-        if ($role === 'admin') return true;
-        if ($userId && $post['user_id'] == $userId) return true;
+        if ($role === 'admin') {
+            return true;
+        }
+        if ($userId && $post['user_id'] === $userId) {
+            return true;
+        }
 
         // 비회원: 세션 인증 토큰 또는 POST 비밀번호 검증
         if (! $userId && $post['author_password']) {
-            if (session()->get('edit_auth_' . $post['id'])) return true;
+            if (session()->get('edit_auth_' . $post['id'])) {
+                return true;
+            }
             $inputPw = $this->request->getPost('author_password');
-            return $inputPw && password_verify($inputPw, $post['author_password']);
+
+            return $inputPw && password_verify($inputPw, (string) $post['author_password']);
         }
 
         return false;
@@ -419,7 +483,7 @@ class BoardController extends BaseController
         $role   = $this->getUserRole();
         $userId = session()->get('user_id');
 
-        return $role === 'admin' || ($userId && $post['user_id'] == $userId);
+        return $role === 'admin' || ($userId && $post['user_id'] === $userId);
     }
 
     /**
@@ -436,14 +500,12 @@ class BoardController extends BaseController
         $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
 
         // on* 이벤트 핸들러 속성 제거 (onclick, onload, onerror 등)
-        $html = preg_replace('/\s+on\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html);
+        $html = preg_replace('/\s+on\w+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', (string) $html);
 
         // javascript: / vbscript: / data: 링크 제거
-        $html = preg_replace('/\b(javascript|vbscript|data)\s*:/i', '', $html);
+        $html = preg_replace('/\b(javascript|vbscript|data)\s*:/i', '', (string) $html);
 
         // <iframe>, <object>, <embed>, <form> 태그 제거
-        $html = preg_replace('/<\/?(iframe|object|embed|form)\b[^>]*>/i', '', $html);
-
-        return $html;
+        return preg_replace('/<\/?(iframe|object|embed|form)\b[^>]*>/i', '', (string) $html);
     }
 }

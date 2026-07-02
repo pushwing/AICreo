@@ -4,12 +4,13 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\BoardModel;
+use App\Models\PostFileModel;
 use App\Models\PostModel;
 
 class BoardManagerController extends BaseController
 {
-    private BoardModel $boardModel;
-    private PostModel  $postModel;
+    private readonly BoardModel $boardModel;
+    private readonly PostModel $postModel;
 
     public function __construct()
     {
@@ -18,14 +19,15 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 목록
-    public function index()
+    public function index(): string
     {
         $boards = $this->boardModel->orderBy('sort_order')->findAll();
+
         return $this->render('admin/board/list', ['boards' => $boards]);
     }
 
     // 게시판 생성 폼
-    public function create()
+    public function create(): string
     {
         return $this->render('admin/board/form', ['board' => null]);
     }
@@ -57,9 +59,10 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 수정
-    public function edit(int $id)
+    public function edit(int $id): string
     {
         $board = $this->boardModel->find($id);
+
         return $this->render('admin/board/form', ['board' => $board]);
     }
 
@@ -81,7 +84,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판의 게시글 관리
-    public function posts(int $boardId)
+    public function posts(int $boardId): string
     {
         $board = $this->boardModel->find($boardId);
         $page  = (int) ($this->request->getGet('page') ?? 1);
@@ -105,7 +108,7 @@ class BoardManagerController extends BaseController
             return redirect()->back()->with('error', '게시글을 찾을 수 없습니다.');
         }
 
-        (new \App\Models\PostFileModel())->deleteByPost($postId);
+        (new PostFileModel())->deleteByPost($postId);
         $this->postModel->delete($postId);
 
         return redirect()->back()->with('success', '삭제되었습니다.');

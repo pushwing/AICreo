@@ -7,10 +7,10 @@ use CodeIgniter\HTTP\Files\UploadedFile;
 
 class MediaUploader
 {
-    private const ALLOWED = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    private const ALLOWED  = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     private const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-    private MediaModel $model;
+    private readonly MediaModel $model;
 
     public function __construct()
     {
@@ -21,7 +21,7 @@ class MediaUploader
     {
         $ext = strtolower($file->getClientExtension());
 
-        if (! in_array($ext, self::ALLOWED)) {
+        if (! in_array($ext, self::ALLOWED, true)) {
             return ['success' => false, 'error' => '이미지 파일만 업로드 가능합니다.'];
         }
         if ($file->getSize() > self::MAX_SIZE) {
@@ -31,7 +31,9 @@ class MediaUploader
         $subDir     = date('Y/m');
         $uploadPath = FCPATH . "uploads/media/{$subDir}";
 
-        if (! is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+        if (! is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
 
         $storedName   = bin2hex(random_bytes(16)) . '.' . $ext;
         $relativePath = "uploads/media/{$subDir}/{$storedName}";

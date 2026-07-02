@@ -1,6 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Libraries\OAuth;
+
+use InvalidArgumentException;
 
 class OAuthFactory
 {
@@ -10,7 +14,7 @@ class OAuthFactory
             'naver'  => new NaverProvider(),
             'kakao'  => new KakaoProvider(),
             'google' => new GoogleProvider(),
-            default  => throw new \InvalidArgumentException("지원하지 않는 소셜 로그인: {$provider}"),
+            default  => throw new InvalidArgumentException("지원하지 않는 소셜 로그인: {$provider}"),
         };
     }
 

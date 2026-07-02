@@ -7,14 +7,14 @@ use App\Models\UserModel;
 
 class UserController extends BaseController
 {
-    private UserModel $userModel;
+    private readonly UserModel $userModel;
 
     public function __construct()
     {
         $this->userModel = new UserModel();
     }
 
-    public function index()
+    public function index(): string
     {
         $keyword = $this->request->getGet('q') ?? '';
         $role    = $this->request->getGet('role') ?? '';
@@ -40,17 +40,17 @@ class UserController extends BaseController
 
         $total = (clone $builder)->countAllResults(false);
         $users = $builder->orderBy('id', 'DESC')
-                         ->limit($perPage, ($page - 1) * $perPage)
-                         ->get()->getResultArray();
+            ->limit($perPage, ($page - 1) * $perPage)
+            ->get()->getResultArray();
 
         return $this->render('admin/users/list', [
-            'users'      => $users,
-            'total'      => $total,
-            'currentPage'=> $page,
-            'totalPages' => (int) ceil($total / $perPage),
-            'keyword'    => $keyword,
-            'role'       => $role,
-            'status'     => $status,
+            'users'       => $users,
+            'total'       => $total,
+            'currentPage' => $page,
+            'totalPages'  => (int) ceil($total / $perPage),
+            'keyword'     => $keyword,
+            'role'        => $role,
+            'status'      => $status,
         ]);
     }
 
@@ -72,7 +72,7 @@ class UserController extends BaseController
         }
 
         // 본인 계정의 역할/상태는 변경 불가
-        if ((int) $id === (int) session()->get('user_id')) {
+        if ($id === (int) session()->get('user_id')) {
             return redirect()->back()->with('error', '본인 계정은 수정할 수 없습니다.');
         }
 
@@ -87,7 +87,7 @@ class UserController extends BaseController
 
     public function delete(int $id)
     {
-        if ((int) $id === (int) session()->get('user_id')) {
+        if ($id === (int) session()->get('user_id')) {
             return redirect()->back()->with('error', '본인 계정은 삭제할 수 없습니다.');
         }
 
