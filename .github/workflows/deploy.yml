@@ -1,0 +1,52 @@
+name: Deploy
+
+# CI 워크플로우가 main 브랜치에서 성공적으로 완료된 뒤에만 배포한다.
+# (테스트/정적분석에 실패한 코드가 운영 서버에 반영되는 것을 방지)
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Actions 탭에서 수동 실행 (배포 실패 후 재시도 등)
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 운영 서버 배포 (SSH)
+    runs-on: ubuntu-latest
+
+    # 수동 실행이거나, CI가 성공(success)으로 끝난 경우에만 배포한다.
+    # (CI 실패·취소 시 자동 배포하지 않음)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: SSH 접속 후 배포 실행
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          script: |
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            echo "▶ 최신 코드 가져오기"
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            echo "▶ 의존성 설치 (운영용, dev 제외)"
+            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+            echo "▶ 데이터베이스 마이그레이션"
+            php spark migrate --all
+
+            echo "▶ 캐시 초기화"
+            php spark cache:clear
+
+            echo "✅ 배포 완료: $(git rev-parse --short HEAD)"
