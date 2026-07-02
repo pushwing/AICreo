@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class UserController extends BaseController
 {
@@ -54,7 +55,7 @@ class UserController extends BaseController
         ]);
     }
 
-    public function edit(int $id)
+    public function edit(int $id): ResponseInterface|string
     {
         $user = $this->userModel->find($id);
         if (! $user) {
@@ -64,7 +65,7 @@ class UserController extends BaseController
         return $this->render('admin/users/edit', ['member' => $user]);
     }
 
-    public function update(int $id)
+    public function update(int $id): ResponseInterface|string
     {
         $user = $this->userModel->find($id);
         if (! $user) {
@@ -85,7 +86,7 @@ class UserController extends BaseController
         return redirect()->to('/admin/users')->with('success', '회원 정보가 수정되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         if ($id === (int) session()->get('user_id')) {
             return redirect()->back()->with('error', '본인 계정은 삭제할 수 없습니다.');

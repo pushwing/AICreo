@@ -16,10 +16,16 @@ namespace App\Libraries;
  */
 class SeoHelper
 {
+    /**
+     * @param array<string, mixed> $settings
+     */
     public function __construct(private array $settings)
     {
     }
 
+    /**
+     * @param array<string, mixed>|null $page
+     */
     public function render(?array $page = null): string
     {
         $siteName  = $this->settings['site_name'] ?? '';
@@ -84,6 +90,8 @@ class SeoHelper
 
     /**
      * robots 지시자 결정. 명시 값 > noindex 플래그 > 기본 index,follow.
+     *
+     * @param array<string, mixed>|null $page
      */
     private function resolveRobots(?array $page): string
     {

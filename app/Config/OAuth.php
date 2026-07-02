@@ -19,6 +19,9 @@ use CodeIgniter\Config\BaseConfig;
  */
 class OAuth extends BaseConfig
 {
+    /**
+     * @var array<string, string>
+     */
     public array $naver = [
         'client_id'     => '',  // .env: oauth.naver.client_id
         'client_secret' => '',
@@ -28,6 +31,10 @@ class OAuth extends BaseConfig
         'profile_url'   => 'https://openapi.naver.com/v1/nid/me',
         'scope'         => '',
     ];
+
+    /**
+     * @var array<string, string>
+     */
     public array $kakao = [
         'client_id'     => '',  // .env: oauth.kakao.client_id  (REST API 키)
         'client_secret' => '',  // 카카오 앱 보안 > Client Secret (선택)
@@ -37,6 +44,10 @@ class OAuth extends BaseConfig
         'profile_url'   => 'https://kapi.kakao.com/v2/user/me',
         'scope'         => 'profile_nickname,profile_image,account_email',
     ];
+
+    /**
+     * @var array<string, string>
+     */
     public array $google = [
         'client_id'     => '',  // .env: oauth.google.client_id
         'client_secret' => '',

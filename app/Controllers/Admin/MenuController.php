@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\MenuModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class MenuController extends BaseController
 {
@@ -21,7 +22,7 @@ class MenuController extends BaseController
         ]);
     }
 
-    public function store()
+    public function store(): ResponseInterface|string
     {
         $this->menuModel->insert([
             'parent_id'  => $this->request->getPost('parent_id') ?: null,
@@ -36,7 +37,7 @@ class MenuController extends BaseController
         return redirect()->to('/admin/menus')->with('success', '메뉴가 추가되었습니다.');
     }
 
-    public function update(int $id)
+    public function update(int $id): ResponseInterface|string
     {
         $this->menuModel->update($id, [
             'title'      => $this->request->getPost('title'),
@@ -50,7 +51,7 @@ class MenuController extends BaseController
         return redirect()->to('/admin/menus')->with('success', '수정되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $this->menuModel->delete($id);
         $this->menuModel->clearCache();

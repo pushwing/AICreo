@@ -5,6 +5,7 @@ namespace Config;
 use App\Libraries\Seo\IndexNowService;
 use App\Libraries\ThemeView;
 use CodeIgniter\Config\BaseService;
+use CodeIgniter\View\RendererInterface;
 use Config\View as ViewConfig;
 
 class Services extends BaseService
@@ -18,6 +19,9 @@ class Services extends BaseService
         return new IndexNowService();
     }
 
+    /**
+     * @return RendererInterface
+     */
     public static function renderer(?string $viewPath = null, ?ViewConfig $config = null, bool $getShared = true)
     {
         if ($getShared) {

@@ -7,6 +7,7 @@ use App\Libraries\Seo\JsonLdBuilder;
 use App\Models\InquiryModel;
 use App\Models\PageModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use Throwable;
 
@@ -48,7 +49,7 @@ class PageController extends BaseController
     /**
      * 문의폼 처리
      */
-    public function inquirySubmit()
+    public function inquirySubmit(): ResponseInterface|string
     {
         $rules = [
             'name'    => 'required|max_length[100]',

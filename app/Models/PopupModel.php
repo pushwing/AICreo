@@ -27,6 +27,8 @@ class PopupModel extends Model
     /**
      * 현재 URI 기준으로 노출할 팝업 목록 반환
      * 활성 팝업·페이지 매핑을 캐시하고 기간·스코프는 PHP에서 필터링 (캐시 1시간)
+     *
+     * @return list<array<string, mixed>>
      */
     public function getActiveForPage(string $uri): array
     {
@@ -74,6 +76,11 @@ class PopupModel extends Model
         return $result;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
     protected function clearCacheCallback(array $data): array
     {
         cache()->delete('active_popups');
@@ -83,6 +90,8 @@ class PopupModel extends Model
 
     /**
      * 팝업에 연결된 menu_id 배열 반환
+     *
+     * @return list<mixed>
      */
     public function getPageIds(int $popupId): array
     {
@@ -96,6 +105,8 @@ class PopupModel extends Model
 
     /**
      * 팝업-페이지 연결 동기화 (트랜잭션)
+     *
+     * @param list<int|string> $menuIds
      */
     public function syncPages(int $popupId, array $menuIds): void
     {

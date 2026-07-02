@@ -10,6 +10,9 @@ use Config\OAuth as OAuthConfig;
  */
 abstract class AbstractOAuthProvider
 {
+    /**
+     * @var array<string, mixed>
+     */
     protected array $config;
 
     public function __construct(protected string $providerName)
@@ -64,11 +67,18 @@ abstract class AbstractOAuthProvider
     /**
      * access_token → 사용자 정보
      * 반환: ['social_id', 'email', 'nickname', 'avatar']
+     *
+     * @return array<string, mixed>|null
      */
     abstract public function getProfile(string $token): ?array;
 
     // ─── HTTP 헬퍼 ────────────────────────────────────────────────────────
 
+    /**
+     * @param list<string> $headers
+     *
+     * @return array<string, mixed>
+     */
     protected function get(string $url, array $headers = []): array
     {
         $ch = curl_init($url);
@@ -84,6 +94,12 @@ abstract class AbstractOAuthProvider
         return json_decode($body, true) ?? [];
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @param list<string>         $headers
+     *
+     * @return array<string, mixed>
+     */
     protected function post(string $url, array $data, array $headers = []): array
     {
         $ch = curl_init($url);

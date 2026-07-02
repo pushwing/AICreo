@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Libraries\ImageUploader;
 use App\Models\MenuModel;
 use App\Models\PopupModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class PopupController extends BaseController
 {
@@ -34,7 +35,7 @@ class PopupController extends BaseController
         ]);
     }
 
-    public function store()
+    public function store(): ResponseInterface|string
     {
         $rules = ['title' => 'required|max_length[200]'];
         if (! $this->validate($rules)) {
@@ -60,7 +61,7 @@ class PopupController extends BaseController
         return redirect()->to('/admin/popups')->with('success', '팝업이 등록되었습니다.');
     }
 
-    public function edit(int $id)
+    public function edit(int $id): ResponseInterface|string
     {
         $popup = $this->popupModel->find($id);
         if (! $popup) {
@@ -75,7 +76,7 @@ class PopupController extends BaseController
         ]);
     }
 
-    public function update(int $id)
+    public function update(int $id): ResponseInterface|string
     {
         $popup = $this->popupModel->find($id);
         if (! $popup) {
@@ -109,13 +110,16 @@ class PopupController extends BaseController
         return redirect()->to('/admin/popups')->with('success', '저장되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $this->popupModel->deleteWithFile($id);
 
         return redirect()->to('/admin/popups')->with('success', '삭제되었습니다.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function collectData(?string $imagePath): array
     {
         $toDatetime = static fn ($val) => $val

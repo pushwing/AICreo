@@ -10,6 +10,7 @@ use App\Models\PostCommentModel;
 use App\Models\PostFileModel;
 use App\Models\PostModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class BoardController extends BaseController
 {
@@ -30,7 +31,7 @@ class BoardController extends BaseController
 
     // ─── 목록 ───────────────────────────────────────────────────────────────
 
-    public function index(string $boardSlug)
+    public function index(string $boardSlug): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         if (! $board) {
@@ -84,7 +85,7 @@ class BoardController extends BaseController
 
     // ─── 상세 ───────────────────────────────────────────────────────────────
 
-    public function view(string $boardSlug, int $postId)
+    public function view(string $boardSlug, int $postId): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         $post  = $this->postModel->getDetail($postId);
@@ -144,7 +145,7 @@ class BoardController extends BaseController
 
     // ─── 작성 ───────────────────────────────────────────────────────────────
 
-    public function write(string $boardSlug)
+    public function write(string $boardSlug): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         if (! $board) {
@@ -160,7 +161,7 @@ class BoardController extends BaseController
         return $this->render('board/write', ['board' => $board, 'post' => null]);
     }
 
-    public function store(string $boardSlug)
+    public function store(string $boardSlug): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         if (! $board || ! $this->checkPermission($board['write_permission'])) {
@@ -228,7 +229,7 @@ class BoardController extends BaseController
 
     // ─── 수정 ───────────────────────────────────────────────────────────────
 
-    public function edit(string $boardSlug, int $postId)
+    public function edit(string $boardSlug, int $postId): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         $post  = $this->postModel->getDetail($postId);
@@ -258,7 +259,7 @@ class BoardController extends BaseController
 
     // ─── 비회원 비밀번호 인증 → 세션 토큰 발급 ─────────────────────────────────
 
-    public function guestVerify(string $boardSlug, int $postId)
+    public function guestVerify(string $boardSlug, int $postId): ResponseInterface|string
     {
         $post = $this->postModel->find($postId);
         if (! $post || ! $post['author_password']) {
@@ -275,7 +276,7 @@ class BoardController extends BaseController
         return redirect()->to("/board/{$boardSlug}/{$postId}/edit");
     }
 
-    public function update(string $boardSlug, int $postId)
+    public function update(string $boardSlug, int $postId): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         $post  = $this->postModel->find($postId);
@@ -325,7 +326,7 @@ class BoardController extends BaseController
 
     // ─── 삭제 ───────────────────────────────────────────────────────────────
 
-    public function delete(string $boardSlug, int $postId)
+    public function delete(string $boardSlug, int $postId): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         $post  = $this->postModel->find($postId);
@@ -343,7 +344,7 @@ class BoardController extends BaseController
 
     // ─── 파일 다운로드 ───────────────────────────────────────────────────────
 
-    public function download(int $fileId)
+    public function download(int $fileId): ResponseInterface|string
     {
         $file = $this->fileModel->find($fileId);
         if (! $file) {
@@ -364,7 +365,7 @@ class BoardController extends BaseController
 
     // ─── 댓글 ───────────────────────────────────────────────────────────────
 
-    public function commentStore(string $boardSlug, int $postId)
+    public function commentStore(string $boardSlug, int $postId): ResponseInterface|string
     {
         $board = $this->boardModel->getBySlug($boardSlug);
         if (! $board || ! $this->checkPermission($board['write_permission'])) {
@@ -394,7 +395,7 @@ class BoardController extends BaseController
         return redirect()->to("/board/{$boardSlug}/{$postId}#comments")->with('success', '댓글이 등록되었습니다.');
     }
 
-    public function commentDelete(string $boardSlug, int $postId, int $commentId)
+    public function commentDelete(string $boardSlug, int $postId, int $commentId): ResponseInterface|string
     {
         $comment = $this->commentModel->find($commentId);
         if (! $comment) {
@@ -418,7 +419,7 @@ class BoardController extends BaseController
 
     // ─── 에디터 이미지 업로드 ───────────────────────────────────────────────
 
-    public function imageUpload()
+    public function imageUpload(): ResponseInterface|string
     {
         if (! session()->get('user_id')) {
             return $this->response->setJSON(['error' => '로그인이 필요합니다.'])->setStatusCode(403);
@@ -453,6 +454,9 @@ class BoardController extends BaseController
 
     // ─── 내부 헬퍼 ──────────────────────────────────────────────────────────
 
+    /**
+     * @param array<string, mixed> $post
+     */
     private function canEditPost(array $post): bool
     {
         $role   = $this->getUserRole();
@@ -478,6 +482,9 @@ class BoardController extends BaseController
         return false;
     }
 
+    /**
+     * @param array<string, mixed> $post
+     */
     private function canAccessSecret(array $post): bool
     {
         $role   = $this->getUserRole();

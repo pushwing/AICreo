@@ -12,18 +12,33 @@ use CodeIgniter\Filters\Honeypot;
 
 class Filters extends BaseConfig
 {
+    /**
+     * @var array<string, class-string|list<class-string>>
+     */
     public array $aliases = [
         'csrf'     => CSRF::class,
         'toolbar'  => DebugToolbar::class,
         'honeypot' => Honeypot::class,
         'auth'     => AuthFilter::class,   // ← 추가
     ];
+
+    /**
+     * @var array<string, mixed>
+     */
     public array $globals = [
         'before' => [
             'csrf' => ['except' => ['api/*', 'board/image-upload', 'admin/media/upload']],
         ],
         'after' => ['toolbar'],
     ];
+
+    /**
+     * @var array<string, list<string>>
+     */
     public array $methods = [];
+
+    /**
+     * @var array<string, array<string, list<string>>>
+     */
     public array $filters = [];
 }
