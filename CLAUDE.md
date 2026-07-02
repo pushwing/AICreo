@@ -6,12 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A CodeIgniter 4 corporate homepage template (a board CMS / site builder) for a one-person web agency — dynamic pages, a board system, an inquiry form, and an admin panel.
 
+저장소 루트가 하나의 CI4 프로젝트입니다. 모든 `php spark`, `composer`, `git` 명령은 루트에서 실행합니다. 응답·주석·커밋 메시지는 한국어로 작성하며, 커밋은 변경 내용에 맞는 이모지를 접두사로 붙입니다.
+
 ## Commands
 
 ```bash
 php spark serve              # Start dev server (http://localhost:8080)
 php spark migrate            # Run all pending migrations (creates tables + seeds)
 php spark migrate:rollback   # Roll back last migration batch
+```
+
+**Quality gate (커밋 전 필수 — 저장소 루트에서 실행):**
+```bash
+composer cs          # PHP-CS-Fixer 스타일 점검 (dry-run)
+composer cs:fix      # 스타일 자동 정규화
+composer analyse     # PHPStan 정적 분석 (레벨 6)
+composer test        # PHPUnit (테스트 DB는 MySQL)
+composer ci          # cs + analyse + test 한 번에
+composer rector:dry  # 코드 현대화 미리보기 (선택), composer rector 로 적용
 ```
 
 **Cron (production — 단 1줄 등록):**
@@ -105,3 +117,20 @@ inquiries           — contact form submissions
 banners / popups / popup_pages               — marketing overlays
 media               — media library
 ```
+
+## Coding Standards
+
+- **PHP 8.5+ 필수** (`composer.json`의 `require`/`platform` 고정). typed property, match, arrow function 등 적극 사용.
+- **PSR-12 준수**, 파일 상단에 `declare(strict_types=1)` 선언. 함수 인자·반환 타입을 항상 명시 (PHPStan 레벨 6 통과).
+- **비즈니스 로직은 Controller가 아닌 Model/Library로 캡슐화.** Controller는 입력 검증 → 위임 → 응답만 담당.
+- 모든 Model은 `$allowedFields`를 명시하고, 뷰는 네이티브 PHP 대체 문법과 `esc()`를 사용.
+- DB 접근은 Query Builder만 사용 — 문자열 연결 raw SQL 금지.
+
+## Branch & CI Workflow
+
+1. `feature/*` 브랜치에서 작업 후 `dev`로 PR.
+2. `dev`에서 테스트·리뷰 후 `main`으로 PR.
+3. `main`/`dev` 대상 push·PR 시 GitHub Actions(`.github/workflows/ci.yml`)가 실행:
+   - **quality 잡** — `composer cs` (스타일) · `composer analyse` (PHPStan) · `composer test` (PHPUnit), PHP 8.5 / MySQL 8.0.
+   - **coverage 잡** — 커버리지 리포트를 PR 코멘트로 게시.
+4. 로컬에서 push 전 `composer ci`로 동일 검증을 먼저 통과시킬 것.
