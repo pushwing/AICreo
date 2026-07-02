@@ -36,6 +36,11 @@ class PostModel extends Model
             ->findAll();
     }
 
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
     protected function clearSitemapCache(array $data): array
     {
         cache()->delete('seo_sitemap');
@@ -43,6 +48,9 @@ class PostModel extends Model
         return $data;
     }
 
+    /**
+     * @return array{notices: list<array<string, mixed>>, posts: list<array<string, mixed>>}
+     */
     public function getList(int $boardId, int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;
@@ -69,6 +77,9 @@ class PostModel extends Model
             ->countAllResults();
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getDetail(int $id): ?array
     {
         return $this->select('posts.*, users.nickname as user_nickname, users.email as user_email')
@@ -81,6 +92,9 @@ class PostModel extends Model
         $this->db->query('UPDATE posts SET views = views + 1 WHERE id = ?', [$id]);
     }
 
+    /**
+     * @return array{posts: list<array<string, mixed>>, total: int}
+     */
     public function getAdminList(int $page, int $perPage, string $keyword = '', int $boardId = 0): array
     {
         $builder = $this->select('posts.*, boards.name as board_name, boards.slug as board_slug, users.nickname as user_nickname')
@@ -105,6 +119,9 @@ class PostModel extends Model
         return ['posts' => $posts, 'total' => $total];
     }
 
+    /**
+     * @return array{posts: list<array<string, mixed>>, total: int}
+     */
     public function search(int $boardId, string $keyword, string $type, int $page, int $perPage): array
     {
         $offset  = ($page - 1) * $perPage;
