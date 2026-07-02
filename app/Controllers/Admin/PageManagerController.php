@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\PageModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class PageManagerController extends BaseController
 {
@@ -26,7 +27,7 @@ class PageManagerController extends BaseController
         return $this->render('admin/pages/form', ['page' => null]);
     }
 
-    public function store()
+    public function store(): ResponseInterface|string
     {
         $rules = [
             'slug'  => 'required|alpha_dash|is_unique[pages.slug]',
@@ -51,7 +52,7 @@ class PageManagerController extends BaseController
         return $this->render('admin/pages/form', ['page' => $this->pageModel->find($id)]);
     }
 
-    public function update(int $id)
+    public function update(int $id): ResponseInterface|string
     {
         $data = $this->collectData(isUpdate: true);
         $this->pageModel->update($id, $data);
@@ -64,13 +65,16 @@ class PageManagerController extends BaseController
         return redirect()->to('/admin/pages')->with('success', '저장되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $this->pageModel->delete($id);
 
         return redirect()->to('/admin/pages')->with('success', '삭제되었습니다.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function collectData(bool $isUpdate = false): array
     {
         $data = [

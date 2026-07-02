@@ -14,6 +14,9 @@ class MediaModel extends Model
         'original_name', 'stored_name', 'file_path', 'file_size', 'mime_type', 'alt',
     ];
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function getList(int $limit = 30, int $offset = 0): array
     {
         return $this->orderBy('id', 'DESC')->findAll($limit, $offset);

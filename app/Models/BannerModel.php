@@ -26,6 +26,8 @@ class BannerModel extends Model
 
     /**
      * 활성 배너 전체를 캐시하고 노출 기간만 PHP에서 필터링 (캐시 1시간)
+     *
+     * @return list<array<string, mixed>>
      */
     public function getActiveByPosition(string $position): array
     {
@@ -49,6 +51,11 @@ class BannerModel extends Model
         ));
     }
 
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
     protected function clearCacheCallback(array $data): array
     {
         cache()->delete('active_banners');

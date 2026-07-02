@@ -16,6 +16,9 @@ class ImageUploader
     {
     }
 
+    /**
+     * @return array{success: bool, path?: string, error?: string}
+     */
     public function upload(UploadedFile $file): array
     {
         $ext  = strtolower($file->getClientExtension());

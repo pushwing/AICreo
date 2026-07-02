@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\InquiryModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class InquiryController extends BaseController
 {
@@ -41,7 +42,7 @@ class InquiryController extends BaseController
         ]);
     }
 
-    public function view(int $id)
+    public function view(int $id): ResponseInterface|string
     {
         $inquiry = $this->model->find($id);
         if (! $inquiry) {
@@ -53,7 +54,7 @@ class InquiryController extends BaseController
         return $this->render('admin/inquiries/view', ['inquiry' => $inquiry]);
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $this->model->delete($id);
 

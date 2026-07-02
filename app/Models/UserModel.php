@@ -14,6 +14,9 @@ class UserModel extends Model
         'social_provider', 'social_id', 'social_token', 'avatar',
     ];
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function findByEmail(string $email): ?array
     {
         return $this->where('email', $email)->where('is_active', 1)->first();

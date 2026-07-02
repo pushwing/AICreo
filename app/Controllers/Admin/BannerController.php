@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Libraries\ImageUploader;
 use App\Models\BannerModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class BannerController extends BaseController
 {
@@ -31,7 +32,7 @@ class BannerController extends BaseController
         ]);
     }
 
-    public function store()
+    public function store(): ResponseInterface|string
     {
         $rules = [
             'position' => 'required|in_list[' . implode(',', array_keys(BannerModel::POSITIONS)) . ']',
@@ -56,7 +57,7 @@ class BannerController extends BaseController
         return redirect()->to('/admin/banners')->with('success', '배너가 등록되었습니다.');
     }
 
-    public function edit(int $id)
+    public function edit(int $id): ResponseInterface|string
     {
         $banner = $this->bannerModel->find($id);
         if (! $banner) {
@@ -69,7 +70,7 @@ class BannerController extends BaseController
         ]);
     }
 
-    public function update(int $id)
+    public function update(int $id): ResponseInterface|string
     {
         $banner = $this->bannerModel->find($id);
         if (! $banner) {
@@ -96,13 +97,16 @@ class BannerController extends BaseController
         return redirect()->to('/admin/banners')->with('success', '저장되었습니다.');
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $this->bannerModel->deleteWithFile($id);
 
         return redirect()->to('/admin/banners')->with('success', '삭제되었습니다.');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function collectData(string $imagePath): array
     {
         $toDatetime = static fn ($val) => $val

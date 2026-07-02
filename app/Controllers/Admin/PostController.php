@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\BoardModel;
 use App\Models\PostFileModel;
 use App\Models\PostModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class PostController extends BaseController
 {
@@ -39,7 +40,7 @@ class PostController extends BaseController
         ]);
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $post = $this->postModel->find($id);
         if (! $post) {

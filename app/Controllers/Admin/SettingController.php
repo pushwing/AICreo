@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\SettingModel;
+use CodeIgniter\HTTP\ResponseInterface;
 use DirectoryIterator;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
@@ -45,7 +46,7 @@ class SettingController extends BaseController
         ]);
     }
 
-    public function uploadTheme()
+    public function uploadTheme(): ResponseInterface|string
     {
         $file = $this->request->getFile('theme_zip');
 
@@ -186,7 +187,7 @@ class SettingController extends BaseController
         rmdir($dir);
     }
 
-    public function update(string $group = 'general')
+    public function update(string $group = 'general'): ResponseInterface|string
     {
         $postData = $this->request->getPost();
         unset($postData[csrf_token()]);
@@ -205,6 +206,8 @@ class SettingController extends BaseController
 
     /**
      * app/Views/themes/ 하위 폴더를 스캔해 테마 목록 반환
+     *
+     * @return array<string, array<string, mixed>>
      */
     private function scanThemes(): array
     {

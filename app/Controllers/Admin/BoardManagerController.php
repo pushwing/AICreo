@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\BoardModel;
 use App\Models\PostFileModel;
 use App\Models\PostModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class BoardManagerController extends BaseController
 {
@@ -33,7 +34,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시판 저장
-    public function store()
+    public function store(): ResponseInterface|string
     {
         $rules = [
             'slug' => 'required|alpha_dash|is_unique[boards.slug]',
@@ -66,7 +67,7 @@ class BoardManagerController extends BaseController
         return $this->render('admin/board/form', ['board' => $board]);
     }
 
-    public function update(int $id)
+    public function update(int $id): ResponseInterface|string
     {
         $this->boardModel->update($id, [
             'name'             => $this->request->getPost('name'),
@@ -101,7 +102,7 @@ class BoardManagerController extends BaseController
     }
 
     // 게시글 강제 삭제
-    public function deletePost(int $postId)
+    public function deletePost(int $postId): ResponseInterface|string
     {
         $post = $this->postModel->find($postId);
         if (! $post) {

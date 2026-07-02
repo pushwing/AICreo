@@ -4,6 +4,7 @@ namespace App\Controllers\Front;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class AuthController extends BaseController
 {
@@ -14,7 +15,7 @@ class AuthController extends BaseController
         $this->userModel = new UserModel();
     }
 
-    public function login()
+    public function login(): ResponseInterface|string
     {
         if (session()->get('user_id')) {
             return redirect()->to('/');
@@ -23,7 +24,7 @@ class AuthController extends BaseController
         return $this->render('auth/login', ['page' => ['title' => '로그인', 'noindex' => true]]);
     }
 
-    public function loginProcess()
+    public function loginProcess(): ResponseInterface|string
     {
         $rules = [
             'email'    => 'required|valid_email',
@@ -51,7 +52,7 @@ class AuthController extends BaseController
         return redirect()->to(session()->getTempdata('redirect_url') ?? '/');
     }
 
-    public function logout()
+    public function logout(): ResponseInterface|string
     {
         session()->destroy();
 
@@ -63,7 +64,7 @@ class AuthController extends BaseController
         return $this->render('auth/register', ['page' => ['title' => '회원가입', 'noindex' => true]]);
     }
 
-    public function registerProcess()
+    public function registerProcess(): ResponseInterface|string
     {
         $rules = [
             'email'    => 'required|valid_email|is_unique[users.email]',
@@ -88,7 +89,7 @@ class AuthController extends BaseController
 
     // ─── 내 정보 수정 ────────────────────────────────────────────────────────
 
-    public function profile()
+    public function profile(): ResponseInterface|string
     {
         if (! session()->get('user_id')) {
             return redirect()->to('/auth/login')->with('error', '로그인이 필요합니다.');
@@ -99,7 +100,7 @@ class AuthController extends BaseController
         return $this->render('auth/profile', ['user' => $user, 'page' => ['title' => '내 정보', 'noindex' => true]]);
     }
 
-    public function profileUpdate()
+    public function profileUpdate(): ResponseInterface|string
     {
         $userId = (int) session()->get('user_id');
         if ($userId === 0) {

@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Libraries\MediaUploader;
 use App\Models\MediaModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class MediaController extends BaseController
 {
@@ -31,7 +32,7 @@ class MediaController extends BaseController
         ]);
     }
 
-    public function upload()
+    public function upload(): ResponseInterface|string
     {
         $file = $this->request->getFile('file');
         if (! $file || ! $file->isValid()) {
@@ -44,14 +45,14 @@ class MediaController extends BaseController
         return $this->response->setJSON($result);
     }
 
-    public function updateAlt(int $id)
+    public function updateAlt(int $id): ResponseInterface|string
     {
         $this->mediaModel->update($id, ['alt' => $this->request->getPost('alt')]);
 
         return $this->response->setJSON(['success' => true]);
     }
 
-    public function delete(int $id)
+    public function delete(int $id): ResponseInterface|string
     {
         $this->mediaModel->deleteWithFile($id);
 

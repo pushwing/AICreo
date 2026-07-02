@@ -16,6 +16,9 @@ class PostCommentModel extends Model
         'author_name', 'author_password', 'ip_address',
     ];
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function getByPost(int $postId): array
     {
         return $this->select('post_comments.*, users.nickname as user_nickname')

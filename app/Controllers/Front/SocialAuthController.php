@@ -5,6 +5,7 @@ namespace App\Controllers\Front;
 use App\Controllers\BaseController;
 use App\Libraries\OAuth\OAuthFactory;
 use App\Models\UserModel;
+use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 
 class SocialAuthController extends BaseController
@@ -20,7 +21,7 @@ class SocialAuthController extends BaseController
      * 소셜 로그인 시작 — 제공자 OAuth 페이지로 리다이렉트
      * GET /auth/social/{provider}
      */
-    public function redirect(string $provider)
+    public function redirect(string $provider): ResponseInterface|string
     {
         if (! in_array($provider, OAuthFactory::supported(), true)) {
             return redirect()->to('/auth/login')->with('error', '지원하지 않는 로그인 방식입니다.');
@@ -41,7 +42,7 @@ class SocialAuthController extends BaseController
      * 소셜 로그인 콜백 처리
      * GET /auth/social/{provider}/callback
      */
-    public function callback(string $provider)
+    public function callback(string $provider): ResponseInterface|string
     {
         $code  = $this->request->getGet('code');
         $state = $this->request->getGet('state');
@@ -102,6 +103,10 @@ class SocialAuthController extends BaseController
 
     /**
      * 소셜 ID로 기존 유저 찾기, 없으면 자동 가입
+     *
+     * @param array<string, mixed> $profile
+     *
+     * @return array<string, mixed>|null
      */
     private function findOrCreateUser(string $provider, array $profile, string $token): ?array
     {
