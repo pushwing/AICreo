@@ -30,5 +30,5 @@ runs:
           COLOR="danger"
         fi
         curl -s -X POST -H 'Content-type: application/json' \
-          --data "{\"attachments\":[{\"color\":\"${COLOR}\",\"text\":\"*${STATUS_TEXT}*\n${{ inputs.extra-lines }}\n커밋: \`${{ github.sha }}\`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|실행 결과 보기>\"}]}" \
+          --data "{\"attachments\":[{\"color\":\"${COLOR}\",\"text\":\"*${STATUS_TEXT}*\n저장소: \`${{ github.repository }}\`\n${{ inputs.extra-lines }}\n커밋: \`${{ github.sha }}\`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|실행 결과 보기>\"}]}" \
           "${{ inputs.webhook-url }}"
