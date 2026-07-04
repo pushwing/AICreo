@@ -163,5 +163,5 @@ jobs:
         with:
           status: ${{ (needs.quality.result == 'success' && needs.coverage.result == 'success') && 'success' || 'failure' }}
           title: CI
-          extra-lines: "브랜치: `${{ github.ref_name }}`"
+          extra-lines: "브랜치: `${{ github.head_ref && format('{0} → {1}', github.head_ref, github.base_ref) || github.ref_name }}`"
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
