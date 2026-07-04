@@ -50,3 +50,15 @@ jobs:
             php spark cache:clear
 
             echo "✅ 배포 완료: $(git rev-parse --short HEAD)"
+
+      - name: Checkout
+        if: always()
+        uses: actions/checkout@v4
+
+      - name: Slack 알림 전송
+        if: always()
+        uses: ./.github/actions/slack-notify
+        with:
+          status: ${{ job.status }}
+          title: 배포
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}

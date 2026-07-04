@@ -1,0 +1,34 @@
+name: Slack 알림
+description: Slack Incoming Webhook으로 워크플로우 결과 알림 전송
+
+inputs:
+  status:
+    description: "success 또는 failure"
+    required: true
+  title:
+    description: "알림 제목 (예: CI, 배포)"
+    required: true
+  webhook-url:
+    description: "Slack Incoming Webhook URL"
+    required: true
+  extra-lines:
+    description: "메시지 본문에 추가할 줄 (예: 브랜치 정보)"
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: 알림 전송
+      shell: bash
+      run: |
+        if [ "${{ inputs.status }}" = "success" ]; then
+          STATUS_TEXT="✅ ${{ inputs.title }} 성공"
+          COLOR="good"
+        else
+          STATUS_TEXT="❌ ${{ inputs.title }} 실패"
+          COLOR="danger"
+        fi
+        curl -s -X POST -H 'Content-type: application/json' \
+          --data "{\"attachments\":[{\"color\":\"${COLOR}\",\"text\":\"*${STATUS_TEXT}*\n${{ inputs.extra-lines }}\n커밋: \`${{ github.sha }}\`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|실행 결과 보기>\"}]}" \
+          "${{ inputs.webhook-url }}"
