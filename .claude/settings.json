@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost*)",
+      "Bash(curl -s http://127.0.0.1*)",
+      "Bash(composer analyse)",
+      "Bash(composer test)",
+      "Bash(composer cs)",
+      "Bash(flutter analyze)",
+      "Bash(php spark routes)",
+      "Bash(php spark db:table*)",
+      "Bash(composer ci)",
+      "Bash(composer check)",
+      "Bash(composer validate)",
+      "Bash(gh run watch*)",
+      "Bash(npm run build)",
+      "Bash(flutter doctor)",
+      "Bash(php spark migrate:status)"
+    ]
+  }
+}

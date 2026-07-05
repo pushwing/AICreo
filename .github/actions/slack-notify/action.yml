@@ -1,0 +1,60 @@
+name: Slack 알림
+description: Slack Incoming Webhook으로 워크플로우 결과 알림 전송
+
+inputs:
+  status:
+    description: "success 또는 failure"
+    required: true
+  title:
+    description: "알림 제목 (예: CI, 배포)"
+    required: true
+  webhook-url:
+    description: "Slack Incoming Webhook URL"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: 알림 전송
+      shell: bash
+      env:
+        STATUS: ${{ inputs.status }}
+        TITLE: ${{ inputs.title }}
+        WEBHOOK_URL: ${{ inputs.webhook-url }}
+        REPO: ${{ github.repository }}
+        ACTOR: ${{ github.actor }}
+        SHA: ${{ github.sha }}
+        EVENT_NAME: ${{ github.event_name }}
+        HEAD_REF: ${{ github.head_ref }}
+        BASE_REF: ${{ github.base_ref }}
+        REF_NAME: ${{ github.ref_name }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        PR_TITLE: ${{ github.event.pull_request.title }}
+        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+      run: |
+        if [ "$STATUS" = "success" ]; then
+          STATUS_TEXT="✅ ${TITLE} 성공"
+          COLOR="good"
+        else
+          STATUS_TEXT="❌ ${TITLE} 실패"
+          COLOR="danger"
+        fi
+
+        if [ "$EVENT_NAME" = "pull_request" ]; then
+          BRANCH_INFO="${HEAD_REF} → ${BASE_REF}"
+        else
+          BRANCH_INFO="${REF_NAME}"
+        fi
+
+        TITLE_LINE="${PR_TITLE:-${COMMIT_MESSAGE%%$'\n'*}}"
+        TIMESTAMP="$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S KST')"
+        LINK_URL="${PR_URL:-$RUN_URL}"
+        LINK_LABEL="$([ -n "$PR_URL" ] && echo 'PR 보기' || echo '실행 결과 보기')"
+
+        NL=$'\n'
+        TEXT="*${STATUS_TEXT}*${NL}저장소: ${REPO}${NL}브랜치: ${BRANCH_INFO}${NL}작성자: ${ACTOR}${NL}내용: ${TITLE_LINE}${NL}커밋: ${SHA:0:7}${NL}시간: ${TIMESTAMP}${NL}<${LINK_URL}|${LINK_LABEL}>"
+
+        PAYLOAD="$(jq -n --arg color "$COLOR" --arg text "$TEXT" '{attachments: [{color: $color, text: $text}]}')"
+
+        curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$WEBHOOK_URL"
