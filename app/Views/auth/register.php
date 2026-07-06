@@ -24,6 +24,9 @@
                     <div class="mb-3">
                         <input type="password" name="password" class="form-control" placeholder="비밀번호 (8자 이상) *" required>
                     </div>
+                    <div class="mb-3">
+                        <input type="password" name="password_confirm" class="form-control" placeholder="비밀번호 확인 *" required>
+                    </div>
                     <button type="submit" class="btn btn-primary w-100">가입하기</button>
                 </form>
                 <div class="text-center mt-3 small">

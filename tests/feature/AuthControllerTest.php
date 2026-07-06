@@ -29,9 +29,10 @@ final class AuthControllerTest extends FeatureTestCase
     public function testRegisterCreatesMemberAndRedirects(): void
     {
         $result = $this->post('auth/register', [
-            'email'    => 'newbie@example.com',
-            'password' => 'password123',
-            'nickname' => '뉴비',
+            'email'            => 'newbie@example.com',
+            'password'         => 'password123',
+            'password_confirm' => 'password123',
+            'nickname'         => '뉴비',
         ]);
 
         $result->assertRedirectTo('/auth/login');
@@ -69,6 +70,40 @@ final class AuthControllerTest extends FeatureTestCase
         $result->assertRedirect();
         // 중복 가입이 막혀 사용자 수가 그대로여야 함
         $this->assertSame(1, (new UserModel())->where('email', 'dup@example.com')->countAllResults());
+    }
+
+    public function testRegisterRejectsMismatchedPasswordConfirm(): void
+    {
+        $result = $this->post('auth/register', [
+            'email'            => 'mismatch@example.com',
+            'password'         => 'password123',
+            'password_confirm' => 'password999',
+            'nickname'         => '불일치',
+        ]);
+
+        $result->assertRedirect();
+        $this->assertNull((new UserModel())->findByEmail('mismatch@example.com'));
+    }
+
+    public function testRegisterRejectsDuplicateNickname(): void
+    {
+        (new UserModel())->insert([
+            'username' => 'nickowner',
+            'email'    => 'nickowner@example.com',
+            'password' => password_hash('password123', PASSWORD_DEFAULT),
+            'nickname' => '중복닉',
+            'role'     => 'member',
+        ]);
+
+        $result = $this->post('auth/register', [
+            'email'            => 'newnick@example.com',
+            'password'         => 'password123',
+            'password_confirm' => 'password123',
+            'nickname'         => '중복닉',
+        ]);
+
+        $result->assertRedirect();
+        $this->assertNull((new UserModel())->findByEmail('newnick@example.com'));
     }
 
     public function testLoginWithValidCredentialsSetsSession(): void
