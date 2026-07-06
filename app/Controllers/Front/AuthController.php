@@ -67,9 +67,10 @@ class AuthController extends BaseController
     public function registerProcess(): ResponseInterface|string
     {
         $rules = [
-            'email'    => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[8]',
-            'nickname' => 'required|min_length[2]|max_length[20]',
+            'email'            => 'required|valid_email|is_unique[users.email]',
+            'password'         => 'required|min_length[8]',
+            'password_confirm' => 'required|matches[password]',
+            'nickname'         => 'required|min_length[2]|max_length[20]|is_unique[users.nickname]',
         ];
 
         if (! $this->validate($rules)) {
