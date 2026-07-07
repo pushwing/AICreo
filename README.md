@@ -9,6 +9,8 @@
 클라이언트 홈페이지를 반복 제작할 때 **코어는 재사용하고 껍데기만 교체**하는 방식으로  
 단순 홈페이지는 3~5일, 중형 사이트는 1~2주 납품을 목표로 설계된 보일러플레이트입니다.
 
+> 📘 **운영자·개발자 통합 매뉴얼**: 각 관리자 화면의 입력 필드·옵션·동작과 방문자 기능을 정리한 상세 매뉴얼은 [`docs/manual.md`](docs/manual.md) 를 참고하세요.
+
 ---
 
 ## 주요 기능
@@ -19,9 +21,12 @@
 | 동적 페이지 | 슬러그 기반 자동 라우팅, 레이아웃 선택 (기본 / 문의 / 랜딩) |
 | 홈페이지 | 히어로 · 서비스 소개 · 최신 공지 · CTA 섹션 |
 | 문의폼 | 이름·이메일·연락처·내용 입력 → DB 저장 + 이메일 자동 발송 |
-| 회원 인증 | 회원가입 · 로그인 · 로그아웃 |
+| 회원 인증 | 회원가입 · 로그인 · 로그아웃 · 프로필/비밀번호 관리 |
+| 소셜 로그인 | Google · Naver · Kakao OAuth 로그인 (신규 자동 가입 · 기존 계정 연동) |
 | 반응형 GNB | DB 메뉴 기반 드롭다운 네비게이션 (Bootstrap 5) |
+| 마케팅 오버레이 | 배너(위치별) · 팝업(전체/홈/특정 페이지) 기간 기반 자동 노출 |
 | SEO | OG태그 · 메타 설명 · Google Analytics · 네이버 웹마스터 자동 삽입 |
+| SEO/GEO 크롤러 | `sitemap.xml` · `robots.txt` · `llms.txt` · IndexNow 자동 색인 제출 |
 
 ### 게시판
 | 기능 | 설명 |
@@ -43,12 +48,15 @@
 | 페이지 관리 | TinyMCE 에디터 기반 페이지 CRUD, SEO 메타 설정 |
 | 게시판 관리 | 게시판 생성·수정, 권한·첨부 허용 설정 |
 | 전체 게시물 | 전체 게시판 게시물 통합 조회, 게시판 필터·키워드 검색, 강제 삭제 |
+| 배너 관리 | 위치별(메인 상·하단 / 서브 좌·우) 배너 등록, 링크·우선순위·노출 기간 설정 |
+| 팝업 관리 | 노출 범위(전체/홈/특정 페이지)·좌표·기간 지정 팝업, 이미지+에디터 본문 |
 | 회원 관리 | 회원 목록 검색·필터, 역할(관리자/일반) 변경, 활성 상태·닉네임 수정, 삭제 |
 | 메뉴 관리 | GNB 메뉴 추가·수정·삭제, 2단계 드롭다운 지원 |
 | 미디어 라이브러리 | 드래그 업로드, 이미지 경로 복사 |
 | 문의 수신함 | 문의 목록·상세 확인, 이메일로 바로 답장 |
 | 사이트 설정 | 기본 · 연락처 · SNS · SEO · 푸터 정보 관리 |
 | 테마 관리 | ZIP 업로드로 테마 설치 · 설치된 테마 목록 확인 · 클릭 한 번으로 테마 전환 |
+| 소셜 로그인 | Google · Naver · Kakao OAuth 콜백 URL 안내 · `.env` 키 설정 가이드 |
 
 ---
 
@@ -82,7 +90,9 @@ app/
 │   │   ├── HomeController.php      # 홈
 │   │   ├── PageController.php      # 동적 페이지 + 문의폼
 │   │   ├── BoardController.php     # 게시판 전체
-│   │   └── AuthController.php      # 로그인/회원가입
+│   │   ├── AuthController.php      # 로그인/회원가입/프로필
+│   │   ├── SocialAuthController.php # 소셜 로그인 (google/naver/kakao)
+│   │   └── Sitemap·Robots·Llms·IndexNowController.php # SEO/GEO 엔드포인트
 │   └── Admin/
 │       ├── DashboardController.php
 │       ├── PageManagerController.php
@@ -91,7 +101,9 @@ app/
 │       ├── UserController.php          # 회원 관리
 │       ├── MenuController.php
 │       ├── MediaController.php
-│       ├── SettingController.php       # 테마 탭 포함
+│       ├── BannerController.php        # 배너 관리
+│       ├── PopupController.php         # 팝업 관리
+│       ├── SettingController.php       # 테마·OAuth 탭 포함
 │       └── InquiryController.php
 ├── Models/                 # 11개 도메인 모델
 ├── Filters/AuthFilter.php
@@ -138,6 +150,9 @@ public/
 | `posts` | 게시글 (소프트 삭제) |
 | `post_files` | 첨부파일 |
 | `post_comments` | 댓글 (소프트 삭제) |
+| `banners` | 위치별 배너 (마케팅) |
+| `popups` | 팝업 (마케팅) |
+| `popup_pages` | 팝업 노출 페이지 매핑 |
 
 ---
 
@@ -214,8 +229,11 @@ php spark serve
 | `/board/qna` | 문의게시판 |
 | `/auth/login` | 로그인 |
 | `/auth/register` | 회원가입 |
+| `/auth/social/{provider}` | 소셜 로그인 (google / naver / kakao) |
+| `/sitemap.xml` · `/robots.txt` · `/llms.txt` | SEO/GEO 크롤러 엔드포인트 |
 | `/admin` | 관리자 대시보드 |
 | `/admin/settings/general` | 사이트 설정 |
+| `/admin/banners` · `/admin/popups` | 배너 · 팝업 관리 |
 
 ---
 
