@@ -28,3 +28,6 @@ Thumbs.db
 # PHPStan (분석 임시 산출물)
 /build/
 /tmp/
+
+# 로컬 전용 매뉴얼 PDF (배포용, 저장소 미포함)
+docs/AiCreo-매뉴얼.pdf
