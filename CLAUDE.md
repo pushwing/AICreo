@@ -45,6 +45,12 @@ php spark migrate
 
 Linux 업로드 권한: `chmod -R 755 public/uploads writable`
 
+**Git 훅 활성화 (클론 후 1회):**
+```bash
+git config core.hooksPath .githooks
+```
+`.githooks/pre-commit`이 커밋 직전 스테이징된 PHP 파일에 PHP-CS-Fixer(`composer cs:fix` 규칙)를 자동 적용합니다. 건너뛰려면 `git commit --no-verify`.
+
 ## 아키텍처
 
 ### 테마 시스템
