@@ -2,11 +2,15 @@
 
 이 파일은 이 저장소에서 작업할 때 Claude Code(claude.ai/code)에 대한 가이드를 제공합니다.
 
+> **공통 규칙은 전역 [`~/.claude/CLAUDE.md`](~/.claude/CLAUDE.md) 에서 자동 상속**된다(언어·Git 워크플로우·보안·코드 스타일·테스트·API·LSP). 이 문서는 **AiCreo 저장소 전용** 규칙만 정의한다.
+
 ## 저장소 개요
 
 1인 웹 에이전시를 위한 CodeIgniter 4 기업 홈페이지 템플릿(게시판 CMS / 사이트 빌더)입니다 — 동적 페이지, 게시판 시스템, 문의 폼, 관리자 패널을 제공합니다.
 
-저장소 루트가 하나의 CI4 프로젝트입니다. 모든 `php spark`, `composer`, `git` 명령은 루트에서 실행합니다. 응답·주석·커밋 메시지는 한국어로 작성하며, 커밋은 변경 내용에 맞는 이모지를 접두사로 붙입니다.
+저장소 루트가 하나의 CI4 프로젝트입니다. 모든 `php spark`, `composer`, `git` 명령은 루트에서 실행합니다.
+
+> **PHP 8.5+ 필수** (`composer.json` `require`/`platform` 고정). PHPStan 레벨 6.
 
 ## 명령어
 
@@ -22,9 +26,11 @@ composer cs          # PHP-CS-Fixer 스타일 점검 (dry-run)
 composer cs:fix      # 스타일 자동 정규화
 composer analyse     # PHPStan 정적 분석 (레벨 6)
 composer test        # PHPUnit (테스트 DB는 MySQL)
-composer ci          # cs + analyse + test 한 번에
+composer ci          # cs + analyse + test 한 번에 — push 전 이걸로 CI 미리 통과
 composer rector:dry  # 코드 현대화 미리보기 (선택), composer rector 로 적용
 ```
+
+> CI(`.github/workflows/ci.yml`): `main`·`dev` push/PR 시 **quality 잡**(cs·analyse·test, PHP 8.5/MySQL 8.0) + **coverage 잡**(커버리지 리포트를 PR 코멘트) 실행.
 
 **Cron (운영 — 단 1줄 등록):**
 ```
@@ -53,8 +59,4 @@ git config core.hooksPath .githooks
 
 ## 상세 규칙 (모듈)
 
-아래 규칙 문서는 `.claude/rules/`로 분리되어 있으며, 각 임포트는 Claude Code가 자동으로 불러옵니다.
-
 - **아키텍처** (테마 시스템, BaseController, 인증·라우팅, CSRF 예외, 캐싱, OAuth, 파일 업로드, DB 스키마): @.claude/rules/architecture.md
-- **코딩 표준** (PHP 8.5 / PSR-12 / 계층 분리 / Query Builder): @.claude/rules/code-style.md
-- **브랜치 & CI 워크플로우** (feature→dev→main, GitHub Actions): @.claude/rules/git-workflow.md
