@@ -55,7 +55,8 @@ Linux 업로드 권한: `chmod -R 755 public/uploads writable`
 ```bash
 git config core.hooksPath .githooks
 ```
-`.githooks/pre-commit`이 커밋 직전 스테이징된 PHP 파일에 PHP-CS-Fixer(`composer cs:fix` 규칙)를 자동 적용합니다. 건너뛰려면 `git commit --no-verify`.
+- `.githooks/pre-commit` — 커밋 직전 스테이징된 PHP 파일에 PHP-CS-Fixer(`composer cs:fix` 규칙)를 자동 적용. 건너뛰려면 `git commit --no-verify`.
+- `.githooks/pre-push` — push 직전 품질 게이트(`composer ci` = cs·analyse·test, ~10초)를 실행해 CI 왕복 전에 로컬에서 실패를 걸러냄. 건너뛰려면 `git push --no-verify`.
 
 ## 상세 규칙 (모듈)
 
