@@ -18,7 +18,20 @@ class MenuController extends BaseController
     public function index(): string
     {
         return $this->render('admin/menus/index', [
-            'menus' => $this->menuModel->orderBy('sort_order')->findAll(),
+            'menuTree' => $this->menuModel->getTreeAll(),
+        ]);
+    }
+
+    public function reorder(): ResponseInterface
+    {
+        $rawIds = $this->request->getPost('ids');
+        $ids    = is_array($rawIds) ? array_map('intval', $rawIds) : [];
+
+        $this->menuModel->reorder($ids);
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'csrf_hash' => csrf_hash(),
         ]);
     }
 
