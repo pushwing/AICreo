@@ -72,10 +72,12 @@ jobs:
   coverage:
     name: 커버리지 리포트
     runs-on: ubuntu-latest
+    # 커버리지는 dev·main push 시에만 실행 — PR CI 대기 시간을 quality 잡만으로 단축.
+    # 커버리지 결과는 push 후 job summary에서 확인한다.
+    if: github.event_name == 'push'
 
     permissions:
       contents: read
-      pull-requests: write
 
     services:
       mysql:
@@ -131,23 +133,6 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Coverage summary (markdown)
-        if: github.event_name == 'pull_request'
-        uses: irongut/CodeCoverageSummary@v1.3.0
-        with:
-          filename: build/cobertura.xml
-          format: markdown
-          output: file
-          badge: true
-
-      - name: Post coverage PR comment
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          recreate: true
-          path: code-coverage-results.md
-
   notify:
     name: Slack 알림
     runs-on: ubuntu-latest
@@ -161,6 +146,7 @@ jobs:
       - name: Slack 알림 전송
         uses: ./.github/actions/slack-notify
         with:
-          status: ${{ (needs.quality.result == 'success' && needs.coverage.result == 'success') && 'success' || 'failure' }}
+          # coverage는 PR에서 skip되므로(push 전용) skipped도 성공으로 간주한다.
+          status: ${{ (needs.quality.result == 'success' && (needs.coverage.result == 'success' || needs.coverage.result == 'skipped')) && 'success' || 'failure' }}
           title: CI
           webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
