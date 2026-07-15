@@ -28,7 +28,7 @@
 10. [문의 & 동적 페이지](#10-문의--동적-페이지)
 11. [SEO / GEO 엔드포인트](#11-seo--geo-엔드포인트)
 12. [개발자 아키텍처](#12-개발자-아키텍처)
-13. [납품 워크플로우](#13-납품-워크플로우)
+13. [납품 워크플로우](#13-납품-워크플로우) — SEO/GEO 배포 검증 체크리스트
 
 ---
 
@@ -417,6 +417,20 @@ media              미디어 라이브러리
 5. **배포** — 서버 업로드, 업로드 권한 설정, `CI_ENVIRONMENT=production`
 
 > **클라이언트 교체 시 변경 지점**: 회사명·연락처(`settings/general`·`contact`) · SNS(`settings/sns`) · GA/네이버(`settings/seo`) · 메뉴(`menus`) · 페이지(`pages`) · 게시판 권한(`boards`) · 로고/파비콘(미디어) · 디자인(테마).
+
+### SEO/GEO 배포 검증 체크리스트
+
+5단계(배포) 직후 **클라이언트 사이트마다 반복**하는 운영 체크리스트입니다. 코드 작업이 아니라 운영 활동이며, 전략 배경은 [`docs/seo-geo-strategy.md`](seo-geo-strategy.md) §7을 참조하세요.
+
+- [ ] `.env`의 `app.baseURL`을 운영 도메인(HTTPS)으로 설정 — canonical·OG·sitemap·robots·llms의 절대 URL이 자동으로 이 값을 따름
+- [ ] `/robots.txt`·`/sitemap.xml`·`/llms.txt` 200 응답·내용 확인 (§11 참조)
+- [ ] `/admin/settings/seo`에서 SEO 탭 입력: 사이트명·설명·`og_default_image`·조직정보(`org_type`)·`google_verify`·`naver_verify`·`bing_verify`
+- [ ] `/admin`·`/auth`·게시판 비밀글이 `noindex`로 응답하는지 확인
+- [ ] Google Search Console 등록 → sitemap 제출
+- [ ] 네이버 서치어드바이저 등록 → 사이트맵 제출·수집 요청
+- [ ] Bing Webmaster Tools 등록(ChatGPT Search 노출 전제) → sitemap 제출
+- [ ] Google Rich Results Test / Schema Markup Validator로 `Organization`·`Article`·`BreadcrumbList` 오류 0 확인
+- [ ] 대표 질의를 ChatGPT Search·Perplexity·Claude에 넣어 인용·언급 여부 점검
 
 ---
 
