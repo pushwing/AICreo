@@ -40,4 +40,45 @@ final class MenuTest extends AdminTestCase
         $result->assertRedirectTo('/admin/menus');
         $this->assertNull($model->find($id));
     }
+
+    public function testMenuListRendersDragHandlesAndTreeStructure(): void
+    {
+        $model    = new MenuModel();
+        $parentId = (int) $model->insert(['parent_id' => null, 'title' => '회사소개', 'url' => '/about', 'sort_order' => 1, 'is_active' => 1]);
+        $model->insert(['parent_id' => $parentId, 'title' => '연혁', 'url' => '/about/history', 'sort_order' => 1, 'is_active' => 1]);
+
+        $body = $this->withSession($this->adminSession)->get('admin/menus')->getBody();
+
+        $this->assertStringContainsString('drag-handle', $body);
+        $this->assertStringContainsString('data-id="' . $parentId . '"', $body);
+        $this->assertStringContainsString('menu-children', $body);
+        $this->assertStringContainsString('Sortable', $body);
+    }
+
+    public function testReorderPersistsNewSortOrder(): void
+    {
+        $model = new MenuModel();
+        $idA   = (int) $model->insert(['parent_id' => null, 'title' => 'A', 'url' => '/a', 'sort_order' => 1, 'is_active' => 1]);
+        $idB   = (int) $model->insert(['parent_id' => null, 'title' => 'B', 'url' => '/b', 'sort_order' => 2, 'is_active' => 1]);
+
+        $result = $this->withSession($this->adminSession)->post('admin/menus/reorder', [
+            'ids' => [$idB, $idA],
+        ]);
+
+        $result->assertOK();
+        $result->assertJSONFragment(['success' => true]);
+        $this->assertSame('0', $model->find($idB)['sort_order']);
+        $this->assertSame('1', $model->find($idA)['sort_order']);
+    }
+
+    public function testReorderRequiresAdmin(): void
+    {
+        $model = new MenuModel();
+        $idA   = (int) $model->insert(['parent_id' => null, 'title' => 'A', 'url' => '/a', 'sort_order' => 1, 'is_active' => 1]);
+
+        $result = $this->post('admin/menus/reorder', ['ids' => [$idA]]);
+
+        $result->assertRedirect();
+        $this->assertSame('1', $model->find($idA)['sort_order']);
+    }
 }

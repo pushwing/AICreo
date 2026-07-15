@@ -73,6 +73,7 @@ $routes->group('admin', ['filter' => 'auth:admin'], static function ($routes): v
     // 메뉴 관리
     $routes->get('menus', 'Admin\MenuController::index');
     $routes->post('menus', 'Admin\MenuController::store');
+    $routes->post('menus/reorder', 'Admin\MenuController::reorder');
     $routes->post('menus/(:num)/edit', 'Admin\MenuController::update/$1');
     $routes->post('menus/(:num)/delete', 'Admin\MenuController::delete/$1');
 

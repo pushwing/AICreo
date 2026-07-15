@@ -6,31 +6,62 @@
     <!-- 메뉴 목록 -->
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white"><strong>현재 메뉴</strong></div>
-            <table class="table table-hover mb-0 small">
-                <thead class="table-light">
-                    <tr><th>순서</th><th>제목</th><th>URL</th><th>상위</th><th>상태</th><th></th></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($menus as $m): ?>
-                    <tr>
-                        <td><?= $m['sort_order'] ?></td>
-                        <td><?= $m['parent_id'] ? '&nbsp;&nbsp;└ ' : '' ?><?= esc($m['title']) ?></td>
-                        <td><code><?= esc($m['url']) ?></code></td>
-                        <td><?= $m['parent_id'] ?: '-' ?></td>
-                        <td><?= $m['is_active'] ? '<span class="badge bg-success">활성</span>' : '<span class="badge bg-secondary">비활성</span>' ?></td>
-                        <td>
-                            <button class="btn btn-xs btn-outline-secondary btn-sm"
-                                    onclick="fillEditForm(<?= htmlspecialchars(json_encode($m)) ?>)">수정</button>
-                            <form method="post" action="/admin/menus/<?= $m['id'] ?>/delete" class="d-inline" onsubmit="return confirm('삭제?')">
-                                <?= csrf_field() ?>
-                                <button class="btn btn-xs btn-outline-danger btn-sm">삭제</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>현재 메뉴</strong>
+                <span class="small text-muted"><i class="bi bi-arrows-move me-1"></i>드래그해서 순서 변경</span>
+            </div>
+            <ul class="list-group list-group-flush" id="menuRoot">
+                <?php foreach ($menuTree as $top): ?>
+                <li class="list-group-item" data-id="<?= $top['id'] ?>">
+                    <div class="d-flex align-items-start gap-2">
+                        <span class="drag-handle text-muted" style="cursor:grab"><i class="bi bi-grip-vertical"></i></span>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong><?= esc($top['title']) ?></strong>
+                                    <code class="small text-muted ms-1"><?= esc($top['url']) ?></code>
+                                    <?= $top['is_active'] ? '' : '<span class="badge bg-secondary ms-1">비활성</span>' ?>
+                                </div>
+                                <div class="text-nowrap">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            onclick="fillEditForm(<?= htmlspecialchars(json_encode($top)) ?>)">수정</button>
+                                    <form method="post" action="/admin/menus/<?= $top['id'] ?>/delete" class="d-inline" onsubmit="return confirm('삭제?')">
+                                        <?= csrf_field() ?>
+                                        <button class="btn btn-outline-danger btn-sm">삭제</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <?php if ($top['children']): ?>
+                            <ul class="list-group list-group-flush mt-2 menu-children" data-parent="<?= $top['id'] ?>">
+                                <?php foreach ($top['children'] as $child): ?>
+                                <li class="list-group-item py-2" data-id="<?= $child['id'] ?>">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="drag-handle text-muted" style="cursor:grab"><i class="bi bi-grip-vertical"></i></span>
+                                        <div class="flex-grow-1 d-flex justify-content-between align-items-center">
+                                            <div>
+                                                &nbsp;&nbsp;└ <?= esc($child['title']) ?>
+                                                <code class="small text-muted ms-1"><?= esc($child['url']) ?></code>
+                                                <?= $child['is_active'] ? '' : '<span class="badge bg-secondary ms-1">비활성</span>' ?>
+                                            </div>
+                                            <div class="text-nowrap">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        onclick="fillEditForm(<?= htmlspecialchars(json_encode($child)) ?>)">수정</button>
+                                                <form method="post" action="/admin/menus/<?= $child['id'] ?>/delete" class="d-inline" onsubmit="return confirm('삭제?')">
+                                                    <?= csrf_field() ?>
+                                                    <button class="btn btn-outline-danger btn-sm">삭제</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </li>
+                <?php endforeach; ?>
+            </ul>
         </div>
     </div>
 
@@ -83,7 +114,70 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
+        integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM"
+        crossorigin="anonymous"></script>
 <script>
+const CSRF_FIELD_NAME = <?= json_encode(csrf_token()) ?>;
+let csrfHash = <?= json_encode(csrf_hash()) ?>;
+
+// regenerate=true 라 드래그 성공마다 해시가 회전한다. 페이지에 이미 렌더링된
+// 수정/삭제 폼의 csrf_field() 히든 인풋도 함께 갱신하지 않으면 다음 제출이 막힌다.
+function syncCsrfHash(newHash) {
+    if (!newHash) return;
+    csrfHash = newHash;
+    document.querySelectorAll('input[name="' + CSRF_FIELD_NAME + '"]').forEach(input => {
+        input.value = newHash;
+    });
+}
+
+async function saveMenuOrder() {
+    const ids = [];
+    document.querySelectorAll('#menuRoot > li[data-id]').forEach(li => {
+        ids.push(li.dataset.id);
+        const children = li.querySelector('.menu-children');
+        if (children) {
+            children.querySelectorAll('li[data-id]').forEach(c => ids.push(c.dataset.id));
+        }
+    });
+
+    const body = new URLSearchParams();
+    body.set(CSRF_FIELD_NAME, csrfHash);
+    ids.forEach(id => body.append('ids[]', id));
+
+    let res;
+    try {
+        res = await fetch('/admin/menus/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            credentials: 'same-origin',
+            body: body.toString(),
+        });
+    } catch (e) {
+        console.error('메뉴 순서 저장 요청 실패', e);
+        alert('순서 저장에 실패했습니다. 새로고침 후 다시 시도해주세요.');
+        return;
+    }
+
+    if (!res.ok) {
+        console.error('메뉴 순서 저장 실패', res.status);
+        alert('순서 저장에 실패했습니다. 새로고침 후 다시 시도해주세요.');
+        return;
+    }
+
+    const data = await res.json();
+    syncCsrfHash(data.csrf_hash);
+}
+
+new Sortable(document.getElementById('menuRoot'), {
+    handle: '.drag-handle',
+    animation: 150,
+    onEnd: saveMenuOrder,
+});
+document.querySelectorAll('.menu-children').forEach(el => {
+    new Sortable(el, { handle: '.drag-handle', animation: 150, onEnd: saveMenuOrder });
+});
+
 function fillEditForm(m) {
     document.getElementById('formTitle').textContent = '메뉴 수정';
     document.getElementById('menuForm').action = '/admin/menus/' + m.id + '/edit';
