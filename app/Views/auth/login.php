@@ -27,6 +27,14 @@
                     <button type="submit" class="btn btn-primary w-100">로그인</button>
                 </form>
 
+                <?php
+                $socialEnabled = [
+                    'naver'  => ($settings['oauth_naver_enabled'] ?? '1') === '1',
+                    'kakao'  => ($settings['oauth_kakao_enabled'] ?? '1') === '1',
+                    'google' => ($settings['oauth_google_enabled'] ?? '1') === '1',
+                ];
+                ?>
+                <?php if (in_array(true, $socialEnabled, true)): ?>
                 <!-- 소셜 로그인 구분선 -->
                 <div class="d-flex align-items-center my-4">
                     <hr class="flex-grow-1">
@@ -37,6 +45,7 @@
                 <!-- 소셜 로그인 버튼 -->
                 <div class="d-flex flex-column gap-2">
 
+                    <?php if ($socialEnabled['naver']): ?>
                     <!-- 네이버 -->
                     <a href="/auth/social/naver" class="btn d-flex align-items-center justify-content-center gap-2 fw-semibold"
                        style="background:#03C75A; color:#fff; border:none;">
@@ -45,7 +54,9 @@
                         </svg>
                         네이버로 로그인
                     </a>
+                    <?php endif; ?>
 
+                    <?php if ($socialEnabled['kakao']): ?>
                     <!-- 카카오 -->
                     <a href="/auth/social/kakao" class="btn d-flex align-items-center justify-content-center gap-2 fw-semibold"
                        style="background:#FEE500; color:#191919; border:none;">
@@ -54,7 +65,9 @@
                         </svg>
                         카카오로 로그인
                     </a>
+                    <?php endif; ?>
 
+                    <?php if ($socialEnabled['google']): ?>
                     <!-- 구글 -->
                     <a href="/auth/social/google" class="btn d-flex align-items-center justify-content-center gap-2 fw-semibold"
                        style="background:#fff; color:#3c4043; border:1px solid #dadce0;">
@@ -66,7 +79,9 @@
                         </svg>
                         Google로 로그인
                     </a>
+                    <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="text-center mt-4 small">
                     <a href="/auth/register" class="text-decoration-none">회원가입</a>

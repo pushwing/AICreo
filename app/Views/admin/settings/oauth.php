@@ -20,6 +20,38 @@
     아래 형식을 참고하여 설정하세요.
 </div>
 
+<!-- 제공자별 On/Off -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">로그인 화면 노출 여부</div>
+    <div class="card-body">
+        <p class="small text-muted mb-3">끄면 로그인 화면 버튼이 즉시 숨겨지고, 해당 제공자로의 로그인 요청은 차단됩니다.</p>
+        <form method="post" action="/admin/settings/oauth">
+            <?= csrf_field() ?>
+            <?php
+            $providers = [
+                'oauth_naver_enabled'  => '네이버 로그인 사용',
+                'oauth_kakao_enabled'  => '카카오 로그인 사용',
+                'oauth_google_enabled' => '구글 로그인 사용',
+            ];
+            ?>
+            <?php foreach ($providers as $key => $label): ?>
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input type="hidden" name="<?= esc($key) ?>" value="0">
+                    <input type="checkbox" class="form-check-input" role="switch"
+                           id="chk_<?= esc($key) ?>" name="<?= esc($key) ?>" value="1"
+                           <?= ($settings[$key] ?? '1') === '1' ? 'checked' : '' ?>>
+                    <label class="form-check-label small fw-semibold" for="chk_<?= esc($key) ?>"><?= esc($label) ?></label>
+                </div>
+            </div>
+            <?php endforeach; ?>
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary btn-sm px-4">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- 콜백 URL 안내 -->
 <div class="card border-0 shadow-sm mb-4">
     <div class="card-header bg-white fw-semibold">콜백(Redirect) URL</div>

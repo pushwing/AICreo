@@ -23,7 +23,7 @@ class SocialAuthController extends BaseController
      */
     public function redirect(string $provider): ResponseInterface|string
     {
-        if (! in_array($provider, OAuthFactory::supported(), true)) {
+        if (! in_array($provider, OAuthFactory::supported(), true) || ! $this->isProviderEnabled($provider)) {
             return redirect()->to('/auth/login')->with('error', '지원하지 않는 로그인 방식입니다.');
         }
 
@@ -44,6 +44,10 @@ class SocialAuthController extends BaseController
      */
     public function callback(string $provider): ResponseInterface|string
     {
+        if (! in_array($provider, OAuthFactory::supported(), true) || ! $this->isProviderEnabled($provider)) {
+            return redirect()->to('/auth/login')->with('error', '지원하지 않는 로그인 방식입니다.');
+        }
+
         $code  = $this->request->getGet('code');
         $state = $this->request->getGet('state');
         $error = $this->request->getGet('error');
@@ -99,6 +103,14 @@ class SocialAuthController extends BaseController
         $this->userModel->updateLastLogin($user['id']);
 
         return redirect()->to(session()->getTempdata('redirect_url') ?? '/');
+    }
+
+    /**
+     * 관리자 설정에서 제공자가 켜져 있는지 확인 (기본값: 사용)
+     */
+    private function isProviderEnabled(string $provider): bool
+    {
+        return ($this->viewData['settings']["oauth_{$provider}_enabled"] ?? '1') === '1';
     }
 
     /**
