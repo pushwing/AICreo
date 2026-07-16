@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 64" role="img" aria-label="AiCreo 로고">
+  <g>
+    <rect x="1" y="1" width="62" height="62" rx="14" fill="#0d6efd"/>
+    <circle cx="20.5" cy="42.5" r="3.9" fill="#ffffff"/>
+    <circle cx="43.5" cy="42.5" r="3.9" fill="#ffffff"/>
+    <circle cx="32" cy="19.4" r="4.5" fill="#ffffff"/>
+    <line x1="20.5" y1="42.5" x2="32" y2="19.4" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="43.5" y1="42.5" x2="32" y2="19.4" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="24.5" y1="35.2" x2="39.5" y2="35.2" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+  </g>
+  <text x="78" y="43" font-family="-apple-system, 'Segoe UI', Pretendard, 'Noto Sans KR', Arial, sans-serif" font-size="30" font-weight="700">
+    <tspan fill="#0d6efd">Ai</tspan><tspan fill="#1f2937">Creo</tspan>
+  </text>
+</svg>
