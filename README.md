@@ -391,6 +391,43 @@ app/Views/themes/{테마명}/components/footer.php
 
 ---
 
+## 개발 워크플로우
+
+`feature/*` 브랜치에서 시작해 `dev`를 거쳐 `main`에 배포되는 흐름입니다. 로컬 훅이 commit·push 시점에 품질 게이트를 자동 검증합니다.
+
+```mermaid
+flowchart TD
+    A["feature 브랜치 생성<br/>dev 최신화 후 분기"]
+    B["코드 작성 (TDD)<br/>테스트 먼저 작성"]
+    C["git commit<br/>pre-commit 훅 적용"]
+    D["git push<br/>pre-push 훅 검증"]
+    E["PR: feature → dev<br/>코드 리뷰 요청"]
+    F["CI 검증<br/>cs·analyse·test 통과"]
+    G["Squash merge<br/>브랜치 자동 삭제"]
+    H["PR: dev → main<br/>배포용 Merge commit"]
+    I["배포 완료<br/>main = 운영 반영"]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I
+
+    classDef local fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
+    classDef pr fill:#ccfbf1,stroke:#14b8a6,color:#134e4a;
+    classDef merge fill:#dcfce7,stroke:#22c55e,color:#14532d;
+
+    class A,B,C,D local
+    class E,F,H pr
+    class G,I merge
+```
+
+| 색상 | 단계 | 설명 |
+|------|------|------|
+| 🔵 파란색 | 로컬 개발 | feature 브랜치 생성 → TDD → commit(pre-commit 훅) → push(pre-push 훅) |
+| 🟦 청록색 | PR 진행 | 리뷰 요청, CI 검증(cs·analyse·test), 배포 PR 생성 |
+| 🟢 초록색 | 병합·배포 | Squash merge(브랜치 자동 삭제), main 배포 완료 |
+
+> 상세 규칙(Squash vs Merge commit, 문서 전용 예외, 브랜치 자동 삭제 정책)은 `~/.claude/rules/git-workflow.md` 참고.
+
+---
+
 ## License
 
 MIT
